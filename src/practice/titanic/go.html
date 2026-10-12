@@ -1,0 +1,94 @@
+<!--page
+{
+ "path": "practice/titanic/go/",
+ "title": "매직트리하우스 17권 타이타닉 장면으로 연습하는 영어 go | 영어 감각",
+ "description": "매직트리하우스(Magic Tree House) 17권 Tonight on the Titanic의 장면으로 영어 go의 감각을 연습하는 원서 읽기 문제. 고르기 다섯 문제, 쓰기 두 문제.",
+ "menu": "practice",
+ "crumbs": [
+  [
+   "연습",
+   "/practice/"
+  ],
+  [
+   "Tonight on the Titanic",
+   "/practice/titanic/"
+  ],
+  [
+   "go",
+   null
+  ]
+ ],
+ "og": "titanic"
+}
+-->
+<header class="hero">
+  <span class="eyebrow">책 장면 연습 · Magic Tree House #17</span>
+  <h1>매직트리하우스 타이타닉 장면으로 연습하는 go</h1>
+  <p class="lede">매직트리하우스 17권 <i>Tonight on the Titanic</i>을 영어 원서로 읽고 있다면, 책 속 장면 그대로 go의 감각을 연습할 수 있습니다. 장면마다 세 문장 가운데 영어 화자가 실제로 쓰는 문장을 고르고, 마지막에는 직접 써 봅니다.</p>
+  <div class="sense">
+    <p><b>go의 그림</b>기준점(말하는 사람이 있는 곳, 정상 상태)에서 멀어진다. 자세한 설명은 <a href="/go/">go의 감각</a>에 있습니다.</p>
+    <p><b>줄거리</b>장면이 낯설면 <a href="/practice/titanic/">이 책의 줄거리</a>를 먼저 읽으십시오.</p>
+  </div>
+</header>
+
+  <section aria-labelledby="quiz-h" id="quiz">
+    <div class="quiz-head">
+      <h2 id="quiz-h">장면에서 골라 보기</h2>
+      <span class="progress" id="progress"></span>
+    </div>
+    <p class="muted">책의 장면에서 그대로 가져온 문제입니다. 고르기 다섯 문제, 쓰기 두 문제입니다. 책을 읽은 뒤에 풀면 장면이 바로 떠오릅니다.</p>
+    <div id="quiz-card" class="card"></div>
+  </section>
+
+<section aria-labelledby="back-h"><h2 id="back-h">더 읽기</h2><div class="links"><a class="link-card" href="/go/"><span class="t">go의 감각</span><span class="s">쓰임 그림, 헷갈리는 곳, 실제로 걸렸던 곳</span></a><a class="link-card" href="/practice/titanic/"><span class="t">이 책으로 연습할 다른 표제어</span><span class="s">Tonight on the Titanic</span></a></div></section>
+
+<p class="note">장면과 짧은 인용은 Mary Pope Osborne, <i>Magic Tree House #17: Tonight on the Titanic</i>에서 빌렸습니다. 문제의 오답 선택지와 설명은 학습용으로 새로 썼습니다.</p>
+
+<script src="/assets/quiz.js"></script>
+<script>
+const Q = [
+  { type: "choose", ch: 9, scene: "타이타닉 앞쪽이 바다로 더 깊이 가라앉는다. 갑자기 배의 불빛이 모두 꺼지고 사방이 깜깜해진다.", who: "서술자", ask: "불빛에 일어난 일을 가장 영어답게 말한 것은?",
+    opts: [
+      { t: "Suddenly the lights on the Titanic were off.", k: "ko", why: "'꺼졌다'를 꺼진 모습으로 옮겼습니다. were off는 불이 꺼진 채 놓여 있다는 사진이라, Suddenly가 가리키는 순간의 움직임이 빠집니다." },
+      { t: "Suddenly the lights on the Titanic went out.", k: "en", why: "불빛이 있던 자리에서 멀어져 나가 버립니다(go + out). 갑자기 불이 나가는 순간이 그대로 보입니다." },
+      { t: "Suddenly the lights on the Titanic were extinguished.", k: "la", why: "extinguish는 '불을 끄다'입니다. 정전에도 쓸 수는 있지만 격식 있는 말이라, 불이 확 나가는 순간의 긴박함이 덜합니다." }
+    ], feel: "켜져 있던 것이 정상에서 벗어나 나가 버리면 went out입니다. 침몰하는 배에서는 일이 나쁜 쪽으로 간다는 느낌도 함께 실립니다." },
+  { type: "choose", ch: 4, scene: "큰 계단 꼭대기의 시계가 12시 20분이다. 잭은 배가 2시 20분에 가라앉는다는 것을 안다.", who: "잭", ask: "'배가 두 시간 뒤에 가라앉아'를 가장 영어답게 말한 것은?",
+    opts: [
+      { t: "The ship's going down in two hours.", k: "en", why: "일이 이미 그쪽으로 움직이고 있다는 말입니다. 배는 빙산에 부딪혔고, 가라앉는 일은 벌써 시작됐습니다." },
+      { t: "After two hours the ship becomes sunken.", k: "ko", why: "'가라앉게 된다'를 becomes sunken으로 옮겼습니다. 가라앉은 모습이 된다는 말이라 배가 내려가는 움직임이 보이지 않습니다." },
+      { t: "The ship will submerge in two hours.", k: "la", why: "submerge는 '물속에 잠기다'입니다. 잠수함 설명서의 결입니다. will로 말해도 틀리지 않지만, 앞일을 내다보는 말이라 이미 기울기 시작한 배 위의 다급함이 덜합니다." }
+    ], feel: "will은 앞일을 내다보는 말이고, is going down은 일이 이미 그쪽으로 가는 중이라는 말입니다. 잭은 배가 가라앉고 있다는 것을 압니다." },
+  { type: "choose", ch: 7, scene: "루시가 구명보트에 오르며 잭과 애니가 함께 가지 않느냐고 묻는다. 애니는 다른 길로 집에 간다고 답한다.", who: "애니", ask: "'아니, 우리는 다른 길로 집에 가'를 가장 영어답게 말한 것은?",
+    opts: [
+      { t: "No, we're returning home by an alternate route.", k: "la", why: "return과 alternate route는 안내 방송의 결입니다. 구명보트 앞에서 친구에게 하는 말로는 딱딱합니다." },
+      { t: "No, we're going home another way.", k: "en", why: "지금 이 배를 떠나 집 쪽으로 가는 중입니다. home은 그 자체로 가는 곳이라 to를 붙이지 않습니다." },
+      { t: "No, we go to home by other road.", k: "ko", why: "'집에 가'를 go to home으로, '다른 길'을 other road로 옮겼습니다. we go는 늘 그렇게 간다는 일반 사실로 들려, 지금 떠나는 장면과 맞지 않습니다." }
+    ], feel: "잭과 애니가 이 배라는 자리에서 멀어져 집 쪽으로 갑니다. 지금 이 자리를 떠나려는 참이니 we're going입니다." },
+  { type: "choose", ch: 4, scene: "1등실 복도에서 승무원이 문을 두드리며 구명조끼를 입으라고 외친다. 잠옷 차림의 부인이 방에서 나온다.", who: "부인", ask: "'무슨 일이에요?'를 가장 영어답게 물은 것은?",
+    opts: [
+      { t: "What's going on?", k: "en", why: "지금 끊기지 않고 이어지는(go on) 일이 무엇인지 묻습니다. 영문 모를 소란 속에서 가장 먼저 나오는 말입니다." },
+      { t: "What is occurring?", k: "la", why: "occur는 '발생하다'입니다. 사건 보고서의 결이라 잠옷 바람으로 나온 사람의 말로는 차분합니다." },
+      { t: "What work is happening?", k: "ko", why: "'무슨 일'의 '일'을 work로 옮겼습니다. work는 노동, 업무로 들려 무슨 작업을 하느냐는 말이 됩니다." }
+    ], feel: "go on은 일이 앞으로 이어져 나가는 것입니다. What's going on?은 지금 이어지고 있는 일을 묻습니다." },
+  { type: "choose", ch: 10, scene: "나무 집에서 애니가 일어선다. 숨을 깊이 들이쉬고 이제 떠날 수 있다고 말한다.", who: "애니", ask: "'갈 준비 됐어'를 가장 영어답게 말한 것은?",
+    opts: [
+      { t: "My preparation to go is finished.", k: "ko", why: "'준비가 다 됐다'를 명사로 옮겼습니다. 준비가 주어가 되어 작업 보고처럼 들립니다." },
+      { t: "I'm prepared to depart.", k: "la", why: "depart는 '출발하다'입니다. 공항 안내판의 결이라 오빠에게 하는 말로는 무겁습니다." },
+      { t: "I'm ready to go.", k: "en", why: "준비된 모습(ready)이 go를 향해 있습니다(to). 여기서 멀어질 채비가 됐다는 말입니다." }
+    ], feel: "애니가 이 나무 집이라는 자리에서 멀어질 채비가 됐습니다. 떠날 때 가장 흔히 하는 말입니다." },
+  { type: "produce", ch: 1, scene: "비 오는 밤, 잭과 애니가 나무 집 아래에 왔다. 잭이 모건을 불러도 대답이 없다.", who: "잭", ask: "나무 집으로 올라가 보자고 go로 한 문장에 써 보십시오.",
+    answer: "Let's go up and see.", book: "Let's go up and see.",
+    fixes: [
+      ["go to the tree house → go up", "두 사람은 나무 집 바로 아래에 서 있습니다. 가는 쪽(up)을 go 뒤에 붙이면 사다리를 오르는 그림이 됩니다. Let's go up to the tree house도 됩니다."],
+      ["and see", "올라가서 무엇이 있는지 보자는 뜻을 짧게 붙입니다."]
+    ] },
+  { type: "produce", ch: 4, scene: "3등실 복도의 선실들이 모두 비어 있다. 잭은 더 아래 갑판으로 가 봐야 하나 생각한다.", who: "잭", ask: "더 아래 갑판으로 내려가 보자고 go로 한 문장에 써 보십시오.",
+    answer: "Maybe we should go down to a lower deck.", book: "Maybe we should go down to a lower deck.",
+    fixes: [
+      ["go down floor → go down to a lower deck", "down은 가는 쪽, to는 닿는 곳을 잇습니다. 배의 층은 floor가 아니라 deck입니다."],
+      ["We might go → Maybe we should go", "We might go down도 됩니다. might는 그럴 수도 있다는 가능성 쪽이고, maybe ... should는 가야겠다고 판단하는 쪽에 더 가깝습니다."]
+    ] }
+];
+initQuiz({ questions: Q, book: "17권", done: "go의 그림은 하나입니다. 기준점에서 멀어지는 움직임." });
+</script>

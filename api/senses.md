@@ -18,8 +18,8 @@
 | 표제어 | 이미지 | 뉘앙스 | 예시 |
 | --- | --- | --- | --- |
 | get | 없던 것이 내 쪽으로 들어오거나, 내가 어떤 곳이나 상태에 닿아 들어선다 | 바뀌고 움직인다. 가볍다 | Get in the car. It's getting better. / Enter the car. |
-| go | 기준점(대개 말하는 사람이 있는 곳)이 아닌 쪽으로 간다 | 멀어진다. 정상에서 벗어나 나쁜 쪽으로 간다 | The milk went bad. / The milk came bad. |
-| come | 기준점(말하는 사람, 듣는 사람, 그들의 집)으로 다가온다 | 다가온다. 좋은 쪽, 제자리로 돌아온다 | I'm coming! (부르는 사람에게) / I'm going! |
+| go | 기준점(말하는 사람이 있는 곳, 정상 상태)에서 멀어진다. 일이 go하면 앞으로 이어져 나간다 | 멀어진다. 좋고 나쁨은 기준점과 뒤의 말이 정한다. 정상에서 멀어지면 나빠진다 | The milk went bad. It went well. / The milk came bad. |
+| come | 기준점(말하는 사람, 듣는 사람, 그들의 집, 있어야 할 상태)으로 다가와 닿는다 | 다가온다. 있어야 할 곳에 다다라 좋은 쪽, 제자리가 된다 | I'm coming! (부르는 사람에게) The dream came true. / I'm going! The dream went true. |
 | put | 손으로 옮겨 어떤 자리에 놓는다 | 내가 자리를 정해 툭 놓는다 | Put it on the table. / Place it on the table. |
 | take | 손을 뻗어 무언가를 잡아 내 몸 쪽으로 가져온다 | 내가 나서서 집어 든다 | Take a look. Take a shower. / Do a shower. |
 | set | 물건을 제자리에 맞게 앉혀 놓는다. 자리 잡은 것은 거기서부터 작동하거나 길을 나선다 | 자리가 잡히고 무언가가 시작된다 | We set out at dawn. / We departed at dawn. |

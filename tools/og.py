@@ -17,8 +17,9 @@ CARDS = {
     "have": ("영어 감각 · 기본동사", "have", "내 영역 안에 놓여 있다", True),
     "get": ("영어 감각 · 기본동사", "get", "경계를 넘어 들어선다", True),
     "be": ("영어 감각 · 기본동사", "be", "이미 거기 놓여 있다", True),
+    "go": ("영어 감각 · 기본동사", "go", "기준점에서 멀어진다", True),
     "ask": ("영어 감각", "영어 문장 감각 해설기", "영어 문장을 넣으면 그림으로 풀어 드립니다", False),
-    "titanic": ("영어 감각 · 책 장면 연습", "Tonight on the Titanic", "매직트리하우스 17권 장면으로 연습하는 have, get, be", True),
+    "titanic": ("영어 감각 · 책 장면 연습", "Tonight on the Titanic", "매직트리하우스 17권 장면으로 연습하는 have, get, be, go", True),
 }
 FONTS = "https://fonts.googleapis.com/css2?family=Hahmlet:wght@700;800&family=IBM+Plex+Sans+KR:wght@500;600&family=Newsreader:opsz,wght@6..72,500&display=block"
 
