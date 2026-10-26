@@ -43,7 +43,7 @@
 | 웹앱 기능을 기획하거나 사용자에게 보이는 행동을 바꾸기 전에 작업 계약을 만든다 | `.claude/skills/web-app-planning/SKILL.md`와 머리표의 배경 모델. 이미 승인한 범위는 다시 묻지 않는다 |
 | 승인한 웹 기능을 구현·수정하거나 API·저장·외부 연동·배포 경계를 바꾼다 | `.claude/skills/web-app-implementation/SKILL.md`와 머리표의 배경 모델 |
 | 웹앱에서 사용자 과업과 품질·완료 근거를 판단한다 | `knowledge/domain/web-app-production.md` |
-| 앱의 정보구조·사용자 흐름·화면·시각 체계를 설계하거나 처음부터 다시 만든다 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`와 `.claude/skills/web-app-planning/SKILL.md`. 현재 학습 작업 공간의 검증은 `docs/tasks/learning-workspace.md`, 이전 시안은 `docs/tasks/ux-redesign.md`에서 읽는다 |
+| 앱의 정보구조·사용자 흐름·화면·시각 체계를 설계하거나 처음부터 다시 만든다 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`와 `.claude/skills/web-app-planning/SKILL.md`. 현재 퀴즈 아티팩트의 검증·모델 판단은 `docs/tasks/quiz-artifacts.md`, 이전 단일 문제는 `docs/tasks/learning-workspace.md`, 이전 시안은 `docs/tasks/ux-redesign.md`에서 읽는다 |
 | 책임·상태·데이터·API·권한·실패의 경계를 설계하거나 바꾼다 | `knowledge/domain/web-app-architecture.md`. 실제 구조는 `docs/architecture.md` |
 | Next.js의 경로·컴포넌트·렌더링·데이터 변경·캐시를 고른다 | `knowledge/domain/nextjs-development.md`. 설치 버전과 설정을 함께 확인한다 |
 | Next.js 실행, Cloudflare 배포, 환경 설정을 바꾼다 | `README.md`. 실제 설정과 명령을 함께 확인한다 |

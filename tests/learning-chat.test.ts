@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isLearningChatRequest, isLearningChatResponse, learningChatLimits, type LearningChatError, type LearningChatRequest } from "../lib/learning-chat-contract";
+import { isArtifactLearningChatRequest, isArtifactLearningChatResponse, isLearningChatRequest, isLearningChatResponse, learningChatLimits, type ArtifactLearningChatRequest, type LearningChatError, type LearningChatRequest } from "../lib/learning-chat-contract";
+import { ARTIFACT_LESSON_ID, LEARNING_QUESTION_IDS, LEGACY_HAVE_CONTENT_VERSION } from "../lib/learning-catalog";
+import { getServerLearningQuestion } from "../lib/server/learning-catalog";
 import { handleLearningChat } from "../lib/server/learning-chat";
 import type { ApiEnv } from "../lib/server/api";
 
@@ -236,4 +238,85 @@ test("already aborted input never consumes quota or calls provider", async () =>
   assert.equal((await handleLearningChat(request(input, {}, controller.signal), fixture.env, { fetch: fixture.fetcher })).status, 499);
   assert.equal(fixture.quotaRequests.length, 0);
   assert.equal(fixture.providerRequests.length, 0);
+});
+
+function artifactInput(overrides: Partial<ArtifactLearningChatRequest> = {}): ArtifactLearningChatRequest {
+  return { ...input, lessonId: ARTIFACT_LESSON_ID, questionId: "titanic-have-1", contentVersion: LEGACY_HAVE_CONTENT_VERSION, artifactId: "artifact-1", initialAttempt: { kind: "choose", ...input.initialAttempt! }, ...overrides };
+}
+
+test("all seven artifact targets send only their own authoritative question and echo target identities", async () => {
+  for (const [index, questionId] of LEARNING_QUESTION_IDS.entries()) {
+    const fixture = setup();
+    const target = await getServerLearningQuestion(questionId);
+    const initialAttempt = target.question.type === "choose" ? { kind: "choose" as const, choice: 0, reason: "이렇게 들립니다." } : { kind: "produce" as const, text: "He has white bread and a uniform on." };
+    const value = artifactInput({ questionId, initialAttempt, artifactId: `artifact-${index + 1}`, requestId: `request-${index + 1}` });
+    const response = await handleLearningChat(request(value), fixture.env, { fetch: fixture.fetcher });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.ok(isArtifactLearningChatResponse(body));
+    assert.equal(body.questionId, questionId);
+    assert.equal(body.artifactId, value.artifactId);
+    assert.equal(body.contentVersion, value.contentVersion);
+    assert.equal(body.requestId, value.requestId);
+    const providerBody = JSON.parse(fixture.providerRequests[0].body as string);
+    const context = JSON.parse(providerBody.system[0].text.split("서버에서 조회한 현재 수업 자료:\n")[1]);
+    assert.deepEqual(context, target.context);
+    assert.ok(typeof context.source === "string");
+    assert.match(context.source, new RegExp(`chapter ${target.question.ch}$`));
+    assert.equal(context.questionId, questionId);
+    assert.equal("options" in context, target.question.type === "choose");
+    assert.equal("modelAnswer" in context, target.question.type === "produce");
+    assert.deepEqual(JSON.parse(providerBody.messages[0].content).untrustedLearningContext.initialAttempt, initialAttempt);
+    assert.equal(fixture.quotaRequests.length, 1);
+  }
+});
+
+test("unknown targets, outdated versions and incompatible answer types are rejected before all costs", async () => {
+  const fixture = setup();
+  const invalid = [
+    { value: artifactInput({ contentVersion: "0".repeat(64) }), status: 409 },
+    { value: artifactInput({ initialAttempt: null, revisions: [], contentVersion: "0".repeat(64) }), status: 409 },
+    { value: { ...artifactInput(), questionId: "titanic-have-8" }, status: 400 },
+    { value: artifactInput({ questionId: "titanic-have-6" }), status: 400 },
+    { value: artifactInput({ initialAttempt: { kind: "produce", text: "My sentence." } }), status: 400 },
+    { value: artifactInput({ initialAttempt: { kind: "produce", text: " " } }), status: 400 },
+    { value: artifactInput({ initialAttempt: { kind: "produce", text: "x".repeat(2001) } }), status: 400 },
+    { value: artifactInput({ initialAttempt: { kind: "choose", choice: 3, reason: "x" } }), status: 400 },
+    { value: { ...artifactInput(), initialAttempt: { kind: "choose", choice: 0, reason: "x", modelAnswer: "fake" } }, status: 400 },
+    { value: { ...artifactInput(), scene: "override server scene" }, status: 400 },
+    { value: artifactInput({ artifactId: "" }), status: 400 },
+  ];
+  for (const { value, status } of invalid) {
+    const response = await handleLearningChat(request(value), fixture.env, { fetch: fixture.fetcher });
+    assert.equal(response.status, status);
+    if (status === 409) assert.equal((await response.json() as LearningChatError).error.code, "content_changed");
+  }
+  assert.equal(fixture.quotaRequests.length, 0);
+  assert.equal(fixture.providerRequests.length, 0);
+});
+
+test("produce readiness guidance is free and does not ask the learner to choose an option", async () => {
+  const fixture = setup();
+  const value = artifactInput({ questionId: "titanic-have-6", initialAttempt: null, revisions: [] });
+  const response = await handleLearningChat(request(value), {}, { fetch: fixture.fetcher });
+  const output = await response.json();
+  assert.ok(isArtifactLearningChatResponse(output));
+  assert.equal(output.mode, "guidance");
+  assert.match(output.reply, /직접 쓴 영어 문장을 제출/);
+  assert.ok(!output.reply.includes("white beard"));
+  assert.equal(fixture.quotaRequests.length, 0);
+  assert.equal(fixture.providerRequests.length, 0);
+});
+
+test("artifact and legacy contract validators retain distinct response shapes", () => {
+  assert.equal(isArtifactLearningChatRequest(artifactInput()), true);
+  assert.equal(isArtifactLearningChatRequest(input), false);
+  assert.equal(isLearningChatRequest(artifactInput()), false);
+  const output = { requestId: "r", artifactId: "a", questionId: "titanic-have-1", contentVersion: LEGACY_HAVE_CONTENT_VERSION, reply: "답변입니다.", mode: "ai" };
+  assert.equal(isArtifactLearningChatResponse(output), true);
+  assert.equal(isLearningChatResponse(output), false);
+  assert.equal(isArtifactLearningChatResponse({ ...output, questionId: "unknown" }), false);
+  assert.equal(isArtifactLearningChatResponse({ ...output, contentVersion: "bad" }), false);
+  assert.equal(isArtifactLearningChatResponse({ ...output, extra: "unexpected" }), false);
+  assert.equal(isLearningChatResponse({ requestId: "r", reply: "답변입니다.", mode: "ai" }), true);
 });

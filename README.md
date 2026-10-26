@@ -3,8 +3,9 @@
 터미널에서 진행하던 영어 학습을 웹에서 편리하게 이어 가도록 만드는 서비스다. 기본동사의 감각을 읽고,
 원서 장면의 표현을 고르거나 쓰며, AI 해설로 문장이 그리는 그림을 살핀다.
 
-기본 화면은 상단에 고정한 표현 감각 자료와 그 아래에 차례로 쌓이는 하나의 학습 대화다. 기존 have 책 장면 한 문제에서
-처음 답·이유를 제출하고 수정하며, 같은 맥락으로 질문을 이어 간다. 수행·대화는 같은 브라우저에 임시 보관한다.
+기본 화면은 상단에 고정한 표현 감각 자료와 그 아래에 퀴즈 아티팩트가 차례로 쌓이는 학습 대화다.
+기존 have 책 장면 일곱 문항을 고르기·쓰기로 풀고, 카드별 처음 답·수정·질답을 유지한다.
+입력창의 질문 대상을 바꾸어 과거 카드와도 대화를 이어 간다. 수행·대화는 같은 브라우저에 임시 보관한다.
 개인 서버 저장·인증·다른 기기 동기화는 아직 없다. 제출 전에는 준비된 과업 안내를, 제출 후에는 실제 AI 응답을 제공한다.
 
 운영 주소는 https://english.artificialmind.kr/ 이다. Next.js App Router와 React로 화면을 만들고,
@@ -38,6 +39,8 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | `content/pages.json` | 공개 페이지의 본문, 메타데이터, 문제와 쓰임 그림 데이터 |
 | `content/ask.json` | 해설기 예시 문장과 예시 해설 |
 | `lib/content.ts` | 콘텐츠 타입과 페이지 조회 |
+| `lib/learning-catalog.ts`, `lib/server/learning-catalog.ts` | 공개 문항 타입과 서버 정본 조회·자료 판·안전한 공개 필드 변환 |
+| `lib/learning-workspace-state.ts` | 카드별 수행·전체 사건·임시 기록 검사와 이전 버전 이관 |
 | `lib/server/` | Claude 요청, 감각 사전, 응답 검증과 일일 요청 제한 |
 | `worker.ts` | OpenNext 요청 처리와 Durable Object 내보내기 |
 | `public/assets/` | 아이콘·공유 이미지와 표현의 감각 이미지 |
@@ -58,7 +61,8 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | `POST /api/explain/` | 영어 문장을 감각으로 해설한다 |
 | `POST /api/translate/` | 한국어를 영어로 옮기고 감각으로 해설한다 |
 
-POST 본문은 `{"text":"I don't get it."}` 같은 JSON이고, 빈 문장을 제외한 300자까지 받는다.
+단문 해설·변환 POST 본문은 `{"text":"I don't get it."}` 같은 JSON이고, 빈 문장을 제외한 300자까지 받는다.
+학습 대화는 문항·자료 판·아티팩트·최초 답·수정·이전 질답을 보내는 별도 계약이며 같은 300자 제한을 쓰지 않는다.
 브라우저는 같은 도메인의 API를 부른다. 키와 감각 사전 지시문은 서버에서만 쓴다.
 기존 감각 사전과 해설 형식, 기본 모델 Claude Sonnet 5.5를 옮겼다.
 
@@ -108,6 +112,6 @@ npm run deploy
 규칙은 모델이, 수행 순서는 스킬이 소유한다. 현재 선택한 구조는 [아키텍처 문서](docs/architecture.md)에 있다.
 
 현재 [디자인](docs/ux-design.md)은 실제 Next.js 기본 학습 화면과 AI 대화로 연결했다. 확인한 경로와 남은 한계는
-[작업 계약](docs/tasks/learning-workspace.md)에 있다. [이전 시안](design/prototype/index.html)은 소개 중심 첫 제안으로 남겨 둔다.
+[작업 계약과 모델 평가](docs/tasks/quiz-artifacts.md)에 있다. [이전 시안](design/prototype/index.html)은 소개 중심 첫 제안으로 남겨 둔다.
 
 개인별 답·피드백·진도의 저장과 이어 하기는 아직 구현하지 않았다. 이번 변경은 기존 기능과 이후 개발의 실행 기반을 옮긴 것이다.

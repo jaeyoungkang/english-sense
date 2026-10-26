@@ -1,8 +1,10 @@
-import pageData from "../../content/pages.json";
 import prompt from "./prompt.json";
-import type { ContentPage, QuizContent } from "../content";
 import { ApiError, checkOrigin, takeQuota, type ApiEnv, type Dependencies } from "./api";
-import { isLearningChatRequest, learningChatLimits, type LearningChatErrorCode, type LearningChatRequest, type LearningChatResponse } from "../learning-chat-contract";
+import { getServerLearningQuestion } from "./learning-catalog";
+import { LEARNING_QUESTION_IDS, LEGACY_HAVE_CONTENT_VERSION } from "../learning-catalog";
+import { isArtifactLearningChatRequest, isLearningChatRequest, learningChatLimits, type ArtifactLearningChatRequest, type ArtifactLearningChatResponse, type LearningChatErrorCode, type LearningChatRequest, type LearningChatResponse } from "../learning-chat-contract";
+
+type ChatInput = LearningChatRequest | ArtifactLearningChatRequest;
 
 const unavailable = "AI 대화가 아직 준비되지 않았습니다. 작성한 질문은 그대로 두고 잠시 뒤 다시 시도해 주세요.";
 const failed = "AI 답변을 받지 못했습니다. 작성한 질문을 확인하고 다시 보내 주세요.";
@@ -43,7 +45,7 @@ async function boundedText(body: ReadableStream<Uint8Array> | null, limit: numbe
   }
 }
 
-async function readInput(request: Request): Promise<LearningChatRequest> {
+async function readInput(request: Request): Promise<ChatInput> {
   if (request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") throw new ChatError(415, "invalid_request", "질문은 JSON 형식으로 보내 주세요.");
   const length = request.headers.get("content-length");
   if (length !== null && Number(length) > learningChatLimits.bodyBytes) throw new ChatError(413, "invalid_request", "대화 내용이 너무 깁니다. 이전 대화를 줄이고 다시 보내 주세요.");
@@ -54,29 +56,16 @@ async function readInput(request: Request): Promise<LearningChatRequest> {
     if (error instanceof Error && error.message === "body_limit") throw new ChatError(413, "invalid_request", "대화 내용이 너무 깁니다. 이전 대화를 줄이고 다시 보내 주세요.");
     throw new ChatError(400, "invalid_request", "질문 형식을 읽지 못했습니다. 다시 보내 주세요.");
   }
-  if (!isLearningChatRequest(input)) throw new ChatError(400, "invalid_request", "질문과 학습 맥락을 확인해 주세요. 질문은 2,000자 이내로 써 주세요.");
+  if (!isLearningChatRequest(input) && !isArtifactLearningChatRequest(input)) throw new ChatError(400, "invalid_request", "질문과 학습 맥락을 확인해 주세요. 질문은 2,000자 이내로 써 주세요.");
   return input;
 }
 
-/** The browser supplies only a lesson ID; explanations and options come from server content. */
-function lessonContext(): Record<string, unknown> {
-  const page = (pageData as ContentPage[]).find((page) => page.path === "practice/titanic/have/");
-  const quiz = page?.parts.find((part): part is QuizContent => part.kind === "quiz");
-  if (!quiz) throw new ChatError(503, "unavailable", unavailable);
-  const question = quiz.questions?.[0];
-  if (!question || question.type !== "choose" || !("opts" in question) || !("feel" in question)) throw new ChatError(503, "unavailable", unavailable);
-  return {
-    lessonId: "titanic-have-1",
-    source: "Mary Pope Osborne, Magic Tree House #17: Tonight on the Titanic, chapter 5",
-    scene: question.scene,
-    speaker: question.who,
-    question: question.ask,
-    options: question.opts,
-    explanation: question.feel,
-  };
+function reply(input: ChatInput, text: string, mode: "guidance" | "ai"): LearningChatResponse | ArtifactLearningChatResponse {
+  const response = { requestId: input.requestId, reply: text, mode };
+  return "artifactId" in input ? { ...response, artifactId: input.artifactId, questionId: input.questionId, contentVersion: input.contentVersion } : response;
 }
 
-function systemPrompt(): string {
+function systemPrompt(context: Record<string, unknown>): string {
   const dictionary = prompt.rules.slice(prompt.rules.indexOf("감각 사전\n"));
   return `당신은 강PD가 영어 책 장면을 배우며 대화하는 튜터입니다. 터미널에서 이어 묻듯 현재 장면과 처음 답, 선택한 까닭, 수정과 직전 대화를 함께 읽고 새 질문에 답합니다.
 한국어 합니다체로 짧고 구체적으로 설명합니다. 장면과 사람에게 떠오르는 그림, 말의 거리와 자연스러움으로 설명하고 필요하면 짧은 영어 예시를 보여 줍니다. AI의 해설은 확정된 학습 기록이나 숙달 판정이 아닙니다. 사용자가 실제로 하지 않은 행동을 지어내지 않습니다.
@@ -87,10 +76,10 @@ function systemPrompt(): string {
 ${dictionary}
 
 서버에서 조회한 현재 수업 자료:
-${JSON.stringify(lessonContext())}`;
+${JSON.stringify(context)}`;
 }
 
-async function ask(input: LearningChatRequest, request: Request, env: ApiEnv, dependencies: Dependencies): Promise<string> {
+async function ask(input: ChatInput, context: Record<string, unknown>, request: Request, env: ApiEnv, dependencies: Dependencies): Promise<string> {
   const controller = new AbortController();
   let timedOut = false;
   const onAbort = () => controller.abort();
@@ -106,7 +95,7 @@ async function ask(input: LearningChatRequest, request: Request, env: ApiEnv, de
       body: JSON.stringify({
         model: env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
         max_tokens: 2000,
-        system: [{ type: "text", text: systemPrompt(), cache_control: { type: "ephemeral" } }],
+        system: [{ type: "text", text: systemPrompt(context), cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: JSON.stringify({
           untrustedLearningContext: { initialAttempt: input.initialAttempt, revisions: input.revisions, conversation: input.messages },
           newQuestion: input.message.trim(),
@@ -142,13 +131,18 @@ export async function handleLearningChat(request: Request, env: ApiEnv, dependen
     checkOrigin(request);
     const input = await readInput(request);
     if (request.signal.aborted) throw new ChatError(499, "cancelled", "대화 요청을 중단했습니다.");
+    const target = await getServerLearningQuestion("questionId" in input ? input.questionId : LEARNING_QUESTION_IDS[0]);
+    if (("contentVersion" in input ? input.contentVersion : LEGACY_HAVE_CONTENT_VERSION) !== target.contentVersion) throw new ChatError(409, "content_changed", "학습 자료가 바뀌었습니다. 이전 답은 보존하고 현재 자료로 새 문제를 열어 주세요.");
+    if (input.initialAttempt !== null) {
+      const kind = "kind" in input.initialAttempt ? input.initialAttempt.kind : "choose";
+      if (kind !== target.question.type) throw new ChatError(400, "invalid_request", "문제의 답 형식과 제출한 답이 맞지 않습니다.");
+      if ("choice" in input.initialAttempt && (target.question.type !== "choose" || input.initialAttempt.choice >= target.question.opts.length)) throw new ChatError(400, "invalid_request", "문제의 선택지를 확인해 주세요.");
+    }
     // No solution is sent to a model before an initial attempt. This path is free and deterministic.
-    if (input.initialAttempt === null) return json({ requestId: input.requestId, reply: guidance, mode: "guidance" } satisfies LearningChatResponse);
+    if (input.initialAttempt === null) return json(reply(input, target.question.type === "produce" ? guidance.replace("문장 하나와 고른 이유를 제출", "직접 쓴 영어 문장을 제출") : guidance, "guidance"));
     if (!env.ANTHROPIC_API_KEY?.trim() || typeof env.QUOTA_LIMITER?.idFromName !== "function" || typeof env.QUOTA_LIMITER?.get !== "function") throw new ChatError(503, "unavailable", unavailable);
-    // Resolve the authoritative lesson before consuming quota or contacting the provider.
-    lessonContext();
     await takeQuota(request, env, dependencies);
-    return json({ requestId: input.requestId, reply: await ask(input, request, env, dependencies), mode: "ai" } satisfies LearningChatResponse);
+    return json(reply(input, await ask(input, target.context, request, env, dependencies), "ai"));
   } catch (error) {
     const mapped = error instanceof ChatError ? error
       : error instanceof ApiError ? new ChatError(error.status, error.status === 403 ? "origin_forbidden" : error.status === 429 ? "quota_exceeded" : "unavailable", error.message)
