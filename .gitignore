@@ -6,3 +6,16 @@ __pycache__/
 .env.*
 *.env
 !.env.example
+
+# Next.js / Cloudflare
+node_modules/
+.next/
+.open-next/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.tsbuildinfo
+.DS_Store
+playwright-report/
+test-results/

@@ -1,0 +1,48 @@
+{
+  "sample": {
+    "english": "We don't have much time.",
+    "korean": "우리 시간이 별로 없어.",
+    "picture": "말하는 사람이 '우리'를 주어로 두고, 우리 영역 안을 들여다봅니다. 그 안에 남은 시간이 얼마 없습니다. 모자란 것이 우리 일이 되니 말은 곧바로 '그러니 움직이자'로 이어집니다.",
+    "headwords": [
+      {
+        "word": "have",
+        "in_sentence": "don't have much time",
+        "image": "우리가 자기 영역을 두고, 그 안에 시간이 놓여 있다. 그런데 그 양이 얼마 없다.",
+        "nuance": "담담하게 지니고 있다. 사람이 주어라 문제가 그 사람 것으로 들린다."
+      }
+    ],
+    "contrasts": [
+      {
+        "kind": "영어식",
+        "text": "We don't have much time.",
+        "note": "사람이 주어라 가깝고 다급하다."
+      },
+      {
+        "kind": "한국어식 직역",
+        "text": "There is not much time to us.",
+        "note": "to us가 시간이 우리 쪽으로 건너오는 그림이 되어 귀에 걸린다."
+      },
+      {
+        "kind": "라틴어 계열",
+        "text": "Our time is limited.",
+        "note": "시간이 주어라 안내 방송처럼 한 발 떨어져 들린다."
+      }
+    ],
+    "alternatives": [],
+    "note": "시간, 느낌을 주어로 삼는 한국어 습관을 그대로 옮기면 거리가 생깁니다. 사람을 주어로 두고 have로 말해 보십시오."
+  },
+  "examples": {
+    "explain": [
+      "I don't get it.",
+      "We ran out of milk.",
+      "Something important is about to happen.",
+      "Hold on a second."
+    ],
+    "translate": [
+      "시간이 별로 없어.",
+      "우리 1912년에 와 있어.",
+      "그 말이 이해가 안 돼.",
+      "불 좀 꺼 줄래?"
+    ]
+  }
+}
