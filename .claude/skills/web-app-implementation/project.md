@@ -6,7 +6,7 @@
 | --- | --- |
 | 승인한 제품 동작과 아직 만들지 않은 범위 | `docs/learning-service.md`, 현재 작업 이슈 |
 | 현재 요청 순서, 상태·규칙의 담당 위치와 의존 경계 | `docs/architecture.md` |
-| UX 판단과 현재 학습 작업 공간의 경계 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`, `docs/tasks/quiz-artifacts.md`와 이전 `docs/tasks/learning-workspace.md` |
+| UX 판단과 현재 학습 작업 공간의 경계 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`, `docs/tasks/document-workspace.md`, `docs/tasks/quiz-artifacts.md`와 이전 `docs/tasks/learning-workspace.md` |
 | 실행 환경과 운영 전환 | `README.md`, `docs/cloudflare-migration.md` |
 | 실제 명령과 배포 설정 | `package.json`, `playwright.config.ts`, `next.config.ts`, `wrangler.jsonc`, `open-next.config.ts` |
 

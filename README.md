@@ -3,7 +3,8 @@
 터미널에서 진행하던 영어 학습을 웹에서 편리하게 이어 가도록 만드는 서비스다. 기본동사의 감각을 읽고,
 원서 장면의 표현을 고르거나 쓰며, AI 해설로 문장이 그리는 그림을 살핀다.
 
-기본 화면은 상단에 고정한 표현 감각 자료와 그 아래에 퀴즈 아티팩트가 차례로 쌓이는 학습 대화다.
+기본 화면은 감각 자료·퀴즈·풀이·AI 대화가 쌓이는 학습 문서다. 실제 추가한 자료와 퀴즈에서 목차가 생기고,
+상단 자료 스택에서는 최근 추가한 감각 자료를 펼친다. have·get·be·go 설명을 문서에 추가해 읽는다.
 기존 have 책 장면 일곱 문항을 고르기·쓰기로 풀고, 카드별 처음 답·수정·질답을 유지한다.
 입력창의 질문 대상을 바꾸어 과거 카드와도 대화를 이어 간다. 수행·대화는 같은 브라우저에 임시 보관한다.
 개인 서버 저장·인증·다른 기기 동기화는 아직 없다. 제출 전에는 준비된 과업 안내를, 제출 후에는 실제 AI 응답을 제공한다.
@@ -34,7 +35,9 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | --- | --- |
 | `app/` | App Router 페이지, API 경로, 메타데이터와 전역 스타일 |
 | `components/` | 쓰임 그림 전환, 문제 풀이, AI 해설을 처리하는 React 컴포넌트 |
-| `components/learning-workspace.tsx`, `app/workspace.css` | 고정 감각 자료·순차 학습 대화·브라우저 임시 복원 |
+| `components/learning-workspace.tsx`, `app/workspace.css` | 학습 문서·목차·자료 스택·대화·브라우저 임시 복원 |
+| `lib/document-workspace-state.ts` | 학습 기록과 분리한 자료 추가·펼침·목차 UI 상태 |
+| `lib/reference-materials.ts`, `lib/server/reference-materials.ts` | 기존 공개 감각 자료의 안전한 전달 |
 | `content/site.json` | 표제어와 책, 사이트 기본 설정 |
 | `content/pages.json` | 공개 페이지의 본문, 메타데이터, 문제와 쓰임 그림 데이터 |
 | `content/ask.json` | 해설기 예시 문장과 예시 해설 |
@@ -112,6 +115,7 @@ npm run deploy
 규칙은 모델이, 수행 순서는 스킬이 소유한다. 현재 선택한 구조는 [아키텍처 문서](docs/architecture.md)에 있다.
 
 현재 [디자인](docs/ux-design.md)은 실제 Next.js 기본 학습 화면과 AI 대화로 연결했다. 확인한 경로와 남은 한계는
-[작업 계약과 모델 평가](docs/tasks/quiz-artifacts.md)에 있다. [이전 시안](design/prototype/index.html)은 소개 중심 첫 제안으로 남겨 둔다.
+[문서·스택 작업 계약과 모델 평가](docs/tasks/document-workspace.md)에 있다. 기존 퀴즈 수행의 근거는
+[퀴즈 아티팩트 계약](docs/tasks/quiz-artifacts.md)에 있다. [이전 시안](design/prototype/index.html)은 소개 중심 첫 제안으로 남겨 둔다.
 
-개인별 답·피드백·진도의 저장과 이어 하기는 아직 구현하지 않았다. 이번 변경은 기존 기능과 이후 개발의 실행 기반을 옮긴 것이다.
+개인 서버 기록과 다른 기기 이어 하기는 아직 없다. 현재 수행·대화와 문서 탐색 상태는 같은 브라우저에만 임시 보관한다.

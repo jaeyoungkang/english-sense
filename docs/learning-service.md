@@ -34,7 +34,12 @@
 
 강PD는 이어서 퀴즈 아티팩트를 대화에 쌓는 방향을 승인했다. 퀴즈마다 최초 답·수정·관련 질답과 자료 기준을 유지하고,
 과거 퀴즈도 질문 대상으로 다시 고를 수 있게 한다. 다음 퀴즈 추가를 숙달이나 학습 완료로 처리하지 않는다.
-모델을 먼저 갱신하고 실제 반례 테스트로 유효성을 평가한다. 이번 구현 범위·진행 상태·근거는 `docs/tasks/quiz-artifacts.md`가 소유한다.
+모델을 먼저 갱신하고 실제 반례 테스트로 유효성을 평가한다. 이 구현의 근거는 `docs/tasks/quiz-artifacts.md`가 소유한다.
+
+이어서 자료 스택이 쌓여 목차가 되고, 도큐먼트를 기본으로 AI 대화도 함께 쌓이는 디자인을 정했다.
+현재 디자인 계약은 `docs/tasks/document-workspace.md`다. 실제 추가한 감각 자료와 열린 퀴즈에서 목차를 만들고,
+자료를 다시 펼쳐도 본문 순서와 AI 질문 대상을 바꾸지 않는다. 다중 자료는 기존 공개 have·get·be·go로 다루며,
+현재 대화형 문항은 have 일곱 개다. come 유닛 개방과 사용자 정본 진도 변경은 이번 디자인에 포함하지 않는다.
 
 제작 판단은 `knowledge/domain/web-app-production.md`, 구조 판단은 `knowledge/domain/web-app-architecture.md`,
 Next.js 구현 판단은 `knowledge/domain/nextjs-development.md`를 따른다. 이 문서의 약속을 고칠 때는 강PD와 합의한다.

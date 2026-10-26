@@ -7,6 +7,7 @@ import { Ask } from "@/components/ask";
 import LearningWorkspace from "@/components/learning-workspace";
 import { getPage, pages, site, type ContentPage } from "@/lib/content";
 import { getPublicLearningCatalog } from "@/lib/server/learning-catalog";
+import { getPublicReferenceMaterials } from "@/lib/server/reference-materials";
 
 type Props = { params: Promise<{ slug?: string[] }> };
 export const dynamicParams = false;
@@ -35,7 +36,7 @@ export default async function ContentRoute({ params }: Props) {
   const page = getPage((await params).slug);
   if (!page) notFound();
   if (page.path === "") {
-    return <LearningWorkspace catalog={await getPublicLearningCatalog()} />;
+    return <LearningWorkspace catalog={await getPublicLearningCatalog()} materials={getPublicReferenceMaterials()} />;
   }
   return <>
     {structuredData(page).map((data, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />)}

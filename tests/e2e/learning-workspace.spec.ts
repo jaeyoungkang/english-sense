@@ -61,8 +61,8 @@ test("seven quiz artifacts retain targets, first answers, drafts, event order an
     await route.fulfill({ json: reply(body, `검사용 모의 응답 ${number}`) });
   });
   await page.goto("/");
-  await expect(page.getByAltText(/사람을 둘러싼 연두색 타원/)).toBeVisible();
-  await expect(page.locator(".lw-sense-image img")).toHaveAttribute("src", "/assets/learning/have-sense.webp");
+  await expect(page.locator(".lw-reference").getByAltText(/사람을 둘러싼 연두색 타원/)).toBeVisible();
+  await expect(page.locator(".lw-reference .lw-sense-image img")).toHaveAttribute("src", "/assets/learning/have-sense.webp");
   await expect(page.getByRole("log", { name: "학습 수행과 대화" })).toHaveCount(1);
   await expect(page.getByRole("tab")).toHaveCount(0);
   await submitFirstAnswer(page);
@@ -186,8 +186,10 @@ test("image failure, blocked storage and IME input preserve the quiz and compose
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
   await page.goto("/");
-  await expect(page.getByText("이미지 대신 감각 도식을 표시합니다", { exact: true })).toBeVisible();
-  await expect(page.getByRole("img", { name: "주어의 영역 안에 대상이 놓인 have 감각 대체 도식" })).toBeVisible();
+  await expect(page.locator(".lw-reference").getByText("이미지 대신 감각 도식을 표시합니다.", { exact: true })).toBeVisible();
+  const fallback = page.locator(".lw-reference .lw-image-fallback").getByRole("img");
+  await expect(fallback).toBeVisible();
+  await expect(fallback).toHaveAccessibleName(/have의 감각/);
   await firstForm(page, 1).getByLabel("그 문장을 고른 까닭").fill("저장 차단 검사용 초안");
   await expect(page.getByText("임시 저장 실패 · 화면에 유지 중", { exact: true })).toBeVisible();
   await expect(firstForm(page, 1).getByLabel("그 문장을 고른 까닭")).toHaveValue("저장 차단 검사용 초안");
@@ -307,8 +309,10 @@ test("reading earlier content stays put on a new reply and pinned materials fit 
   await page.getByRole("button", { name: "새 응답 보기" }).click();
   await expect(page.getByText("검사용 읽기 중 새 응답", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 320, height: 430 });
-  await page.getByRole("button", { name: "펼치기", exact: true }).click();
-  await expect(page.getByRole("button", { name: "접기", exact: true })).toBeVisible();
+  const haveReference = page.locator(".lw-reference").getByRole("button", { name: /^have 감각 자료 (펼치기|접기)$/ });
+  if (await haveReference.getAttribute("aria-expanded") === "true") await haveReference.click();
+  await haveReference.click();
+  await expect(haveReference).toHaveAttribute("aria-expanded", "true");
   const bounds = await page.evaluate(() => {
     const reference = document.querySelector(".lw-reference")!.getBoundingClientRect();
     const field = document.querySelector("#lw-message")!.getBoundingClientRect();
@@ -320,7 +324,7 @@ test("reading earlier content stays put on a new reply and pinned materials fit 
   expect(bounds.fieldBottom).toBeLessThanOrEqual(bounds.viewportHeight);
   expect(bounds.logHeight).toBeGreaterThan(40);
   expect(bounds.overflow).toBe(false);
-  await page.getByRole("button", { name: "접기", exact: true }).click();
+  await haveReference.click();
 });
 
 test("an archive missing its required events is rejected without replacing the v2 source", async ({ page }) => {
