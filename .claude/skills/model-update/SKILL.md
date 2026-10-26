@@ -3,7 +3,7 @@ name: model-update
 description: 새로 배운 것을 모델(일하는 방법, 한 분야, 지금의 상태를 담은 문서·이슈 본문)에 반영하거나 모델의 관계와 규칙을 다시 짤 때 따르는 절차. 배운 것을 강PD와 합의하고, 기존 모델과 어떻게 결합할지 논의해 모델을 다시 짜고, 그 모델을 배경에 둔 스킬을 맞춰 본다. 스킬의 순서만 바꾸는 배움은 맡지 않는다. 문서 갱신, 모델 갱신, 리뷰 반영, 배운 것 반영, model update.
 metadata:
   picked_from: "project-base:model-update@abec83e02269a2460d1ac459bda213c338942d2f"
-  background: "library@d0ef635740b10ce5901f26b8219bc7979d40e3b8, model@d0ef635740b10ce5901f26b8219bc7979d40e3b8, skills@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
+  background: "library@e7f063e92891004a6148257f0ed0037f7cc3f24a, model@d0ef635740b10ce5901f26b8219bc7979d40e3b8, skills@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # 모델 갱신

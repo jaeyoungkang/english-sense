@@ -18,6 +18,7 @@
 | 모델 | 제작·아키텍처·Next.js·UX의 네 모델을 만들고 교차 검토했다. 신규 UX 모델은 초기 설계판이다 | knowledge/domain/web-app-production.md, web-app-architecture.md, nextjs-development.md, web-app-ux-design.md |
 | 새 디자인 | have 감각 이미지·설명을 상단에 두고 문제·최초 답·수정·질답을 실제 순서로 쌓는다. 단계 탭을 없애고 v1 원본을 보존해 이관한다. 강PD의 사용성·선호는 미확인이다 | docs/ux-design.md, docs/tasks/learning-workspace.md, components/learning-workspace.tsx |
 | 스킬 | project-base 스킬 넷과 Lighthouse에서 차용한 기획·구현 스킬 둘이 있다. 새 스킬의 개발 효과는 미확인이다 | .claude/skills/, knowledge/skill-routing.md |
+| 평가기 | 경보 2, 낡은 이음 0/18(0%). 골격 어김·깨진 참조·배경 어긋남·순환은 0이다. 경보 후보의 사람 판정은 하지 않았다 | knowledge/domain/knowledge-quality.md, scripts/knowledge-quality.py |
 | 원문 | Lighthouse df85ac9a6f09c569d0e01b83ebdca4eebc996ea5의 계약→코드→검사를 추적하고 원문 불일치·mock의 범위도 구분했다. W3C·GOV.UK UX 자료를 조사했다. 원본 테스트는 실행하지 않았다 | docs/research/lighthouse-contract-engineering.md, docs/research/web-app-ux-design.md |
 | 아직 없는 기능 | 개인 계정·서버 기록 DB·다른 기기 복원·기존 기록 연결. 현재 수행·대화는 같은 브라우저에만 임시 보관한다 | docs/learning-service.md |
 

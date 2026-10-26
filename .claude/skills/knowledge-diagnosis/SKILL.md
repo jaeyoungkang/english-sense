@@ -3,7 +3,7 @@ name: knowledge-diagnosis
 description: 지식 체계(모델과 모델 사이의 이음)와 그것을 배경에 둔 스킬의 품질을 진단하는 절차. 평가기로 재고, 기계가 뽑은 후보를 판정자 둘에게 좁게 물어 판정하고, 고칠 순서와 안을 정리해 강PD에게 올린다. 기반을 점검할 때, 베이스와 동기화한 뒤 어디부터 다시 볼지 정할 때, 평가기의 경보나 비대·긴 항목·근거 없는 규칙 후보를 판정할 때 쓴다. 모델을 고치는 일은 맡지 않는다. 지식 품질, 품질 진단, 평가기, 비대, 낡은 이음, knowledge quality, diagnosis.
 metadata:
   picked_from: "project-base:knowledge-diagnosis@abec83e02269a2460d1ac459bda213c338942d2f"
-  background: "knowledge-quality@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
+  background: "knowledge-quality@e7f063e92891004a6148257f0ed0037f7cc3f24a"
 ---
 
 # 지식 체계 진단

@@ -3,7 +3,7 @@ name: base-sync
 description: 베이스 프로젝트에서 필요한 모델과 스킬을 골라 오고(고르기), 고른 모델의 변경을 받을지 정하고(동기화), 다른 프로젝트에도 쓰일 배움을 베이스에 제안하는(기여) 절차. 세션을 시작할 때, 베이스에 있는 모델이나 스킬이 필요해졌을 때, 모델·스킬을 만들거나 고친 뒤에 쓴다. 고르기, 동기화, 기여, 베이스 변경 검토, upstream sync, contribution.
 metadata:
   picked_from: "project-base:base-sync@abec83e02269a2460d1ac459bda213c338942d2f"
-  background: "library@d0ef635740b10ce5901f26b8219bc7979d40e3b8, model@d0ef635740b10ce5901f26b8219bc7979d40e3b8, skills@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
+  background: "library@e7f063e92891004a6148257f0ed0037f7cc3f24a, model@d0ef635740b10ce5901f26b8219bc7979d40e3b8, skills@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # 베이스에서 고르고, 동기화하고, 기여하기
