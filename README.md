@@ -3,8 +3,8 @@
 터미널에서 진행하던 영어 학습을 웹에서 편리하게 이어 가도록 만드는 서비스다. 기본동사의 감각을 읽고,
 원서 장면의 표현을 고르거나 쓰며, AI 해설로 문장이 그리는 그림을 살핀다.
 
-현재 운영 주소는 https://english.artificialmind.kr/ 이다. 이 전환본은 Next.js App Router와 React로 화면을 만들고,
-OpenNext 어댑터로 Cloudflare Workers에서 화면과 해설 API를 함께 실행하도록 구성했다. 운영 도메인 전환 여부는 전환 문서에서 확인한다.
+운영 주소는 https://english.artificialmind.kr/ 이다. Next.js App Router와 React로 화면을 만들고,
+OpenNext 어댑터로 Cloudflare Workers에서 화면과 해설 API를 함께 실행한다. 기존 API 도메인도 같은 Worker에 연결했다.
 프로젝트 기반은 project-base에서 받은 씨앗 모델·스킬·상태판·push 훅이다.
 
 ## 실행

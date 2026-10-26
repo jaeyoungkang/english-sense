@@ -13,8 +13,8 @@
 | --- | --- | --- |
 | 제품 요구 | 장면, 수행 차이, 먼저 풀기, 다시 꺼내기, 이어 하기, AI와 실제 수행 구분의 여섯 약속을 승인했다 | docs/learning-service.md |
 | 전환본 | Next.js·React·OpenNext·Cloudflare Workers로 기존 페이지·퀴즈·해설 API를 이관했다 | README.md, docs/architecture.md |
-| 미리보기 | https://english-sense.jaeyoung2010.workers.dev | docs/cloudflare-migration.md |
-| 검증 | API·한도·호환 단위 검사 22개, PC·모바일 브라우저 검사 10개가 로컬과 Workers 주소에서 각각 통과했다. 실제 해설·변환 응답도 확인했다 | docs/tasks/webapp-foundation.md |
+| 운영 배포 | https://english.artificialmind.kr/ 와 기존 API 도메인이 같은 Worker에서 실행된다. 별도 확인 주소는 https://english-sense.jaeyoung2010.workers.dev | docs/cloudflare-migration.md |
+| 검증 | API·한도·호환 단위 검사 22개, PC·모바일 브라우저 검사 10개가 로컬·Workers 확인 주소·운영 주소에서 각각 통과했다. 신규 해설·변환과 기존 API 주소의 실제 해설 응답도 확인했다 | docs/tasks/webapp-foundation.md |
 | 모델 | 제작, 아키텍처, Next.js 개발의 세 모델을 만들고 교차 검토했다 | knowledge/domain/web-app-production.md, web-app-architecture.md, nextjs-development.md |
 | 스킬 | project-base 스킬 셋과 Lighthouse에서 차용한 기획·구현 스킬 둘이 있다. 새 스킬의 개발 효과는 미확인이다 | .claude/skills/, knowledge/skill-routing.md |
 | 원문 | Lighthouse df85ac9a6f09c569d0e01b83ebdca4eebc996ea5를 읽었으며 원본 테스트를 실행하거나 원본 파일을 고치지 않았다 | docs/research/lighthouse-methods.md |
@@ -22,7 +22,7 @@
 
 ## 열린 작업
 
-- [#3 Next.js와 Cloudflare 전환·프로젝트 기반 구성](https://github.com/jaeyoungkang/english-sense/issues/3). 운영 주소와 기존 API 도메인의 전환, 운영 문서 정리가 남았다.
+- [#3 Next.js와 Cloudflare 전환·프로젝트 기반 구성](https://github.com/jaeyoungkang/english-sense/issues/3). 운영 주소·기존 API 도메인의 전환과 실제 동작을 확인했다. 세 모델과 두 차용 스킬을 구성했다.
 - 다음 개인 학습 과업의 상태·기록·권한·실패 수용 조건을 기획 스킬로 구체화한다. 현재 사용 편의와 학습 효과를 확인한 것으로 올리지 않는다.
 
 ## 베이스 동기화
@@ -35,4 +35,4 @@
 
 ## 다음 행동
 
-현재 기반 전환을 마무리하고, 승인된 개인 학습 요구를 실제 사용자 과업으로 만든다. 절차와 완료 근거는 docs/tasks/webapp-foundation.md와 두 웹앱 스킬에서 이어 간다.
+승인된 개인 학습 요구를 실제 사용자 과업으로 구체화하고 새 학습 흐름을 구현한다. 절차와 완료 근거는 docs/tasks/webapp-foundation.md와 두 웹앱 스킬에서 이어 간다.
