@@ -20,10 +20,10 @@
 | 원문 | Lighthouse df85ac9a6f09c569d0e01b83ebdca4eebc996ea5를 읽었으며 원본 테스트를 실행하거나 원본 파일을 고치지 않았다 | docs/research/lighthouse-methods.md |
 | 아직 없는 기능 | 개인 학습 기록 DB·인증·질답 저장·복원을 포함한 새 개인 학습 흐름 | docs/learning-service.md |
 
-## 열린 작업
+## 현재 작업
 
-- [#3 Next.js와 Cloudflare 전환·프로젝트 기반 구성](https://github.com/jaeyoungkang/english-sense/issues/3). 운영 주소·기존 API 도메인의 전환과 실제 동작을 확인했다. 세 모델과 두 차용 스킬을 구성했다.
-- 다음 개인 학습 과업의 상태·기록·권한·실패 수용 조건을 기획 스킬로 구체화한다. 현재 사용 편의와 학습 효과를 확인한 것으로 올리지 않는다.
+- [#3 Next.js와 Cloudflare 전환·프로젝트 기반 구성](https://github.com/jaeyoungkang/english-sense/issues/3)은 완료했다. 운영 주소·기존 API 도메인의 전환과 실제 동작을 확인하고, 세 모델과 두 차용 스킬을 구성했다.
+- [#4 개인 영어 학습의 수행·기록·이어 하기](https://github.com/jaeyoungkang/english-sense/issues/4)가 남아 있다. 상태·기록·권한·실패 수용 조건을 기획 스킬로 구체화한다. 사용 편의와 학습 효과는 강PD가 사용한 뒤 판단한다.
 
 ## 베이스 동기화
 
