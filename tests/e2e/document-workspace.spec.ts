@@ -18,12 +18,12 @@ async function addReference(page: Page, id: string) {
   await expect(reference(page, id)).toHaveCount(1);
 }
 async function openOutline(page: Page) {
-  const open = page.getByRole("button", { name: "목차 열기", exact: true });
+  const open = page.getByRole("button", { name: "목차 펼치기", exact: true });
   if (await open.isVisible()) await open.click();
   await expect(outline(page)).toBeVisible();
 }
 async function closeOutline(page: Page) {
-  const close = page.locator(".lw-mobile-toc-close");
+  const close = page.getByRole("button", { name: "목차 접기", exact: true });
   if (await close.isVisible()) await close.click();
 }
 async function outlineHrefs(page: Page) {
@@ -33,7 +33,7 @@ async function outlineHrefs(page: Page) {
   return hrefs;
 }
 async function bodyOrder(page: Page) {
-  return page.locator(".lw-transcript [data-outline-id]").evaluateAll(nodes => nodes.map(node => node.getAttribute("data-outline-id")));
+  return page.locator(".lw-document-flow [data-outline-id]").evaluateAll(nodes => nodes.map(node => node.getAttribute("data-outline-id")));
 }
 async function jumpTo(page: Page, id: string) {
   await openOutline(page);
@@ -166,25 +166,33 @@ test("mobile outline keyboard navigation returns focus and leaves the document a
   await addReference(page, "be");
   await addReference(page, "go");
   await page.setViewportSize({ width: 320, height: 430 });
-  const open = page.getByRole("button", { name: "목차 열기", exact: true });
+  // Resizing preserves the user's existing outline preference; begin this keyboard task closed.
+  await closeOutline(page);
+  const open = page.getByRole("button", { name: "목차 펼치기", exact: true });
   await open.focus();
   await open.press("Enter");
   await expect(outline(page)).toBeVisible();
-  await outline(page).getByRole("link").first().focus();
+  await outline(page).getByRole("link").last().focus();
   await page.keyboard.press("Escape");
   await expect(open).toBeFocused();
-  await open.press("Enter");
-  await outline(page).getByRole("link").last().focus();
-  await page.keyboard.press("Tab");
-  const firstStackToggle = stack(page).getByRole("button", { name: /감각 자료 (펼치기|접기)$/ }).first();
-  await expect(firstStackToggle).toBeFocused();
-  await expect(open).toHaveAttribute("aria-expanded", "false");
-  const unobscuredStackFocus = await firstStackToggle.evaluate(element => {
+  const unobscuredCollapsedFocus = await open.evaluate(element => {
     const bounds = element.getBoundingClientRect();
     const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
     return bounds.top >= 0 && bounds.bottom <= innerHeight && !!hit && element.contains(hit);
   });
-  expect(unobscuredStackFocus).toBe(true);
+  expect(unobscuredCollapsedFocus).toBe(true);
+  await open.press("Enter");
+  await outline(page).getByRole("link").last().focus();
+  await page.keyboard.press("Tab");
+  const goToChat = page.getByRole("button", { name: "대화로 이동", exact: true });
+  await expect(goToChat).toBeFocused();
+  const unobscuredNavigationFocus = await goToChat.evaluate(element => {
+    const bounds = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+    return bounds.top >= 0 && bounds.bottom <= innerHeight && !!hit && element.contains(hit);
+  });
+  expect(unobscuredNavigationFocus).toBe(true);
+  await closeOutline(page);
   await open.focus();
   await open.press("Enter");
   const getLink = outline(page).locator('a[href="#doc-reference-get"]');
@@ -196,25 +204,16 @@ test("mobile outline keyboard navigation returns focus and leaves the document a
   const visibleDocument = await getSection.evaluate(element => {
     const heading = element.querySelector("h2,h3") || element;
     const bounds = heading.getBoundingClientRect();
-    const transcript = document.querySelector(".lw-transcript")!.getBoundingClientRect();
+    const content = document.querySelector(".lw-content-scroll")!.getBoundingClientRect();
     const hit = document.elementFromPoint(bounds.left + Math.min(bounds.width / 2, 40), bounds.top + Math.min(bounds.height / 2, 8));
-    return { top: bounds.top, bottom: bounds.bottom, transcriptTop: transcript.top, transcriptBottom: transcript.bottom, visible: !!hit && element.contains(hit) };
+    return { top: bounds.top, bottom: bounds.bottom, visibleTop: Math.max(0, content.top), visibleBottom: Math.min(innerHeight, content.bottom), visible: !!hit && element.contains(hit) };
   });
-  expect(visibleDocument.top).toBeGreaterThanOrEqual(visibleDocument.transcriptTop - 1);
-  expect(visibleDocument.bottom).toBeLessThanOrEqual(visibleDocument.transcriptBottom + 1);
+  expect(visibleDocument.top).toBeGreaterThanOrEqual(visibleDocument.visibleTop - 1);
+  expect(visibleDocument.bottom).toBeLessThanOrEqual(visibleDocument.visibleBottom + 1);
   expect(visibleDocument.visible).toBe(true);
   await expect(stack(page).locator('[data-reference-id] button[aria-expanded="true"]')).toHaveCount(1);
-  const space = await page.evaluate(() => {
-    const pinned = document.querySelector(".lw-reference")!.getBoundingClientRect();
-    const log = document.querySelector(".lw-transcript")!.getBoundingClientRect();
-    const input = document.querySelector("#lw-message")!.getBoundingClientRect();
-    return { pinnedHeight: pinned.height, logHeight: log.height, inputTop: input.top, inputBottom: input.bottom, viewport: innerHeight, overflow: document.documentElement.scrollWidth > innerWidth };
-  });
-  expect(space.pinnedHeight).toBeLessThanOrEqual(space.viewport * .30 + 1);
-  expect(space.logHeight).toBeGreaterThan(40);
-  expect(space.inputTop).toBeGreaterThan(0);
-  expect(space.inputBottom).toBeLessThanOrEqual(space.viewport);
-  expect(space.overflow).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await goToChat.click();
   await message(page).fill("목차 이동 뒤 보존하는 키보드 검사 초안");
   await message(page).focus();
   await message(page).press("Tab");

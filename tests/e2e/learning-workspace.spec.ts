@@ -284,7 +284,8 @@ test("restoring a v3 pending response preserves its input without automatically 
   release!();
 });
 
-test("reading earlier content stays put on a new reply and pinned materials fit a 320px short screen", async ({ page }) => {
+test("reading earlier chat stays put on a new reply and the narrow flow keeps materials and questions reachable", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   let calls = 0;
   let releaseReply: (() => void) | undefined;
   await page.route("**/api/learn-chat/**", async route => {
@@ -309,22 +310,27 @@ test("reading earlier content stays put on a new reply and pinned materials fit 
   await page.getByRole("button", { name: "새 응답 보기" }).click();
   await expect(page.getByText("검사용 읽기 중 새 응답", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 320, height: 430 });
+  await page.getByRole("button", { name: "콘텐츠로 이동", exact: true }).click();
   const haveReference = page.locator(".lw-reference").getByRole("button", { name: /^have 감각 자료 (펼치기|접기)$/ });
   if (await haveReference.getAttribute("aria-expanded") === "true") await haveReference.click();
   await haveReference.click();
   await expect(haveReference).toHaveAttribute("aria-expanded", "true");
-  const bounds = await page.evaluate(() => {
-    const reference = document.querySelector(".lw-reference")!.getBoundingClientRect();
-    const field = document.querySelector("#lw-message")!.getBoundingClientRect();
-    const log = document.querySelector(".lw-transcript")!.getBoundingClientRect();
-    return { referenceHeight: reference.height, fieldTop: field.top, fieldBottom: field.bottom, logHeight: log.height, viewportHeight: innerHeight, overflow: document.documentElement.scrollWidth > innerWidth };
-  });
-  expect(bounds.referenceHeight).toBeLessThanOrEqual(bounds.viewportHeight * .30 + 1);
-  expect(bounds.fieldTop).toBeGreaterThan(0);
-  expect(bounds.fieldBottom).toBeLessThanOrEqual(bounds.viewportHeight);
-  expect(bounds.logHeight).toBeGreaterThan(40);
-  expect(bounds.overflow).toBe(false);
+  await page.locator(".lw-reference .lw-sense-image img").scrollIntoViewIfNeeded();
+  await expect(page.locator(".lw-reference .lw-sense-image img")).toBeInViewport();
   await haveReference.click();
+  await page.getByRole("button", { name: "대화로 이동", exact: true }).click();
+  const input = page.getByLabel("이 장면에 대해 질문하기");
+  await input.fill("좁은 화면에서 직접 이어 쓰는 검사 초안");
+  await input.focus();
+  const bounds = await input.evaluate(element => {
+    const field = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(field.left + field.width / 2, field.top + field.height / 2);
+    return { top: field.top, bottom: field.bottom, viewport: innerHeight, visible: !!hit && element.contains(hit), overflow: document.documentElement.scrollWidth > innerWidth };
+  });
+  expect(bounds.top).toBeGreaterThanOrEqual(0);
+  expect(bounds.bottom).toBeLessThanOrEqual(bounds.viewport);
+  expect(bounds.visible).toBe(true);
+  expect(bounds.overflow).toBe(false);
 });
 
 test("an archive missing its required events is rejected without replacing the v2 source", async ({ page }) => {
