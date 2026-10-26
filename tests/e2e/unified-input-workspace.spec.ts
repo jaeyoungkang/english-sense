@@ -141,7 +141,7 @@ test("changing the input target and reloading preserves each draft without adopt
   await openRevision(page);
   await revisionForm(page).getByLabel("내가 고친 답").fill("검사용 1번 수정 초안");
   await revisionForm(page).getByRole("button", { name: "초안을 두고 나중에 쓰기", exact: true }).click();
-  await page.getByRole("button", { name: "다음 퀴즈 추가", exact: true }).click();
+  await card(page, 2).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
   const secondId = await card(page, 2).getAttribute("data-artifact-id");
   await onlyInput(page, "initial", 2);
   await firstForm(page, 2).locator('input[type="radio"]').nth(2).check();

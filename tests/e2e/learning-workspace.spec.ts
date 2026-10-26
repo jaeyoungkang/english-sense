@@ -24,7 +24,7 @@ async function submitWriting(page: Page, number: number, text: string) {
   await form.getByRole("button", { name: "내 답 제출하고 대화하기" }).click();
 }
 async function addNext(page: Page, number: number) {
-  await page.getByRole("button", { name: "다음 퀴즈 추가", exact: true }).click();
+  await card(page, number).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
   await expect(card(page, number)).toHaveCount(1);
 }
 async function target(page: Page, number: number) {
@@ -390,7 +390,7 @@ test("a changed material version shows its original snapshot and prevents AI tra
   await expect(page.locator('.lw-timeline-event[data-event-kind="initial"]')).toContainText(firstReason);
   await expect(page.locator(".lw-chat-notice")).toContainText("이 퀴즈의 자료 판이 현재 자료와 다릅니다. 당시 기록을 보존하고 AI 전송을 막았습니다.");
   await expect(page.getByRole("button", { name: "질문 보내기", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "다음 퀴즈 추가", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "다음 퀴즈 추가", exact: true })).toHaveCount(0);
   expect(calls).toBe(1);
 });
 

@@ -47,6 +47,23 @@ export function findArtifact(state: WorkspaceState, artifactId: string): QuizArt
 export function activeThread(artifact: QuizArtifact): WorkspaceThread { const thread = artifact.threads.find(item => item.id === artifact.activeThreadId); if (!thread) throw new Error("대화를 찾지 못했습니다."); return thread; }
 export function updateArtifact(state: WorkspaceState, artifactId: string, update: (artifact: QuizArtifact) => QuizArtifact): WorkspaceState { return { ...state, artifacts: state.artifacts.map(item => item.artifactId === artifactId ? update(item) : item) }; }
 export function selectArtifact(state: WorkspaceState, artifactId: string): WorkspaceState { findArtifact(state, artifactId); return { ...state, selectedArtifactId: artifactId }; }
+/** Reading the complete catalog never registers a selection, submission or request. */
+export function projectDocumentArtifacts(state: WorkspaceState, catalog: PublicLearningCatalog): QuizArtifact[] {
+  return catalog.questions.map(question => {
+    const saved = state.artifacts.find(artifact => artifact.question.questionId === question.questionId);
+    return saved ? structuredClone(saved) : artifactFrom(catalog, question);
+  });
+}
+/** Explicit selection is independent of the order in which questions were answered. */
+export function selectQuestion(state: WorkspaceState, catalog: PublicLearningCatalog, questionId: string): WorkspaceState {
+  const question = catalog.questions.find(question => question.questionId === questionId);
+  if (!question) throw new Error("공개한 학습 문항을 찾지 못했습니다.");
+  const saved = state.artifacts.find(artifact => artifact.question.questionId === questionId);
+  if (saved) return selectArtifact(state, saved.artifactId);
+  const artifact = artifactFrom(catalog, question);
+  return { ...state, artifacts: [...state.artifacts, artifact], selectedArtifactId: artifact.artifactId, events: [...state.events, { id: newId(), kind: "card", artifactId: artifact.artifactId }] };
+}
+/** Compatibility for older sequential state transitions; the document UI uses selectQuestion. */
 export function addNextArtifact(state: WorkspaceState, catalog: PublicLearningCatalog): WorkspaceState {
   const last = state.artifacts.at(-1)!;
   if (!last.initialAttempt) throw new Error("열려 있는 마지막 퀴즈에 먼저 답을 제출합니다.");

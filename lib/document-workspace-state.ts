@@ -1,10 +1,10 @@
 import { REFERENCE_IDS, type ReferenceId } from "./reference-materials";
-import type { WorkspaceEvent } from "./learning-workspace-state";
+import type { QuizArtifact, WorkspaceEvent } from "./learning-workspace-state";
 
 export const DOCUMENT_UI_STORAGE_KEY = "english-sense-document-ui-v1";
 export type DocumentReference = { id: ReferenceId; afterEventId: string | null };
 export type DocumentWorkspaceState = { version: 1; references: DocumentReference[]; expandedReferenceId: ReferenceId | null; readingAnchor: string | null };
-export type DocumentNode = { kind: "reference"; id: string; reference: DocumentReference; orphaned: boolean } | { kind: "event"; id: string; event: WorkspaceEvent };
+export type DocumentNode = { kind: "reference"; id: string; reference: DocumentReference; orphaned: boolean } | { kind: "artifact"; id: string; artifact: QuizArtifact };
 export const referenceOutlineId = (id: ReferenceId) => `reference-${id}`;
 export const artifactOutlineId = (id: string) => `artifact-${id}`;
 export const documentAnchorId = (id: string) => `doc-${id}`;
@@ -32,16 +32,23 @@ export function toggleReference(state: DocumentWorkspaceState, id: ReferenceId):
   if (!state.references.some(item => item.id === id)) return state;
   return { ...state, expandedReferenceId: state.expandedReferenceId === id ? null : id };
 }
-/** Reopening a reference changes neither its insertion anchor nor document order. */
-export function buildDocumentNodes(state: DocumentWorkspaceState, events: WorkspaceEvent[]): DocumentNode[] {
+/** Catalog order is independent of learning chronology; existing reference anchors keep their reading position. */
+export function buildDocumentNodes(state: DocumentWorkspaceState, events: WorkspaceEvent[], artifacts: QuizArtifact[]): DocumentNode[] {
   const result: DocumentNode[] = [];
   const add = (reference: DocumentReference, orphaned = false) => result.push({ kind: "reference", id: referenceOutlineId(reference.id), reference, orphaned });
-  state.references.filter(item => item.afterEventId === null).forEach(item => add(item));
+  const positions = new Map<string, string | null>();
+  let lastCard: string | null = null;
   for (const event of events) {
-    result.push({ kind: "event", id: event.kind === "card" ? artifactOutlineId(event.artifactId) : `event-${event.id}`, event });
-    state.references.filter(item => item.afterEventId === event.id).forEach(item => add(item));
+    if (event.kind === "card") lastCard = event.artifactId;
+    positions.set(event.id, lastCard);
   }
-  const known = new Set(events.map(event => event.id));
-  state.references.filter(item => item.afterEventId !== null && !known.has(item.afterEventId)).forEach(item => add(item, true));
+  const position = (reference: DocumentReference) => reference.afterEventId === null ? null : positions.get(reference.afterEventId);
+  state.references.filter(reference => position(reference) === null).forEach(reference => add(reference));
+  for (const artifact of artifacts) {
+    result.push({ kind: "artifact", id: artifactOutlineId(artifact.artifactId), artifact });
+    state.references.filter(reference => position(reference) === artifact.artifactId).forEach(reference => add(reference));
+  }
+  const ids = new Set(artifacts.map(artifact => artifact.artifactId));
+  state.references.filter(reference => { const target = position(reference); return target === undefined || (target !== null && !ids.has(target)); }).forEach(reference => add(reference, true));
   return result;
 }

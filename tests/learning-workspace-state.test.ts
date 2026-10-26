@@ -6,7 +6,7 @@ import type { ArtifactLearningChatResponse } from "../lib/learning-chat-contract
 import {
   acceptReply, activeThread, addNextArtifact, addRevision, beginTurn, createWorkspace,
   findArtifact, historyFor, isWorkspaceState, markTurn, restoreWorkspace, retryTurn,
-  selectArtifact, startThread, submitInitial, updateArtifact, WORKSPACE_STORAGE_KEYS,
+  selectArtifact, selectQuestion, projectDocumentArtifacts, startThread, submitInitial, updateArtifact, WORKSPACE_STORAGE_KEYS,
   type QuizArtifact, type WorkspaceState, type WorkspaceTurn,
 } from "../lib/learning-workspace-state";
 
@@ -34,6 +34,106 @@ function answer(state: WorkspaceState, id = state.selectedArtifactId): Workspace
 function restore(state: WorkspaceState, catalog: PublicLearningCatalog): WorkspaceState {
   return checked(restoreWorkspace({ v3: JSON.stringify(state), v2: null, v1: null }, catalog));
 }
+
+test("the full document projects every question without registering unseen work or changing saved v3", async () => {
+  const catalog = copy(await catalogPromise), state = checked(createWorkspace(catalog));
+  const raw = JSON.stringify(state), originalCatalog = copy(catalog);
+  const document = projectDocumentArtifacts(state, catalog);
+  assert.equal(document.length, 7);
+  assert.deepEqual(document.map(item => item.question.questionId), catalog.questions.map(item => item.questionId));
+  assert.equal(new Set(document.map(item => item.artifactId)).size, 7);
+  assert.deepEqual(document[0], state.artifacts[0]);
+  assert.ok(document.every(item => item.initialAttempt === null && item.revisions.length === 0 && activeThread(item).turns.length === 0));
+  assert.equal(state.artifacts.length, 1);
+  assert.equal(JSON.stringify(state), raw, "document availability does not create card, performance or request events");
+  assert.deepEqual(projectDocumentArtifacts(state, catalog), document, "reading has stable identities and contents");
+  document[6].question.scene = "A changed reading projection";
+  document[6].source.title = "A changed reading source";
+  assert.deepEqual(catalog, originalCatalog, "unregistered projections do not expose mutable catalog snapshots");
+  assert.equal(projectDocumentArtifacts(state, catalog)[6].question.scene, catalog.questions[6].scene);
+  assert.equal(JSON.stringify(state), raw);
+});
+
+test("any document question can be selected before an earlier answer and registers only its real selection", async () => {
+  const catalog = await catalogPromise;
+  let state = checked(createWorkspace(catalog));
+  const first = copy(state.artifacts[0]), initialEvents = copy(state.events);
+  state = checked(selectQuestion(state, catalog, catalog.questions[6].questionId));
+  const seventh = findArtifact(state, state.selectedArtifactId);
+  assert.equal(seventh.question.questionId, catalog.questions[6].questionId);
+  assert.equal(seventh.question.type, "produce");
+  assert.equal(state.artifacts.length, 2);
+  assert.deepEqual(state.artifacts[0], first);
+  assert.deepEqual(state.events.slice(0, initialEvents.length), initialEvents);
+  assert.deepEqual(state.events.slice(initialEvents.length).map(event => [event.kind, event.artifactId]), [["card", seventh.artifactId]]);
+  assert.equal(first.initialAttempt, null, "opening the last question requires no earlier performance");
+  const selectedRaw = JSON.stringify(state);
+  state = checked(selectQuestion(state, catalog, catalog.questions[6].questionId));
+  assert.equal(JSON.stringify(state), selectedRaw, "reselecting a registered question creates no duplicate card or thread");
+  state = checked(selectQuestion(state, catalog, catalog.questions[1].questionId));
+  assert.equal(state.artifacts.length, 3);
+  assert.deepEqual(projectDocumentArtifacts(state, catalog).map(item => item.question.questionId), catalog.questions.map(item => item.questionId), "document order is independent of selection order");
+  const beforeInvalid = JSON.stringify(state);
+  assert.throws(() => selectQuestion(state, catalog, "unknown-question"));
+  assert.equal(JSON.stringify(state), beforeInvalid);
+});
+
+test("a partial v3 keeps every submitted answer, revision, draft and event when projected and extended", async () => {
+  const catalog = await catalogPromise;
+  let state = answer(checked(createWorkspace(catalog)));
+  const first = state.selectedArtifactId;
+  state = checked(addRevision(state, first, "A preserved earlier correction"));
+  state = checked(updateArtifact(state, first, artifact => ({ ...artifact, reason: "Preserved answer draft", revisionDraft: "Preserved revision draft", messageDraft: "Preserved question draft" })));
+  const pending = turn("partial-complete");
+  state = checked(beginTurn(state, first, pending));
+  state = checked(acceptReply(state, reply(findArtifact(state, first), pending.requestId)));
+  const original = copy(state), raw = JSON.stringify(state);
+  const restored = restore(state, catalog);
+  assert.equal(JSON.stringify(restored), raw);
+  assert.equal(projectDocumentArtifacts(restored, catalog).length, 7);
+  assert.deepEqual(restored, original, "the reading projection never backfills artifacts or historical events");
+  const extended = checked(selectQuestion(restored, catalog, catalog.questions[5].questionId));
+  assert.deepEqual(findArtifact(extended, first), original.artifacts[0]);
+  assert.deepEqual(extended.events.slice(0, original.events.length), original.events);
+  assert.deepEqual(extended.events.slice(original.events.length).map(event => event.kind), ["card"]);
+  assert.deepEqual(findArtifact(extended, first).initialAttempt, original.artifacts[0].initialAttempt);
+});
+
+test("full-document reading and selection retain historical snapshots instead of replacing their material version", async () => {
+  const catalog = await catalogPromise, original = checked(createWorkspace(catalog));
+  original.artifacts[0].contentVersion = "f".repeat(64);
+  original.artifacts[0].question.ask = "A historical question snapshot";
+  const state = restore(original, catalog), before = copy(state);
+  const document = projectDocumentArtifacts(state, catalog);
+  assert.equal(document.length, 7);
+  assert.deepEqual(document[0], before.artifacts[0]);
+  assert.equal(document[0].contentVersion, "f".repeat(64));
+  assert.equal(document[0].question.ask, "A historical question snapshot");
+  assert.ok(document.slice(1).every(item => item.contentVersion === catalog.contentVersion));
+  const reselected = checked(selectQuestion(state, catalog, catalog.questions[0].questionId));
+  assert.deepEqual(reselected, before, "the same question ID never silently creates a replacement current-version artifact");
+  const selected = checked(selectQuestion(reselected, catalog, catalog.questions[6].questionId));
+  assert.deepEqual(findArtifact(selected, before.selectedArtifactId), before.artifacts[0]);
+  assert.equal(findArtifact(selected, selected.selectedArtifactId).contentVersion, catalog.contentVersion);
+});
+
+test("a reply stays with its original request while an unanswered distant question is selected", async () => {
+  const catalog = await catalogPromise;
+  let state = answer(checked(createWorkspace(catalog)));
+  const first = state.selectedArtifactId, pending = turn("free-selection-pending");
+  state = checked(beginTurn(state, first, pending));
+  state = checked(selectQuestion(state, catalog, catalog.questions[6].questionId));
+  const seventh = state.selectedArtifactId;
+  state = checked(updateArtifact(state, seventh, artifact => ({ ...artifact, answerDraft: "My seventh answer draft.", reason: "My seventh reasoning", messageDraft: "My seventh question" })));
+  const selectedBeforeReply = copy(findArtifact(state, seventh));
+  projectDocumentArtifacts(state, catalog);
+  state = checked(acceptReply(state, reply(findArtifact(state, first), pending.requestId)));
+  assert.equal(state.selectedArtifactId, seventh);
+  assert.deepEqual(findArtifact(state, seventh), selectedBeforeReply);
+  assert.equal(activeThread(findArtifact(state, first)).turns[0].status, "complete");
+  assert.equal(state.events.at(-1)?.artifactId, first);
+  assert.equal(state.events.at(-1)?.kind, "reply");
+});
 
 test("cards keep independent drafts and target while actual cross-card events remain ordered", async () => {
   const catalog = await catalogPromise;

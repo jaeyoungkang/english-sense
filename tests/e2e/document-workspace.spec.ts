@@ -59,19 +59,19 @@ test("the outline follows actual document additions while reopening references p
   });
   await page.goto("/");
   const firstId = await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-1"]').getAttribute("data-artifact-id");
-  const initial = ["reference-have", `artifact-${firstId}`];
+  const initial = ["reference-have", ...await page.locator(".lw-quiz-artifact").evaluateAll(nodes => nodes.map(node => `artifact-${node.getAttribute("data-artifact-id")}`))];
   expect(await bodyOrder(page)).toEqual(initial);
   expect(await outlineHrefs(page)).toEqual(initial.map(id => `#doc-${id}`));
   await submitFirst(page);
   await expect(page.getByText("문서 화면 검사 모의 응답", { exact: true })).toBeVisible();
   await addReference(page, "get");
-  await page.getByRole("button", { name: "다음 퀴즈 추가", exact: true }).click();
+  await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]').getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
   const second = page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]');
   await expect(second).toHaveCount(1);
   const secondId = await second.getAttribute("data-artifact-id");
   await addReference(page, "be");
   await addReference(page, "go");
-  const expectedOrder = [...initial, "reference-get", `artifact-${secondId}`, "reference-be", "reference-go"];
+  const expectedOrder = ["reference-have", `artifact-${firstId}`, "reference-get", `artifact-${secondId}`, "reference-be", "reference-go", ...initial.slice(3)];
   expect(await bodyOrder(page)).toEqual(expectedOrder);
   expect(await outlineHrefs(page)).toEqual(expectedOrder.map(id => `#doc-${id}`));
   expect(await stack(page).locator("[data-reference-id]").evaluateAll(nodes => nodes.map(node => node.getAttribute("data-reference-id")))).toEqual(["go", "be", "get", "have"]);
@@ -108,7 +108,7 @@ test("reading references and using the outline preserve quiz targets, drafts and
   await addReference(page, "get");
   await openQuestionInput(page);
   await message(page).fill("아직 보내지 않은 1번 질문 초안");
-  await page.getByRole("button", { name: "다음 퀴즈 추가", exact: true }).click();
+  await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]').getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
   const second = page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]');
   const secondId = await second.getAttribute("data-artifact-id");
   await openQuestionInput(page);
@@ -168,7 +168,7 @@ test("damaged document navigation resets independently while preserving the exac
   await expect(reference(page, "have")).toHaveCount(1);
   await expect(reference(page, "get")).toHaveCount(0);
   expect(await page.evaluate(key => localStorage.getItem(key), learningKey)).toBe(original);
-  expect(await bodyOrder(page)).toHaveLength(2);
+  expect(await bodyOrder(page)).toHaveLength(8);
   expect(calls).toBe(0);
 });
 
@@ -254,12 +254,13 @@ test("a reference with a missing insertion anchor stays discoverable at the docu
   await submitFirst(page);
   await expect(page.getByText("검사용 고아 자료의 최초 응답", { exact: true })).toBeVisible();
   await addReference(page, "get");
-  await page.getByRole("button", { name: "다음 퀴즈 추가", exact: true }).click();
+  await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]').getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
   const firstId = await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-1"]').getAttribute("data-artifact-id");
   const secondId = await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]').getAttribute("data-artifact-id");
   await openQuestionInput(page);
   await message(page).fill("자료 위치 손상에도 남는 2번 질문 초안");
-  const originalOrder = ["reference-have", `artifact-${firstId}`, "reference-get", `artifact-${secondId}`];
+  const remaining = await page.locator(".lw-quiz-artifact").evaluateAll(nodes => nodes.slice(2).map(node => `artifact-${node.getAttribute("data-artifact-id")}`));
+  const originalOrder = ["reference-have", `artifact-${firstId}`, "reference-get", `artifact-${secondId}`, ...remaining];
   expect(await bodyOrder(page)).toEqual(originalOrder);
   await expect.poll(async () => page.evaluate(key => localStorage.getItem(key), learningKey)).toContain("자료 위치 손상에도 남는 2번 질문 초안");
   const originalLearning = await page.evaluate(key => localStorage.getItem(key), learningKey);
@@ -272,7 +273,7 @@ test("a reference with a missing insertion anchor stays discoverable at the docu
   await openQuestionInput(page);
   await expect(message(page)).toHaveValue("자료 위치 손상에도 남는 2번 질문 초안");
   await expect(target(page)).toHaveValue(secondId!);
-  const recoveredOrder = ["reference-have", `artifact-${firstId}`, `artifact-${secondId}`, "reference-get"];
+  const recoveredOrder = ["reference-have", `artifact-${firstId}`, `artifact-${secondId}`, ...remaining, "reference-get"];
   expect(await bodyOrder(page)).toEqual(recoveredOrder);
   expect(await outlineHrefs(page)).toEqual(recoveredOrder.map(id => `#doc-${id}`));
   await jumpTo(page, "reference-get");

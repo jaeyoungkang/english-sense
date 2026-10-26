@@ -7,7 +7,7 @@ import {
 } from "../lib/document-workspace-state";
 import {
   addNextArtifact, beginTurn, createWorkspace, isWorkspaceState, submitInitial,
-  updateArtifact, WORKSPACE_STORAGE_KEYS, type WorkspaceEvent,
+  projectDocumentArtifacts, selectQuestion, updateArtifact, WORKSPACE_STORAGE_KEYS, type WorkspaceEvent,
 } from "../lib/learning-workspace-state";
 import { getPublicLearningCatalog } from "../lib/server/learning-catalog";
 import type { ReferenceId } from "../lib/reference-materials";
@@ -18,6 +18,13 @@ const events: WorkspaceEvent[] = [
   { id: "card-two", kind: "card", artifactId: "quiz-two" },
   { id: "revision-one", kind: "revision", artifactId: "quiz-one", index: 0 },
 ];
+async function documentArtifacts() {
+  const catalog = await getPublicLearningCatalog();
+  const artifacts = projectDocumentArtifacts(createWorkspace(catalog), catalog);
+  artifacts[0] = { ...artifacts[0], artifactId: "quiz-one" };
+  artifacts[1] = { ...artifacts[1], artifactId: "quiz-two" };
+  return artifacts;
+}
 function checked(state: DocumentWorkspaceState): DocumentWorkspaceState {
   assert.equal(isDocumentState(state), true);
   const roundTrip = restoreDocumentState(JSON.stringify(state));
@@ -30,20 +37,21 @@ function reject(value: unknown) {
   assert.deepEqual(restoreDocumentState(JSON.stringify(value)), { state: createDocumentState(), recovered: true });
 }
 
-test("document references are real, unique additions and reopening keeps their original insertion", () => {
+test("document references are real, unique additions and reopening keeps their original insertion", async () => {
+  const artifacts = await documentArtifacts();
   let state = checked(createDocumentState());
   state = checked(addReference(state, "get", "initial-one"));
   state = checked(addReference(state, "be", "card-two"));
   state = checked(addReference(state, "go", "card-two"));
   const additions = structuredClone(state.references);
-  const originalNodes = buildDocumentNodes(state, events);
+  const originalNodes = buildDocumentNodes(state, events, artifacts);
   assert.deepEqual(state.references.map(item => item.id), ["have", "get", "be", "go"]);
   assert.equal(state.expandedReferenceId, "go");
   state = checked(addReference(state, "have", "revision-one"));
   assert.equal(state.expandedReferenceId, "have");
   assert.equal(state.readingAnchor, referenceOutlineId("have"));
   assert.deepEqual(state.references, additions, "reopening never becomes a new addition or moves an anchor");
-  assert.deepEqual(buildDocumentNodes(state, events), originalNodes);
+  assert.deepEqual(buildDocumentNodes(state, events, artifacts), originalNodes);
   state = checked(toggleReference(state, "get"));
   assert.equal(state.expandedReferenceId, "get");
   state = checked(toggleReference(state, "get"));
@@ -54,39 +62,79 @@ test("document references are real, unique additions and reopening keeps their o
   assert.equal(addReference(first, "unknown" as ReferenceId, null), first);
 });
 
-test("the document inserts references at their addition anchors without changing learning event order", () => {
+test("the full document inserts references at their existing addition anchors without projecting learning events", async () => {
+  const artifacts = await documentArtifacts();
   let state = checked(createDocumentState());
   state = checked(addReference(state, "get", "initial-one"));
   state = checked(addReference(state, "be", "card-two"));
   state = checked(addReference(state, "go", "card-two"));
-  const before = structuredClone(events);
-  const nodes = buildDocumentNodes(state, events);
+  const before = structuredClone(events), artifactBefore = structuredClone(artifacts);
+  const nodes = buildDocumentNodes(state, events, artifacts);
   assert.deepEqual(nodes.map(node => node.id), [
-    referenceOutlineId("have"), artifactOutlineId("quiz-one"), "event-initial-one",
+    referenceOutlineId("have"), artifactOutlineId("quiz-one"),
     referenceOutlineId("get"), artifactOutlineId("quiz-two"), referenceOutlineId("be"),
-    referenceOutlineId("go"), "event-revision-one",
+    referenceOutlineId("go"), ...artifacts.slice(2).map(artifact => artifactOutlineId(artifact.artifactId)),
   ]);
-  assert.deepEqual(nodes.filter(node => node.kind === "event").map(node => node.event), before);
+  assert.deepEqual(nodes.filter(node => node.kind === "artifact").map(node => node.artifact), artifacts);
   assert.deepEqual(events, before);
+  assert.deepEqual(artifacts, artifactBefore);
   assert.equal(new Set(nodes.map(node => node.id)).size, nodes.length);
   assert.equal(nodes.filter(node => node.kind === "reference").length, state.references.length);
   for (const node of nodes) assert.equal(documentAnchorId(node.id), `doc-${node.id}`);
 });
 
-test("a disappeared insertion anchor keeps the reference readable and preserves all learning events", () => {
+test("a disappeared insertion anchor keeps the reference readable after the complete document and preserves all learning events", async () => {
+  const artifacts = await documentArtifacts();
   let state = checked(addReference(createDocumentState(), "get", "removed-event"));
   state = checked(addReference(state, "be", "initial-one"));
-  const before = structuredClone(events), nodes = buildDocumentNodes(state, events);
+  const before = structuredClone(events), nodes = buildDocumentNodes(state, events, artifacts);
   const orphan = nodes.find(node => node.kind === "reference" && node.reference.id === "get");
   assert.ok(orphan && orphan.kind === "reference");
   assert.equal(orphan.orphaned, true);
   assert.equal(nodes.at(-1)?.id, referenceOutlineId("get"));
   assert.equal(nodes.filter(node => node.id === referenceOutlineId("get")).length, 1);
-  assert.deepEqual(nodes.filter(node => node.kind === "event").map(node => node.event), before);
+  assert.equal(nodes.filter(node => node.kind === "artifact").length, 7);
   assert.deepEqual(events, before);
   assert.deepEqual(state.references.map(item => item.id), ["have", "get", "be"]);
-  const empty = buildDocumentNodes(state, []);
-  assert.deepEqual(empty.map(node => node.id), [referenceOutlineId("have"), referenceOutlineId("get"), referenceOutlineId("be")]);
+  const empty = buildDocumentNodes(state, [], artifacts);
+  assert.deepEqual(empty.map(node => node.id), [referenceOutlineId("have"), ...artifacts.map(artifact => artifactOutlineId(artifact.artifactId)), referenceOutlineId("get"), referenceOutlineId("be")]);
+});
+
+test("a reference added after an earlier question's later event retains the last opened card position", async () => {
+  const artifacts = await documentArtifacts();
+  const state = checked(addReference(createDocumentState(), "get", "revision-one"));
+  const nodes = buildDocumentNodes(state, events, artifacts);
+  assert.deepEqual(nodes.slice(0, 5).map(node => node.id), [
+    referenceOutlineId("have"), artifactOutlineId("quiz-one"), artifactOutlineId("quiz-two"),
+    referenceOutlineId("get"), artifactOutlineId(artifacts[2].artifactId),
+  ], "revision-one belongs to quiz-one but occurred after quiz-two was opened");
+  const missingTarget: WorkspaceEvent[] = [{ id: "missing-card", kind: "card", artifactId: "unavailable-artifact" }];
+  const orphaned = buildDocumentNodes(checked(addReference(createDocumentState(), "be", "missing-card")), missingTarget, artifacts);
+  assert.equal(orphaned.at(-1)?.id, referenceOutlineId("be"));
+  const orphan = orphaned.at(-1);
+  assert.ok(orphan?.kind === "reference" && orphan.orphaned);
+  const beforeAnyCard: WorkspaceEvent[] = [{ id: "earliest-event", kind: "initial", artifactId: "quiz-one" }];
+  const early = buildDocumentNodes(checked(addReference(createDocumentState(), "get", "earliest-event")), beforeAnyCard, artifacts);
+  assert.deepEqual(early.slice(0, 3).map(node => node.id), [referenceOutlineId("have"), referenceOutlineId("get"), artifactOutlineId("quiz-one")]);
+  const earlyReference = early[1];
+  assert.ok(earlyReference.kind === "reference" && !earlyReference.orphaned);
+});
+
+test("a complete source document keeps catalog order even when questions are selected in a different order", async () => {
+  const catalog = await getPublicLearningCatalog();
+  let learning = createWorkspace(catalog);
+  learning = selectQuestion(learning, catalog, catalog.questions[6].questionId);
+  const seventh = learning.selectedArtifactId;
+  learning = selectQuestion(learning, catalog, catalog.questions[1].questionId);
+  const second = learning.selectedArtifactId;
+  const before = structuredClone(learning), artifacts = projectDocumentArtifacts(learning, catalog);
+  const document = checked(addReference(createDocumentState(), "get", learning.events.at(-1)!.id));
+  const nodes = buildDocumentNodes(document, learning.events, artifacts);
+  assert.deepEqual(nodes.filter(node => node.kind === "artifact").map(node => node.artifact.question.questionId), catalog.questions.map(question => question.questionId));
+  const referenceIndex = nodes.findIndex(node => node.id === referenceOutlineId("get"));
+  assert.equal(nodes[referenceIndex - 1].id, artifactOutlineId(second));
+  assert.ok(nodes.findIndex(node => node.id === artifactOutlineId(seventh)) > referenceIndex);
+  assert.deepEqual(learning, before, "source ordering does not reorder real selection or performance events");
 });
 
 test("untrusted UI records recover from malformed, duplicate, unknown and impossible navigation values", () => {
@@ -133,7 +181,7 @@ test("reading preferences and reference changes cannot change the learning targe
   let document = checked(addReference(createDocumentState(), "get", learning.events.at(-1)!.id));
   document = checked({ ...document, readingAnchor: artifactOutlineId(first) });
   checked(toggleReference(document, "have"));
-  buildDocumentNodes(document, learning.events);
+  buildDocumentNodes(document, learning.events, projectDocumentArtifacts(learning, catalog));
   restoreDocumentState("{invalid-ui");
   assert.notEqual(DOCUMENT_UI_STORAGE_KEY, WORKSPACE_STORAGE_KEYS.v3);
   assert.deepEqual(learning, before);
