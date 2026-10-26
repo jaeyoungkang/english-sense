@@ -27,9 +27,10 @@
 디자인 시안의 브라우저 임시 기록은 실제 개인 학습 저장·인증의 구현이나 study-and-learn 기록을 대신하지 않는다.
 
 이어서 강PD는 적절한 이미지와 터미널처럼 이어지는 AI 대화를 요구하며 소개 중심 화면의 한계를 지적했다.
-앱의 기본 화면은 현재 장면·내 수행·AI 대화가 이어지는 학습 작업 공간으로 만든다. AI는 보낸 질문과 제출한 답·수정·
+앱의 기본 화면은 상단의 표현 감각 자료와 그 아래에 콘텐츠가 차례로 쌓이는 학습 대화로 만든다. AI는 보낸 질문과 제출한 답·수정·
 이전 질답을 같은 문제의 맥락으로 사용한다. 미전송 초안을 자동 제출하거나 AI의 설명을 강PD의 배움으로 확정하지 않는다.
-이미지는 장면 재구성과 감각 도식의 역할을 구별한다. 적용 범위와 한계는 `docs/tasks/learning-workspace.md`에 있다.
+요청한 이미지는 책 장면 삽화가 아니라 have 같은 표현의 감각을 이해하는 그림이다. 감각 자료는 상단에서 계속 참고하고,
+문제·처음 답·AI 응답·수정·질답은 탭 이동 없이 한 흐름에 쌓인다. 적용 범위와 한계는 `docs/tasks/learning-workspace.md`에 있다.
 
 제작 판단은 `knowledge/domain/web-app-production.md`, 구조 판단은 `knowledge/domain/web-app-architecture.md`,
 Next.js 구현 판단은 `knowledge/domain/nextjs-development.md`를 따른다. 이 문서의 약속을 고칠 때는 강PD와 합의한다.

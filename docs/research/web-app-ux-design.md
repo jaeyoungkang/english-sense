@@ -159,3 +159,14 @@ Lighthouse의 전용 계약 계층이나 검사 수를 새 앱에 그대로 도�
 [lh-cards]: https://github.com/jaeyoungkang/lighthouse/blob/df85ac9a6f09c569d0e01b83ebdca4eebc996ea5/docs/design-standards.md#L154-L219
 [lh-boundary]: https://github.com/jaeyoungkang/lighthouse/blob/df85ac9a6f09c569d0e01b83ebdca4eebc996ea5/docs/design-standards.md#L270-L288
 [lh-test]: https://github.com/jaeyoungkang/lighthouse/blob/df85ac9a6f09c569d0e01b83ebdca4eebc996ea5/app/components/research-route-renderers/__tests__/research-route-visual-hierarchy.contract.test.ts#L18-L60
+
+## 감각 자료와 순차 대화의 재설계
+
+강PD는 이미지가 have 같은 표현의 감각을 가리킨다고 바로잡았고, 탭 전환 대신 누적되는 대화와 상단 감각 자료를 정했다.
+이는 이 앱의 방향이며 모든 서비스에서 탭을 없애야 한다는 일반 원리로 옮기지 않는다. 정본 감각·이미지 대조와
+기존 기록의 순서 보존은 `docs/tasks/learning-workspace.md`에 연결한다.
+
+[W3C ARIA23](https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA23)은 순차적으로 새 항목이 추가되는 대화에
+`role=log`를 쓰는 사례를 제시한다. 일부 조작 패턴의 예시이며 자동 스크롤이나 모든 접근성 요건을 대신 정하지 않는다.
+[초점 가림 해설](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html)은 고정 머리·입력 영역이
+키보드 초점을 가리는 위험을 설명한다. 상단 자료의 크기·접기와 하단 입력의 위치를 실제 좁은 화면에서 함께 확인한다.

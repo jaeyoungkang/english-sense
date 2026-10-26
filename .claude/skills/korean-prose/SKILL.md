@@ -2,7 +2,7 @@
 name: korean-prose
 description: 한국어 작문법 모델을 따라 한국어 글을 쓰거나 다듬는 방법. 한국어 문서, 이슈와 댓글, PR 설명, 커밋 본문, 답변에 싣는 문안을 쓰기 전에 먼저 불러 쓰고, 이미 쓴 글을 한국어 어법에 맞게, 자연스럽게 다시 써 달라는 요청에도 쓴다. 한국어 글쓰기, 한국어 교정, 한국어 어법, 한국어법, 어색한 말, 문장 다듬기, Korean prose/writing.
 metadata:
-  picked_from: "project-base:korean-prose@99111d9b0c5e77e7350fa6485bfdbf50ae81da8e"
+  picked_from: "project-base:korean-prose@abec83e02269a2460d1ac459bda213c338942d2f"
   background: "korean-writing@d0ef635740b10ce5901f26b8219bc7979d40e3b8, document-format@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
@@ -18,7 +18,7 @@ metadata:
 2. 따라 쓴 말을 찾아 푼다(`knowledge/domain/korean-writing.md` "따라 쓴 말"). 일괄로 바꾸지 않고 각 말의 역할을 본다.
 3. 원문이나 근거와 대조해 뜻의 관계와 어감이 유지됐는지 본다(`knowledge/domain/korean-writing.md` "뜻과 어감"). 뜻을
    확인할 수 없는 곳은 고치지 않고 그 자리를 알린다.
-4. 호응, 수식, 시제와 높임, 맞춤법과 띄어쓰기를 점검한다(`knowledge/domain/korean-writing.md` "호응과 맞춤법").
+4. 호응, 수식, 가리키는 말, 시제와 문체를 점검한다(`knowledge/domain/korean-writing.md` "호응과 문체").
 5. 형식이 내용에 맞는지 본다(`knowledge/domain/document-format.md` "규칙").
 6. 바꾼 문장을 앞뒤 문맥에서 다시 읽는다. 왜 고쳤는지를 따라 쓴 말, 뜻의 모호함, 어법 오류 가운데 무엇인지로 설명할 수
    있어야 한다.

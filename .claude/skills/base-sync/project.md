@@ -4,7 +4,7 @@
   `project-base`를 적는다. 단 이 저장소가 project-base 자신이면 베이스가 없으니 고르지도 동기화하지도 않는다.
 - 고른 모델의 판은 사본의 머리표 `picked_from`에 있다. 씨앗 파일의 판은 상태판(번호는 `AGENTS.md`의 상태판 절)의 "베이스 동기화"
   절에 둔다.
-- 최근 동기화 판: `99111d9b0c5e77e7350fa6485bfdbf50ae81da8e` (2026-10-26). 씨앗 구성과 변경 11개 파일을 검토해 받았다.
+- 최근 동기화 판: `abec83e02269a2460d1ac459bda213c338942d2f` (2026-10-26). 씨앗 모델 9개와 스킬 4개의 변경을 검토해 받았다.
 - 이 사본은 english-sense 프로젝트의 정본이다. 상태판은 `AGENTS.md`에 연결한 열린 진행 상태판 이슈를 쓴다.
 - 베이스 받아 오기: `gh repo clone jaeyoungkang/project-base .git/base-sync/project-base`. 폴더 이름이 저장소 이름이어야 평가기가
   `picked_from`의 저장소를 찾는다. 다 쓰면 `.git/base-sync/`를 지운다. 베이스 작업 트리의 파일은 직접 고치지 않는다.
@@ -24,7 +24,7 @@ project-base로 시작한 프로젝트가 무엇을 씨앗으로 받고 무엇�
 
 | 갈래 | 모델 | 스킬 | 까닭 |
 | --- | --- | --- | --- |
-| 씨앗 | model, production, skills, agents-md, library, concepts, korean-writing, document-format, knowledge-quality | base-sync, model-update, korean-prose | 철학과 늘 지킬 규칙, 씨앗 스킬의 배경, 평가기가 읽거나(model, agents-md의 줄 한도) 옮기는(knowledge-quality) 모델 |
+| 씨앗 | model, production, skills, agents-md, library, concepts, korean-writing, document-format, knowledge-quality | base-sync, model-update, korean-prose, knowledge-diagnosis | 철학과 늘 지킬 규칙, 씨앗 스킬의 배경, 평가기가 읽는(model, agents-md의 줄 한도) 모델 |
 | 고르기 | event-log, user-identity | event-tracking | 사용자 행동을 모으는 프로젝트 |
 
 씨앗 파일은 `AGENTS.md`, `CLAUDE.md`, `templates/`, `.githooks/`, `scripts/`, `.claude/settings.json`, `knowledge/skill-routing.md`다.

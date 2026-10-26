@@ -3,7 +3,7 @@
 터미널에서 진행하던 영어 학습을 웹에서 편리하게 이어 가도록 만드는 서비스다. 기본동사의 감각을 읽고,
 원서 장면의 표현을 고르거나 쓰며, AI 해설로 문장이 그리는 그림을 살핀다.
 
-기본 화면은 장면 이미지·내 수행·AI 대화를 잇는 학습 작업 공간이다. 기존 have 책 장면 한 문제에서
+기본 화면은 상단에 고정한 표현 감각 자료와 그 아래에 차례로 쌓이는 하나의 학습 대화다. 기존 have 책 장면 한 문제에서
 처음 답·이유를 제출하고 수정하며, 같은 맥락으로 질문을 이어 간다. 수행·대화는 같은 브라우저에 임시 보관한다.
 개인 서버 저장·인증·다른 기기 동기화는 아직 없다. 제출 전에는 준비된 과업 안내를, 제출 후에는 실제 AI 응답을 제공한다.
 
@@ -33,14 +33,14 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | --- | --- |
 | `app/` | App Router 페이지, API 경로, 메타데이터와 전역 스타일 |
 | `components/` | 쓰임 그림 전환, 문제 풀이, AI 해설을 처리하는 React 컴포넌트 |
-| `components/learning-workspace.tsx`, `app/workspace.css` | 기본 학습 작업 공간·답안·대화·브라우저 임시 복원 |
+| `components/learning-workspace.tsx`, `app/workspace.css` | 고정 감각 자료·순차 학습 대화·브라우저 임시 복원 |
 | `content/site.json` | 표제어와 책, 사이트 기본 설정 |
 | `content/pages.json` | 공개 페이지의 본문, 메타데이터, 문제와 쓰임 그림 데이터 |
 | `content/ask.json` | 해설기 예시 문장과 예시 해설 |
 | `lib/content.ts` | 콘텐츠 타입과 페이지 조회 |
 | `lib/server/` | Claude 요청, 감각 사전, 응답 검증과 일일 요청 제한 |
 | `worker.ts` | OpenNext 요청 처리와 Durable Object 내보내기 |
-| `public/assets/` | 아이콘·공유 이미지와 학습용 장면 재구성 이미지 |
+| `public/assets/` | 아이콘·공유 이미지와 표현의 감각 이미지 |
 | `wrangler.jsonc`, `open-next.config.ts` | Cloudflare 바인딩과 빌드 설정 |
 | `knowledge/`, `.claude/skills/` | project-base 공통 모델과 스킬, 웹 영어 학습 모델 |
 | `tests/` | API·요청 제한 검사와 실제 브라우저 검사 |

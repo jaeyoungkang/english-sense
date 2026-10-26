@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# 지식 체계의 품질을 잰다. 모델은 knowledge/domain/knowledge-quality.md이고, 이 스크립트는 그 규칙 1의 "기계가 다 재는 것",
-# 규칙 2(경보), 규칙 5(보고의 꼴)를 옮긴다. 모델과 어긋나면 모델을 따른다.
+# 지식 체계의 품질을 잰다. 모델은 knowledge/domain/knowledge-quality.md이고, 이 스크립트는 그 규칙 1의 "기계가 다 재는 것"과
+# 규칙 2(경보)를, 보고의 꼴은 진단 스킬(.claude/skills/knowledge-diagnosis/SKILL.md) 4단계를 옮긴다. 모델과 어긋나면 모델을 따른다.
 # 노드는 받은 저장소들의 knowledge/ 아래 머리표(id, kind)가 있는 문서와 .claude/skills/*/SKILL.md다. 이음은 모델 머리표의
 # grafts_from(재료), 스킬 머리표의 metadata.background(배경), 모델 본문이 다른 모델을 이름·id·경로로 가리키는 것(읽기)이다.
 # 고른 모델의 picked_from("<저장소>:<id>@<커밋>", 스킬은 metadata.picked_from)은 저장소를 건너 라이브러리의 원본을 가리키는 고른
@@ -11,8 +11,8 @@
 # 쓰는 쪽이 고르기 전까지 라우팅 표에 없고 씨앗 스킬의 배경도 아니기 때문이다(knowledge/library.md 규칙 1).
 # 핵심 스킬은 AGENTS.md "상황별로 읽을 문서" 표가 가리키는 스킬이고, 줄 한도는 그 저장소의 knowledge/model.md(도메인 모델)와
 # knowledge/agents-md.md(다른 파일)에서 읽는다. 머리표는 줄 수에 세지 않는다. 낡음은 커밋한 기록으로 잰다.
-# knowledge/domain/의 모델은 골격(knowledge/model.md "도메인 모델 쓰는 법")을 검사하고 항목 단위 값(모델 관계 9)을 잰다.
-# --map은 품질 보고 대신 지식 지도(모델 관계 11)를 낸다. 노드를 씨앗, 고른 것, 이 저장소의 것으로 가르고(씨앗 표는 라이브러리의
+# knowledge/domain/의 모델은 골격(knowledge/model.md "도메인 모델 쓰는 법")을 검사하고 항목 단위 값(모델 관계 9~12)을 잰다.
+# --map은 품질 보고 대신 지식 지도(모델 관계 14)를 낸다. 노드를 씨앗, 고른 것, 이 저장소의 것으로 가르고(씨앗 표는 라이브러리의
 # .claude/skills/base-sync/project.md), 재료·배경·고른 이음과 계약(contracts/ 아래 파일)을 그린다.
 # 뜻이 같은 중복, 모순, 그릇된 길, 근거에 맞는 강도, 비대의 판정, 쓰임은 재지 않는다. 그 결과는 이 보고에 더한다.
 # Python 3 표준 라이브러리만 쓴다. 아무것도 막지 않고, 잴 수 있으면 0으로 끝난다.
@@ -822,7 +822,7 @@ def evaluate(paths):
 
 
 def item_lines(r, long):
-    # 도메인 모델의 골격과 항목 단위 값(모델 관계 9, 10). 긴 항목은 같은 종류 항목의 중앙값의 몇 배인지로 보인다.
+    # 도메인 모델의 골격과 항목 단위 값(모델 관계 9~13). 긴 항목은 같은 종류 항목의 중앙값의 몇 배인지로 보인다.
     # 긴 항목의 선은 사람이 정한다(모델 규칙 1). 그 배수를 넘는 항목을 모두 보이고, 경보로 올리지는 않는다(모델 규칙 2).
     items, med = r['items'], r['medians']
     kinds = (('relations', '관계'), ('rules', '규칙'))

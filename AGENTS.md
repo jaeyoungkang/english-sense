@@ -49,7 +49,7 @@
 | Next.js 실행, Cloudflare 배포, 환경 설정을 바꾼다 | `README.md`. 실제 설정과 명령을 함께 확인한다 |
 | 상태판 본문을 쓴다 | `templates/status-board.md` |
 | 세션을 시작한다. 베이스에 있는 모델이나 스킬이 필요하다. 모델이나 스킬을 만들거나 고쳤다 | `.claude/skills/base-sync/SKILL.md` |
-| 지식 체계(모델과 모델 사이의 이음)와 그것을 배경에 둔 스킬의 품질을 진단한다. 기반을 점검하거나, 베이스와 동기화한 뒤 어디부터 다시 볼지 정한다 | `knowledge/domain/knowledge-quality.md`. 기계로 재는 몫은 `python3 scripts/knowledge-quality.py [<저장소> ...]` |
+| 지식 체계(모델과 모델 사이의 이음)와 그것을 배경에 둔 스킬의 품질을 진단한다. 기반을 점검하거나, 베이스와 동기화한 뒤 어디부터 다시 볼지 정한다 | `.claude/skills/knowledge-diagnosis/SKILL.md`. 모델은 `knowledge/domain/knowledge-quality.md` |
 
 프로젝트의 문서와 스킬이 늘면 이 표에 행을 더한다. 행은 읽으면 행동이 달라지는 문서만 가리킨다.
 
