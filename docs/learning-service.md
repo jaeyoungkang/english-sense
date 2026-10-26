@@ -22,5 +22,9 @@
 기록의 저장 위치와 인증, 기존 파일 기록과의 연결은 구체적인 작업 계약에서 정한다.
 아직 정하지 않은 숙달 점수, 복습 간격과 학습 완료 판정을 임의로 도입하지 않는다.
 
+2026-10-26 강PD는 UX 설계 모델을 준비하고 앱 디자인을 처음부터 다시 하도록 지시했다.
+정보구조·흐름·시각 체계의 첫 제안은 `docs/ux-design.md`, 시안과 검증 범위는 `docs/tasks/ux-redesign.md`에 있다.
+디자인 시안의 브라우저 임시 기록은 실제 개인 학습 저장·인증의 구현이나 study-and-learn 기록을 대신하지 않는다.
+
 제작 판단은 `knowledge/domain/web-app-production.md`, 구조 판단은 `knowledge/domain/web-app-architecture.md`,
 Next.js 구현 판단은 `knowledge/domain/nextjs-development.md`를 따른다. 이 문서의 약속을 고칠 때는 강PD와 합의한다.

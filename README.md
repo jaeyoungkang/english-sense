@@ -91,12 +91,17 @@ npm run deploy
 ## 제작 모델과 스킬
 
 - [웹앱 제작 모델](knowledge/domain/web-app-production.md): 사용자 과업과 약속, 품질과 검증 근거를 연결한다.
+- [웹앱 UX 설계 모델](knowledge/domain/web-app-ux-design.md): 정보구조·맥락·상태·시각 위계·복구와 재개를 설명한다.
 - [웹앱 아키텍처 모델](knowledge/domain/web-app-architecture.md): 책임·상태·데이터·신뢰·실행 경계를 설명한다.
 - [Next.js 개발 모델](knowledge/domain/nextjs-development.md): App Router·컴포넌트·렌더링·변경·캐시의 실행 의미를 설명한다.
 - [기획 스킬](.claude/skills/web-app-planning/SKILL.md): 승인된 요구를 수용 조건·구조 영향·최소 구현 범위가 있는 작업 계약으로 만든다.
 - [구현 스킬](.claude/skills/web-app-implementation/SKILL.md): 미검증 가정을 실제 경계에서 확인하고 구현·실패·배포 결과를 연결한다.
 
 [Lighthouse 조사](docs/research/lighthouse-methods.md)에는 원문 커밋과 실제 코드·테스트, 이 서비스에 옮긴 판단을 나눴다.
+계약부터 엔지니어링까지의 실제 추적은 [상세 조사](docs/research/lighthouse-contract-engineering.md)에 있다.
 규칙은 모델이, 수행 순서는 스킬이 소유한다. 현재 선택한 구조는 [아키텍처 문서](docs/architecture.md)에 있다.
+
+앱 디자인을 처음부터 다시 구성한 [첫 제안](docs/ux-design.md)과 [조작 가능한 시안](design/prototype/index.html)이 있다.
+시안은 브라우저 임시 저장만 제공하며 실제 AI·인증·서버 저장과 분리돼 있다. 실행 방법과 확인 범위는 제안 문서에 있다.
 
 개인별 답·피드백·진도의 저장과 이어 하기는 아직 구현하지 않았다. 이번 변경은 기존 기능과 이후 개발의 실행 기반을 옮긴 것이다.
