@@ -4,6 +4,7 @@ import { Breadcrumbs, SiteFooter, SiteHeader } from "@/components/site-shell";
 import { SenseStage } from "@/components/sense-stage";
 import { Quiz } from "@/components/quiz";
 import { Ask } from "@/components/ask";
+import LearningWorkspace from "@/components/learning-workspace";
 import { getPage, pages, site, type ContentPage } from "@/lib/content";
 
 type Props = { params: Promise<{ slug?: string[] }> };
@@ -32,6 +33,17 @@ function structuredData(page: ContentPage) {
 export default async function ContentRoute({ params }: Props) {
   const page = getPage((await params).slug);
   if (!page) notFound();
+  if (page.path === "") {
+    const lesson = getPage(["practice", "titanic", "have"]);
+    const quiz = lesson?.parts.find(part => part.kind === "quiz");
+    const question = quiz?.kind === "quiz" ? quiz.questions[0] : undefined;
+    if (!question || question.type !== "choose") notFound();
+    const publicQuestion = {
+      ch: question.ch, who: question.who, scene: question.scene, ask: question.ask,
+      opts: question.opts.map(option => ({ t: option.t })),
+    };
+    return <LearningWorkspace question={publicQuestion} />;
+  }
   return <>
     {structuredData(page).map((data, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />)}
     <SiteHeader menu={page.menu} />

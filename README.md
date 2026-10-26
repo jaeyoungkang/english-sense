@@ -3,6 +3,10 @@
 터미널에서 진행하던 영어 학습을 웹에서 편리하게 이어 가도록 만드는 서비스다. 기본동사의 감각을 읽고,
 원서 장면의 표현을 고르거나 쓰며, AI 해설로 문장이 그리는 그림을 살핀다.
 
+기본 화면은 장면 이미지·내 수행·AI 대화를 잇는 학습 작업 공간이다. 기존 have 책 장면 한 문제에서
+처음 답·이유를 제출하고 수정하며, 같은 맥락으로 질문을 이어 간다. 수행·대화는 같은 브라우저에 임시 보관한다.
+개인 서버 저장·인증·다른 기기 동기화는 아직 없다. 제출 전에는 준비된 과업 안내를, 제출 후에는 실제 AI 응답을 제공한다.
+
 운영 주소는 https://english.artificialmind.kr/ 이다. Next.js App Router와 React로 화면을 만들고,
 OpenNext 어댑터로 Cloudflare Workers에서 화면과 해설 API를 함께 실행한다. 기존 API 도메인도 같은 Worker에 연결했다.
 프로젝트 기반은 project-base에서 받은 씨앗 모델·스킬·상태판·push 훅이다.
@@ -29,13 +33,14 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | --- | --- |
 | `app/` | App Router 페이지, API 경로, 메타데이터와 전역 스타일 |
 | `components/` | 쓰임 그림 전환, 문제 풀이, AI 해설을 처리하는 React 컴포넌트 |
+| `components/learning-workspace.tsx`, `app/workspace.css` | 기본 학습 작업 공간·답안·대화·브라우저 임시 복원 |
 | `content/site.json` | 표제어와 책, 사이트 기본 설정 |
 | `content/pages.json` | 공개 페이지의 본문, 메타데이터, 문제와 쓰임 그림 데이터 |
 | `content/ask.json` | 해설기 예시 문장과 예시 해설 |
 | `lib/content.ts` | 콘텐츠 타입과 페이지 조회 |
 | `lib/server/` | Claude 요청, 감각 사전, 응답 검증과 일일 요청 제한 |
 | `worker.ts` | OpenNext 요청 처리와 Durable Object 내보내기 |
-| `public/assets/` | 아이콘과 공유 이미지 |
+| `public/assets/` | 아이콘·공유 이미지와 학습용 장면 재구성 이미지 |
 | `wrangler.jsonc`, `open-next.config.ts` | Cloudflare 바인딩과 빌드 설정 |
 | `knowledge/`, `.claude/skills/` | project-base 공통 모델과 스킬, 웹 영어 학습 모델 |
 | `tests/` | API·요청 제한 검사와 실제 브라우저 검사 |
@@ -49,6 +54,7 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | 경로 | 요청과 응답 |
 | --- | --- |
 | `GET /api/health/` | 키와 요청 제한 바인딩의 준비 상태, 사용하는 모델 |
+| `POST /api/learn-chat/` | 정본 장면·처음 답·수정·이전 질답을 이용한 학습 대화. 계약은 `lib/learning-chat-contract.ts` |
 | `POST /api/explain/` | 영어 문장을 감각으로 해설한다 |
 | `POST /api/translate/` | 한국어를 영어로 옮기고 감각으로 해설한다 |
 
@@ -101,7 +107,7 @@ npm run deploy
 계약부터 엔지니어링까지의 실제 추적은 [상세 조사](docs/research/lighthouse-contract-engineering.md)에 있다.
 규칙은 모델이, 수행 순서는 스킬이 소유한다. 현재 선택한 구조는 [아키텍처 문서](docs/architecture.md)에 있다.
 
-앱 디자인을 처음부터 다시 구성한 [첫 제안](docs/ux-design.md)과 [조작 가능한 시안](design/prototype/index.html)이 있다.
-시안은 브라우저 임시 저장만 제공하며 실제 AI·인증·서버 저장과 분리돼 있다. 실행 방법과 확인 범위는 제안 문서에 있다.
+현재 [디자인](docs/ux-design.md)은 실제 Next.js 기본 학습 화면과 AI 대화로 연결했다. 확인한 경로와 남은 한계는
+[작업 계약](docs/tasks/learning-workspace.md)에 있다. [이전 시안](design/prototype/index.html)은 소개 중심 첫 제안으로 남겨 둔다.
 
 개인별 답·피드백·진도의 저장과 이어 하기는 아직 구현하지 않았다. 이번 변경은 기존 기능과 이후 개발의 실행 기반을 옮긴 것이다.

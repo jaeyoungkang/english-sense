@@ -24,7 +24,7 @@ export interface ApiEnv {
   QUOTA_LIMITER?: QuotaNamespace;
 }
 
-interface Dependencies {
+export interface Dependencies {
   fetch?: typeof fetch;
   now?: () => Date;
   localDevelopment?: boolean;
@@ -37,7 +37,7 @@ const maxBodyBytes = 8 * 1024;
 const maxResponseBytes = 256 * 1024;
 const explanationKeys = ["english", "korean", "picture", "headwords", "contrasts", "alternatives", "note"];
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
@@ -119,7 +119,7 @@ function ready(env: ApiEnv): boolean {
   return !!env.ANTHROPIC_API_KEY?.trim() && typeof env.QUOTA_LIMITER?.idFromName === "function" && typeof env.QUOTA_LIMITER?.get === "function";
 }
 
-function checkOrigin(request: Request): void {
+export function checkOrigin(request: Request): void {
   const origin = request.headers.get("origin");
   if (origin !== null && origin !== new URL(request.url).origin) throw new ApiError(403, "이 사이트에서 문장을 보내 주세요.");
 }
@@ -129,7 +129,7 @@ export async function dailyIpHash(day: string, ip: string): Promise<string> {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function takeQuota(request: Request, env: ApiEnv, dependencies: Dependencies): Promise<void> {
+export async function takeQuota(request: Request, env: ApiEnv, dependencies: Dependencies): Promise<void> {
   const perIpLimit = positiveInt(env.PER_IP_PER_DAY, 30);
   const globalLimit = positiveInt(env.GLOBAL_PER_DAY, 600);
   let ip = request.headers.get("cf-connecting-ip");

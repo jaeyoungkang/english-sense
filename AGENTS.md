@@ -43,7 +43,7 @@
 | 웹앱 기능을 기획하거나 사용자에게 보이는 행동을 바꾸기 전에 작업 계약을 만든다 | `.claude/skills/web-app-planning/SKILL.md`와 머리표의 배경 모델. 이미 승인한 범위는 다시 묻지 않는다 |
 | 승인한 웹 기능을 구현·수정하거나 API·저장·외부 연동·배포 경계를 바꾼다 | `.claude/skills/web-app-implementation/SKILL.md`와 머리표의 배경 모델 |
 | 웹앱에서 사용자 과업과 품질·완료 근거를 판단한다 | `knowledge/domain/web-app-production.md` |
-| 앱의 정보구조·사용자 흐름·화면·시각 체계를 설계하거나 처음부터 다시 만든다 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`와 `.claude/skills/web-app-planning/SKILL.md`. 시안의 조작은 `docs/tasks/ux-redesign.md`로 확인한다 |
+| 앱의 정보구조·사용자 흐름·화면·시각 체계를 설계하거나 처음부터 다시 만든다 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`와 `.claude/skills/web-app-planning/SKILL.md`. 현재 학습 작업 공간의 검증은 `docs/tasks/learning-workspace.md`, 이전 시안은 `docs/tasks/ux-redesign.md`에서 읽는다 |
 | 책임·상태·데이터·API·권한·실패의 경계를 설계하거나 바꾼다 | `knowledge/domain/web-app-architecture.md`. 실제 구조는 `docs/architecture.md` |
 | Next.js의 경로·컴포넌트·렌더링·데이터 변경·캐시를 고른다 | `knowledge/domain/nextjs-development.md`. 설치 버전과 설정을 함께 확인한다 |
 | Next.js 실행, Cloudflare 배포, 환경 설정을 바꾼다 | `README.md`. 실제 설정과 명령을 함께 확인한다 |
@@ -60,3 +60,13 @@
 - 세션을 시작하면 먼저 상태판을 읽고(`gh issue view 2`), base-sync 스킬로 베이스와 동기화한 뒤, 하던 일과 현재 상태를 강PD에게 짧게 브리핑한다. 베이스가 없는 저장소(project-base 자신)는 동기화하지 않는다.
 - `main`에 push할 때 상태판 본문을 현재 상태에 맞게 고쳐 쓴다. 순서는 commit, 상태판 갱신, push다. 댓글을 달지 않고 `gh issue edit 2 --body-file <파일>`로 본문을 고친다. 끝낸 일은 줄이고 열려 있는 일을 현재 상태에 맞춘다. 상태판에도 기록이 아니라 모델을 담는다.
 - `.githooks/pre-push`가 push할 때 상태판이 마지막 커밋보다 오래됐으면 알린다. 이 알림은 push를 막지 않는다. 막는 확인 명령을 정한 프로젝트는 그것이 실패하면 push를 막는다(`knowledge/production.md`, 잠정). 저장소를 새로 받으면 `git config core.hooksPath .githooks`를 한 번 실행한다.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

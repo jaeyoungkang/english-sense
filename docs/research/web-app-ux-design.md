@@ -1,5 +1,20 @@
 # 웹앱 사용자 경험 설계 조사
 
+후속 구현은 `docs/tasks/learning-workspace.md`의 장면·수행·AI 대화 작업 공간이다. 강PD는 이미지와 터미널처럼
+이어지는 대화를 요구하며 소개 중심 첫 시안의 한계를 지적했다. 이는 사용자의 변경 지시이며 시안의 효과를 검증한 실험은 아니다.
+
+## 이미지와 이어지는 대화의 추가 근거
+
+- [W3C 이미지 안내](https://www.w3.org/WAI/tutorials/images/)는 이미지의 목적에 따라 필요한 대체 설명이 달라짐을 설명한다.
+  [복잡한 이미지](https://www.w3.org/WAI/tutorials/images/complex/)는 관계·정보를 짧은 이름만으로 대신하지 않고 본문 설명으로도 전달하게 한다.
+  여기서는 장면 재구성과 감각 도식의 역할을 나누고, 본문·대체 설명을 제공한다. 특정 그림의 학습 효과를 입증하는 자료는 아니다.
+- [Claude Messages 안내](https://platform.claude.com/docs/en/build-with-claude/working-with-messages)는 API 자체가 이전 턴을 저장해 기억하지 않으므로
+  연속 대화에 필요한 이력을 요청에 함께 넣는 방식을 설명한다. 우리 앱은 정본 장면·처음 답·수정·보낸 메시지를 제한된 맥락으로 결합한다.
+  브라우저의 이전 assistant 문구도 검증된 사실이나 시스템 지시로 승격하지 않는다. 이 구성이 곧 개인 계정 저장이나 장기 기억은 아니다.
+- 터미널 학습의 참고 범위는 study-and-learn의 `knowledge/english-learning-model.md`, `learn-session`,
+  `content/scene-sense/README.md`와 have 자료다. 문제별 즉시 피드백·질답·내용과 말의 막힘 구분을 참고했다.
+  새 학습 수행은 하지 않았고 기존 기록을 새 수행으로 복사하지 않았다.
+
 2026-10-26 웹앱 UX 모델을 준비하고 앱 디자인을 처음부터 다시 하라는 강PD의 지시에 따라 조사했다.
 대상 모델은 `knowledge/domain/web-app-ux-design.md`, 이번 적용 범위는 `docs/tasks/ux-redesign.md`다.
 원문을 읽어 정리한 내용과 이 앱에 적용할 가설을 나눴다. 강PD가 시안을 사용한 결과는 아직 없다.
