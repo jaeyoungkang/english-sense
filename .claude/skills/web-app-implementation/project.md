@@ -6,6 +6,7 @@
 | --- | --- |
 | 승인한 제품 동작과 아직 만들지 않은 범위 | `docs/learning-service.md`, 현재 작업 이슈 |
 | 현재 요청 순서, 상태·규칙의 담당 위치와 의존 경계 | `docs/architecture.md` |
+| UX 판단과 디자인 제안·별도 시안의 경계 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`, `docs/tasks/ux-redesign.md` |
 | 실행 환경과 운영 전환 | `README.md`, `docs/cloudflare-migration.md` |
 | 실제 명령과 배포 설정 | `package.json`, `playwright.config.ts`, `next.config.ts`, `wrangler.jsonc`, `open-next.config.ts` |
 
@@ -16,6 +17,10 @@ Cloudflare 바인딩은 `lib/server/cloudflare.ts`, 사용량 변경은 `lib/ser
 
 현재 영속 상태는 일일 요청 횟수다. 개인 학습 기록 저장과 인증·인가는 아직 구현하지 않았다. 그 기능을 만들 때는
 먼저 기획에서 범위를 정하고 구조 모델로 담당 위치를 판단한다.
+
+Lighthouse의 계약부터 코드·검사까지 추적한 출처와 결과 불명·실행 식별성·복원 범위 사례는
+`docs/research/lighthouse-contract-engineering.md`에 있다. module-level request map, 선호의 최신값 압축,
+원본 재시도 횟수나 저장 제품은 우리 학습 수행에 그대로 적용하지 않는다.
 
 ## 실행면과 확인 범위
 

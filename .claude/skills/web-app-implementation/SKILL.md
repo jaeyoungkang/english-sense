@@ -2,13 +2,13 @@
 name: web-app-implementation
 description: 승인한 웹앱 동작을 실제 실행 경로로 구현하고 실패 경로와 배포 런타임까지 확인하며, 정해진 계약대로 기능을 만들거나 버그·API·저장·외부 연동·배포 경계를 고칠 때 쓴다.
 metadata:
-  background: "web-app-production@d0ef635740b10ce5901f26b8219bc7979d40e3b8, web-app-architecture@d0ef635740b10ce5901f26b8219bc7979d40e3b8, nextjs-development@d0ef635740b10ce5901f26b8219bc7979d40e3b8, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
+  background: "web-app-production@8b7d72929a2d0e9e1792ad0347f17a9954a61208, web-app-ux-design@8b7d72929a2d0e9e1792ad0347f17a9954a61208, web-app-architecture@8b7d72929a2d0e9e1792ad0347f17a9954a61208, nextjs-development@8b7d72929a2d0e9e1792ad0347f17a9954a61208, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # 웹앱 구현
 
 승인한 동작을 구현하고 실제 결과와 연결하는 순서다. 제품 약속을 새로 정하는 일은 기획 스킬이 맡는다.
-먼저 배경 모델 네 개와 `project.md`가 가리키는 현재 제품·구조·실행 문서를 읽는다.
+먼저 배경 모델과 `project.md`가 가리키는 현재 제품·구조·실행 문서를 읽는다.
 
 ## 순서
 
@@ -26,9 +26,12 @@ metadata:
 4. **실패와 상태 변경을 같은 경로에서 확인한다.** 입력·출력, 외부 호출과 저장 사이의 실패를
    `knowledge/domain/web-app-architecture.md` "규칙" 2·3·5·6·9로 고른다. 성공 결과뿐 아니라 거절한 요청이
    비용이나 상태 변경을 일으키는지도 실제 담당 함수를 통과해 확인한다. 변경한 경계를 덮는 기존 테스트부터 쓴다.
+   결과 불명인 저장과 늦은 응답은 같은 구조 모델 "규칙" 6·13에서 정한 조회·재시도·채택 조건을 실제 경로로 확인한다.
 5. **사용할 런타임에서 수용 조건을 실행한다.** `knowledge/domain/nextjs-development.md` "규칙" 8·9와
    `knowledge/domain/web-app-production.md` "규칙" 2·3·6에 따라 빌드 산출물, 자산 전달, 브라우저 조작과
    실제 처리 결과를 연결한다. 외부 호출과 배포는 현재 승인 범위에서 실행하고, 실행하지 못한 조건을 따로 남긴다.
+   화면을 바꿨으면 `knowledge/domain/web-app-ux-design.md` "규칙" 3·6·7·8·9·10으로 상태 안내·입력 보존·키보드·좁은 화면·재개를 확인한다.
+   조작 가능한 시안도 실제 서버 저장이나 사람이 이해했다는 근거로 올리지 않는다.
 6. **현재 흐름과 결과를 맞춘다.** 처리 순서·담당 위치·호환·실패 경로가 바뀌었으면 현재 구조 문서를 함께 고친다.
    수용 조건에 실행 방법·결과·미확인 범위를 연결하고, `knowledge/domain/web-app-production.md` "규칙" 6·7로
    확인한 기술 동작과 사람이 판단할 품질을 나눈다. 넘길 작업이 있으면 `knowledge/production.md` "규칙"의

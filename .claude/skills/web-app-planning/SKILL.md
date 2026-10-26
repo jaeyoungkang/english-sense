@@ -2,7 +2,7 @@
 name: web-app-planning
 description: 승인된 웹앱 요구를 사용자 과업·수용 조건·구조 영향·검증 계획이 이어지는 작업 계약으로 구체화하며, 구현 범위와 수용 조건을 정하거나 다시 정할 때 쓴다.
 metadata:
-  background: "web-app-production@d0ef635740b10ce5901f26b8219bc7979d40e3b8, web-app-architecture@d0ef635740b10ce5901f26b8219bc7979d40e3b8, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
+  background: "web-app-production@8b7d72929a2d0e9e1792ad0347f17a9954a61208, web-app-ux-design@8b7d72929a2d0e9e1792ad0347f17a9954a61208, web-app-architecture@8b7d72929a2d0e9e1792ad0347f17a9954a61208, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # 웹앱 작업 기획
@@ -19,13 +19,17 @@ metadata:
 2. **한 사용자 과업을 계약으로 구체화한다.** `knowledge/domain/web-app-production.md` "규칙" 1에 따라 시작 상황,
    사용자의 행동, 기대 결과와 실패 뒤 다음 행동을 적는다. 승인 근거를 연결하고 이번 범위 밖도 적는다. 요구의 뜻을
    새로 정해야 하는 부분만 계약의 "사람이 정할 질문"으로 떼어 놓고, 그 답에 기대는 부분은 확정하지 않는다.
+   서비스 정책의 빠진 곳과 목표·현재 관찰은 같은 모델 "규칙" 8로 구분한다. 화면이나 흐름을 설계하면
+   `knowledge/domain/web-app-ux-design.md` "규칙" 1·2·4·5·9에 따라 정보구조·판단 맥락·위계·공개 시점·재개를 계약에 구체화한다.
 3. **수용 조건과 증거 계획을 함께 적는다.** `knowledge/domain/web-app-production.md` "규칙" 2·3·6·7에 따라
    조건마다 확인할 입력·상태 변화·화면과 검증 방법을 연결한다. 실제 생성·저장·복원 경로가 필요한 조건과 화면만
    확인해도 되는 조건을 가른다. 자동으로 확인할 조건과 사용 뒤 사람이 판단할 질문을 나누고, 실행하지 않은 칸은 비워 둔다.
+   디자인 시안이면 `knowledge/domain/web-app-ux-design.md` "규칙" 6·7·8·10으로 조작·실패·접근성과 실제 처리의 경계를 적는다.
 4. **구조 기대가 바뀌는 경우에만 구조 영향을 검토한다.** 상태 수명·복원, 권한, 실행 위치나 외부 호출의 기대가 바뀌면
    `knowledge/domain/web-app-architecture.md` "규칙" 1·3·4·6·8·9·11을 읽어 현재 책임이 감당하는지 판단한다.
    영향은 `knowledge/production.md` "규칙"의 "코드 구조가 있는 프로젝트"에 따라 같은 계약에 적는다. 구조 규칙을
    더하거나 바꾸면 현재 소유자, 선택한 경계, 거부한 대안과 검증 방법을 연결한다. 글이나 배치만 고치는 일에는 이 절을 만들지 않는다.
+   비동기 실행이 바뀌면 같은 구조 모델 "규칙" 6·13으로 결과 불명·재시도와 취소·응답 채택의 책임도 연결한다.
 5. **필요한 변경과 살펴볼 영향을 가른다.** `knowledge/domain/web-app-production.md` "규칙" 4·5와
    `knowledge/domain/web-app-architecture.md` "규칙" 11·12에 따라 최소 구현·검증 경로, 읽기만 할 후속 영향과
    호환 대상을 적는다. 선택을 바꿀 미검증 가정이 있으면 그 경계를 통과하는 최소 실행을 계약에 넣는다. 별도 정리가

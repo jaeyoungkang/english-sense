@@ -5,7 +5,7 @@
 ## 목적과 승인 범위
 
 강PD의 개인 영어 감각·책 장면 학습을 웹에서 편리하게 이어 간다. Next.js·Cloudflare와 project-base 기반을 사용한다.
-2026-10-26 웹앱 제작·웹앱 아키텍처·Next.js 개발 모델을 나누고 Lighthouse 기획·구현 기법을 모델과 스킬로 차용하도록 정했다.
+2026-10-26 제작·아키텍처·Next.js·UX 모델을 준비하고 앱 디자인을 처음부터 다시 하도록 정했다. Lighthouse의 계약 설계부터 엔지니어링 방법까지 상세히 참고한다.
 
 ## 현재 사실
 
@@ -15,15 +15,16 @@
 | 전환본 | Next.js·React·OpenNext·Cloudflare Workers로 기존 페이지·퀴즈·해설 API를 이관했다 | README.md, docs/architecture.md |
 | 운영 배포 | https://english.artificialmind.kr/ 와 기존 API 도메인이 같은 Worker에서 실행된다. 별도 확인 주소는 https://english-sense.jaeyoung2010.workers.dev | docs/cloudflare-migration.md |
 | 검증 | API·한도·호환 단위 검사 22개, PC·모바일 브라우저 검사 10개가 로컬·Workers 확인 주소·운영 주소에서 각각 통과했다. 신규 해설·변환과 기존 API 주소의 실제 해설 응답도 확인했다 | docs/tasks/webapp-foundation.md |
-| 모델 | 제작, 아키텍처, Next.js 개발의 세 모델을 만들고 교차 검토했다 | knowledge/domain/web-app-production.md, web-app-architecture.md, nextjs-development.md |
+| 모델 | 제작·아키텍처·Next.js·UX의 네 모델을 만들고 교차 검토했다. 신규 UX 모델은 초기 설계판이다 | knowledge/domain/web-app-production.md, web-app-architecture.md, nextjs-development.md, web-app-ux-design.md |
+| 새 디자인 | 학습·내 기록·자료 찾기로 구성한 첫 제안과 별도 조작 시안이 있다. PC·390·320px에서 제출·수정·복원·저장 실패·키보드를 확인했다. 강PD의 사용성·선호는 미확인이다 | docs/ux-design.md, docs/tasks/ux-redesign.md, design/prototype/index.html |
 | 스킬 | project-base 스킬 셋과 Lighthouse에서 차용한 기획·구현 스킬 둘이 있다. 새 스킬의 개발 효과는 미확인이다 | .claude/skills/, knowledge/skill-routing.md |
-| 원문 | Lighthouse df85ac9a6f09c569d0e01b83ebdca4eebc996ea5를 읽었으며 원본 테스트를 실행하거나 원본 파일을 고치지 않았다 | docs/research/lighthouse-methods.md |
+| 원문 | Lighthouse df85ac9a6f09c569d0e01b83ebdca4eebc996ea5의 계약→코드→검사를 추적하고 원문 불일치·mock의 범위도 구분했다. W3C·GOV.UK UX 자료를 조사했다. 원본 테스트는 실행하지 않았다 | docs/research/lighthouse-contract-engineering.md, docs/research/web-app-ux-design.md |
 | 아직 없는 기능 | 개인 학습 기록 DB·인증·질답 저장·복원을 포함한 새 개인 학습 흐름 | docs/learning-service.md |
 
 ## 현재 작업
 
 - [#3 Next.js와 Cloudflare 전환·프로젝트 기반 구성](https://github.com/jaeyoungkang/english-sense/issues/3)은 완료했다. 운영 주소·기존 API 도메인의 전환과 실제 동작을 확인하고, 세 모델과 두 차용 스킬을 구성했다.
-- [#4 개인 영어 학습의 수행·기록·이어 하기](https://github.com/jaeyoungkang/english-sense/issues/4)가 남아 있다. 상태·기록·권한·실패 수용 조건을 기획 스킬로 구체화한다. 사용 편의와 학습 효과는 강PD가 사용한 뒤 판단한다.
+- [#4 개인 영어 학습의 수행·기록·이어 하기](https://github.com/jaeyoungkang/english-sense/issues/4)가 남아 있다. 새 디자인 제안·시안과 실제 운영 구현을 구분한다. 디자인 방향을 검토하고 개인 저장·인증·질답·재개를 실제 경로로 구현한다. 사용 편의와 학습 효과는 강PD가 사용한 뒤 판단한다.
 
 ## 베이스 동기화
 
@@ -32,7 +33,8 @@
 - 받은 씨앗: 공통 모델 9개, 스킬 3개와 템플릿 기반 파일. event-tracking·event-log·user-identity는 고르지 않았다.
 - Lighthouse 기법은 강PD가 직접 차용하도록 지시한 별도 자료다. 원본 스킬을 그대로 받은 사본으로 표시하지 않고 출처와 바꾼 범위를 각 참고 기록에 남겼다.
 - 새 제작 모델·스킬은 이 프로젝트의 초기 적용판이다. 공용 베이스에 옮길 효과와 적용 범위는 실제 개발에 사용하며 확인한다.
+- 이번에도 project-base 99111d9b를 확인했다. 고른 사본의 밀린 변경과 베이스의 UX 모델은 없었다. 신규 UX 모델의 효과는 아직 확인하지 않아 베이스 기여로 올리지 않았다.
 
 ## 다음 행동
 
-승인된 개인 학습 요구를 실제 사용자 과업으로 구체화하고 새 학습 흐름을 구현한다. 절차와 완료 근거는 docs/tasks/webapp-foundation.md와 두 웹앱 스킬에서 이어 간다.
+docs/ux-design.md와 별도 시안으로 새 디자인을 검토하고, 첫 학습 유닛의 실제 서버 저장·인증·재개를 구현한다. 디자인 시안의 완료 근거는 docs/tasks/ux-redesign.md, 운영 기능의 남은 범위는 #4에서 이어 간다.
