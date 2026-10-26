@@ -2,7 +2,7 @@
 name: web-app-implementation
 description: 승인한 웹앱 동작을 실제 실행 경로로 구현하고 실패 경로와 배포 런타임까지 확인하며, 정해진 계약대로 기능을 만들거나 버그·API·저장·외부 연동·배포 경계를 고칠 때 쓴다.
 metadata:
-  background: "web-app-production@8b7d72929a2d0e9e1792ad0347f17a9954a61208, web-app-ux-design@eb3607b3341aa8acc269cc4b64a8dd3bafb4608d, web-app-architecture@1ec9531c05a5ed2e098eeb4b2db3e9ec6808412a, nextjs-development@8b7d72929a2d0e9e1792ad0347f17a9954a61208, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
+  background: "web-app-production@8b7d72929a2d0e9e1792ad0347f17a9954a61208, web-app-ux-design@b6a51a26b25184ff1a83feeecbd7d011c40e88fb, web-app-architecture@1ec9531c05a5ed2e098eeb4b2db3e9ec6808412a, nextjs-development@8b7d72929a2d0e9e1792ad0347f17a9954a61208, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # 웹앱 구현
@@ -31,7 +31,7 @@ metadata:
    `knowledge/domain/web-app-production.md` "규칙" 2·3·6에 따라 빌드 산출물, 자산 전달, 브라우저 조작과
    실제 처리 결과를 연결한다. 외부 호출과 배포는 현재 승인 범위에서 실행하고, 실행하지 못한 조건을 따로 남긴다.
    화면을 바꿨으면 `knowledge/domain/web-app-ux-design.md` "규칙" 2·3·6·7·8·9·10·11·12·13·14·15·16·17로 상태 안내·입력 보존·키보드·좁은 화면·재개와 이미지 실패·대화 맥락을 확인한다.
-   긴 자료와 응답의 동시 참조·영역별 읽기 위치, 응답 대기 중 수행·복원 뒤 순서와 과거 읽기 중 응답 도착도 같은 규칙으로 확인한다.
+   첫 답·수정·질문의 입력 위치와 제출 의미, 긴 자료와 응답의 동시 참조·영역별 읽기 위치, 응답 대기 중 수행·복원 뒤 순서와 과거 읽기 중 응답 도착도 같은 규칙으로 확인한다.
    조작 가능한 시안도 실제 서버 저장이나 사람이 이해했다는 근거로 올리지 않는다.
 6. **현재 흐름과 결과를 맞춘다.** 처리 순서·담당 위치·호환·실패 경로가 바뀌었으면 현재 구조 문서를 함께 고친다.
    수용 조건에 실행 방법·결과·미확인 범위를 연결하고, `knowledge/domain/web-app-production.md` "규칙" 6·7로
