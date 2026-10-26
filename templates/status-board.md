@@ -4,7 +4,7 @@
 
 ## 목적과 승인 범위
 
-강PD의 개인 영어 감각·책 장면 학습을 웹에서 편리하게 이어 간다. Next.js·Cloudflare와 project-base 기반을 사용한다.
+강PD의 개인 영어 감각·책 장면 학습을 웹에서 편리하게 이어 간다. 장면 이미지·내 수행·AI 대화를 같은 학습 작업 공간으로 연결한다. Next.js·Cloudflare와 project-base 기반을 사용한다.
 2026-10-26 제작·아키텍처·Next.js·UX 모델을 준비하고 앱 디자인을 처음부터 다시 하도록 정했다. Lighthouse의 계약 설계부터 엔지니어링 방법까지 상세히 참고한다.
 
 ## 현재 사실
@@ -14,17 +14,17 @@
 | 제품 요구 | 장면, 수행 차이, 먼저 풀기, 다시 꺼내기, 이어 하기, AI와 실제 수행 구분의 여섯 약속을 승인했다 | docs/learning-service.md |
 | 전환본 | Next.js·React·OpenNext·Cloudflare Workers로 기존 페이지·퀴즈·해설 API를 이관했다 | README.md, docs/architecture.md |
 | 운영 배포 | https://english.artificialmind.kr/ 와 기존 API 도메인이 같은 Worker에서 실행된다. 별도 확인 주소는 https://english-sense.jaeyoung2010.workers.dev | docs/cloudflare-migration.md |
-| 검증 | API·한도·호환 단위 검사 22개, PC·모바일 브라우저 검사 10개가 로컬·Workers 확인 주소·운영 주소에서 각각 통과했다. 신규 해설·변환과 기존 API 주소의 실제 해설 응답도 확인했다 | docs/tasks/webapp-foundation.md |
+| 검증 | 타입·단위 검사 33개와 로컬 Workers 브라우저 16개가 통과했다. 운영의 학습 작업 공간 검사 6개와 실제 AI 2턴·이력 재전송·자동 재호출 없는 복원을 확인했다 | docs/tasks/learning-workspace.md |
 | 모델 | 제작·아키텍처·Next.js·UX의 네 모델을 만들고 교차 검토했다. 신규 UX 모델은 초기 설계판이다 | knowledge/domain/web-app-production.md, web-app-architecture.md, nextjs-development.md, web-app-ux-design.md |
-| 새 디자인 | 학습·내 기록·자료 찾기로 구성한 첫 제안과 별도 조작 시안이 있다. PC·390·320px에서 제출·수정·복원·저장 실패·키보드를 확인했다. 강PD의 사용성·선호는 미확인이다 | docs/ux-design.md, docs/tasks/ux-redesign.md, design/prototype/index.html |
+| 새 디자인 | 기본 화면을 실제 Next.js의 장면·내 수행·AI 대화 작업 공간으로 바꿨다. 재구성 이미지·감각 도식·모바일 전환이 있다. 강PD의 사용성·선호는 미확인이다 | docs/ux-design.md, docs/tasks/learning-workspace.md, components/learning-workspace.tsx |
 | 스킬 | project-base 스킬 셋과 Lighthouse에서 차용한 기획·구현 스킬 둘이 있다. 새 스킬의 개발 효과는 미확인이다 | .claude/skills/, knowledge/skill-routing.md |
 | 원문 | Lighthouse df85ac9a6f09c569d0e01b83ebdca4eebc996ea5의 계약→코드→검사를 추적하고 원문 불일치·mock의 범위도 구분했다. W3C·GOV.UK UX 자료를 조사했다. 원본 테스트는 실행하지 않았다 | docs/research/lighthouse-contract-engineering.md, docs/research/web-app-ux-design.md |
-| 아직 없는 기능 | 개인 학습 기록 DB·인증·질답 저장·복원을 포함한 새 개인 학습 흐름 | docs/learning-service.md |
+| 아직 없는 기능 | 개인 계정·서버 기록 DB·다른 기기 복원·기존 기록 연결. 현재 수행·대화는 같은 브라우저에만 임시 보관한다 | docs/learning-service.md |
 
 ## 현재 작업
 
 - [#3 Next.js와 Cloudflare 전환·프로젝트 기반 구성](https://github.com/jaeyoungkang/english-sense/issues/3)은 완료했다. 운영 주소·기존 API 도메인의 전환과 실제 동작을 확인하고, 세 모델과 두 차용 스킬을 구성했다.
-- [#4 개인 영어 학습의 수행·기록·이어 하기](https://github.com/jaeyoungkang/english-sense/issues/4)가 남아 있다. 새 디자인 제안·시안과 실제 운영 구현을 구분한다. 디자인 방향을 검토하고 개인 저장·인증·질답·재개를 실제 경로로 구현한다. 사용 편의와 학습 효과는 강PD가 사용한 뒤 판단한다.
+- [#4 개인 영어 학습의 수행·기록·이어 하기](https://github.com/jaeyoungkang/english-sense/issues/4)가 남아 있다. 장면·수행·AI 대화의 첫 구현은 운영에 반영했다. 개인 서버 기록·인증·다른 기기 재개를 구현하고 강PD의 사용으로 디자인을 검토한다. 사용 편의와 학습 효과는 강PD가 사용한 뒤 판단한다.
 
 ## 베이스 동기화
 
@@ -37,4 +37,4 @@
 
 ## 다음 행동
 
-docs/ux-design.md와 별도 시안으로 새 디자인을 검토하고, 첫 학습 유닛의 실제 서버 저장·인증·재개를 구현한다. 디자인 시안의 완료 근거는 docs/tasks/ux-redesign.md, 운영 기능의 남은 범위는 #4에서 이어 간다.
+운영 학습 작업 공간을 사용해 디자인과 대화 흐름을 검토하고, 개인 서버 저장·인증·다른 기기 복원을 구현한다. 현재 근거는 docs/tasks/learning-workspace.md, 남은 범위는 #4에서 이어 간다.

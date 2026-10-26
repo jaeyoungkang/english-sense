@@ -11,8 +11,8 @@
   `knowledge/production.md` "규칙"의 "일을 시작할 때"를 따른다.
 - 구현 인계는 `.claude/skills/web-app-implementation/SKILL.md`를 가리킨다. 아직 실행하지 않은 계약은 구현 완료로 보고하지 않는다.
 - 한국어 문안은 `.claude/skills/korean-prose/SKILL.md`로 다듬는다.
-- UX·디자인 판단은 `knowledge/domain/web-app-ux-design.md`, 현재 첫 제안과 시안은 `docs/ux-design.md`,
-  재설계 계약은 `docs/tasks/ux-redesign.md`에서 읽는다. 시각 선택은 강PD의 사용·선호로 확인하기 전까지 제안이다.
+- UX·디자인 판단은 `knowledge/domain/web-app-ux-design.md`, 현재 디자인은 `docs/ux-design.md`,
+  학습 작업 공간 계약은 `docs/tasks/learning-workspace.md`에서 읽는다. 이전 시안의 범위는 `docs/tasks/ux-redesign.md`에 있다. 시각 선택은 강PD의 사용·선호로 확인하기 전까지 제안이다.
 - Lighthouse의 계약·정책·소유권·코드·검사 상세 추적과 발견한 불일치는 `docs/research/lighthouse-contract-engineering.md`에 있다.
 
 ## 이번에 승인된 것과 새로 정할 것
