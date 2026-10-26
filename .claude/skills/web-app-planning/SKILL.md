@@ -2,7 +2,7 @@
 name: web-app-planning
 description: 승인된 웹앱 요구를 사용자 과업·수용 조건·구조 영향·검증 계획이 이어지는 작업 계약으로 구체화하며, 구현 범위와 수용 조건을 정하거나 다시 정할 때 쓴다.
 metadata:
-  background: "web-app-production@8b7d72929a2d0e9e1792ad0347f17a9954a61208, web-app-ux-design@645017d2fcdf6aa186195deaa5b1b94024ab3ec3, web-app-architecture@1ec9531c05a5ed2e098eeb4b2db3e9ec6808412a, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
+  background: "web-app-production@8b7d72929a2d0e9e1792ad0347f17a9954a61208, web-app-ux-design@eb3607b3341aa8acc269cc4b64a8dd3bafb4608d, web-app-architecture@1ec9531c05a5ed2e098eeb4b2db3e9ec6808412a, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # 웹앱 작업 기획
@@ -21,7 +21,7 @@ metadata:
    새로 정해야 하는 부분만 계약의 "사람이 정할 질문"으로 떼어 놓고, 그 답에 기대는 부분은 확정하지 않는다.
    서비스 정책의 빠진 곳과 목표·현재 관찰은 같은 모델 "규칙" 8로 구분한다. 화면이나 흐름을 설계하면
    `knowledge/domain/web-app-ux-design.md` "규칙" 1·2·4·5·9·11·12·13·14·15·16·17에 따라 정보구조·판단 맥락·위계·공개 시점·재개와 이미지·대화를 계약에 구체화한다.
-   반복 참고 자료의 위치, 실제 수행·응답 순서와 순서를 알 수 없는 이전 기록의 처리도 이 규칙에서 판단한다.
+   자료를 보며 질문하는 과업의 배치·영역별 읽기 위치, 실제 수행·응답 순서와 이전 기록의 처리도 이 규칙에서 판단한다.
 3. **수용 조건과 증거 계획을 함께 적는다.** `knowledge/domain/web-app-production.md` "규칙" 2·3·6·7에 따라
    조건마다 확인할 입력·상태 변화·화면과 검증 방법을 연결한다. 실제 생성·저장·복원 경로가 필요한 조건과 화면만
    확인해도 되는 조건을 가른다. 자동으로 확인할 조건과 사용 뒤 사람이 판단할 질문을 나누고, 실행하지 않은 칸은 비워 둔다.
