@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import type { ArtifactLearningChatRequest } from "../../lib/learning-chat-contract";
+import { openFirstAnswerInput, openQuestionInput } from "./workspace-input";
 
 const learningKey = "english-sense-learning-workspace-v3";
 const documentKey = "english-sense-document-ui-v1";
@@ -9,10 +10,11 @@ const excerpt = longReply.split("\n").slice(-3).join("\n");
 const content = (page: Page) => page.locator(".lw-content-scroll");
 const chat = (page: Page) => page.locator(".lw-transcript");
 const input = (page: Page) => page.getByLabel("이 장면에 대해 질문하기");
-const target = (page: Page) => page.getByLabel("질문 대상", { exact: true });
+const target = (page: Page) => page.getByLabel("함께 풀 문제", { exact: true });
 const response = (body: ArtifactLearningChatRequest, reply: string) => ({ requestId: body.requestId, artifactId: body.artifactId, questionId: body.questionId, contentVersion: body.contentVersion, reply, mode: "ai" });
 
 async function firstAnswer(page: Page) {
+  await openFirstAnswerInput(page, 1);
   const form = page.getByRole("form", { name: "1번 퀴즈 첫 답", exact: true });
   await form.locator('input[type="radio"]').nth(1).check();
   await form.getByLabel("그 문장을 고른 까닭").fill("분리 화면 검사 입력: 보이는 장면을 떠올립니다.");
@@ -70,23 +72,24 @@ test("wide content and chat remain readable together while long replies, retries
   await page.getByRole("button", { name: "질문 보내기", exact: true }).click();
   await expect(page.getByText("검사용 분리 화면 일시 실패", { exact: true })).toBeVisible();
   expect(await scrollTop(content(page))).toBe(originalContentTop);
-  await expect(draft).toHaveValue("AI 응답이 길어져도 유지할 2번 답 초안");
+  await expect.poll(async () => page.evaluate(({ key, id }) => JSON.parse(localStorage.getItem(key)!).artifacts.find((artifact: { artifactId: string }) => artifact.artifactId === id).reason, { key: learningKey, id: secondId })).toBe("AI 응답이 길어져도 유지할 2번 답 초안");
   await page.getByRole("button", { name: "같은 질문 다시 보내기", exact: true }).click();
   await expect.poll(() => !!release).toBe(true);
   await target(page).selectOption(secondId!);
+  await openQuestionInput(page);
   await input(page).fill("재시도 응답 대기 중인 2번 질문 초안");
   release!();
   await expect(page.locator(".lw-assistant-message > p")).toHaveCount(2);
   await expect(page.locator(".lw-assistant-message > p").last()).toHaveText(longReply);
   await expect.poll(async () => chat(page).evaluate(element => element.scrollHeight - element.clientHeight - element.scrollTop)).toBeLessThan(2);
   expect(await scrollTop(content(page))).toBe(originalContentTop);
-  await expect(draft).toHaveValue("AI 응답이 길어져도 유지할 2번 답 초안");
+  await expect.poll(async () => page.evaluate(({ key, id }) => JSON.parse(localStorage.getItem(key)!).artifacts.find((artifact: { artifactId: string }) => artifact.artifactId === id).reason, { key: learningKey, id: secondId })).toBe("AI 응답이 길어져도 유지할 2번 답 초안");
   await expect(input(page)).toHaveValue("재시도 응답 대기 중인 2번 질문 초안");
   expect(requests[2].artifactId).toBe(firstId);
   await expect(page.locator(`.lw-timeline-event[data-event-kind="reply"][data-artifact-id="${firstId}"]`)).toHaveCount(2);
   await expect(page.locator(".lw-content-scroll .lw-quiz-artifact")).toHaveCount(2);
   await expect(page.locator(".lw-transcript .lw-quiz-artifact")).toHaveCount(0);
-  await expect(form).toHaveCount(1);
+  await expect(form).toHaveCount(0);
   await expect(page.getByRole("region", { name: "AI 대화", exact: true }).getByLabel("이 장면에 대해 질문하기")).toHaveCount(1);
 
   const secondCard = page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]');
@@ -116,6 +119,9 @@ test("wide content and chat remain readable together while long replies, retries
   await content(page).evaluate(element => { element.scrollTop = 0; element.dispatchEvent(new Event("scroll")); });
   expect(await scrollTop(chat(page))).toBe(originalChatTop);
   await expect(input(page)).toHaveValue("재시도 응답 대기 중인 2번 질문 초안");
+  await openFirstAnswerInput(page, 2);
+  await expect(form).toHaveCount(1);
+  await expect(draft).toHaveValue("AI 응답이 길어져도 유지할 2번 답 초안");
 });
 
 test("outline collapse and independent reading positions restore without changing learning or resending requests", async ({ page }) => {

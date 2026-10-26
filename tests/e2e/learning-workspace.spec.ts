@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { ArtifactLearningChatRequest } from "../../lib/learning-chat-contract";
+import { openFirstAnswerInput, openQuestionInput } from "./workspace-input";
 
 const storageKey = "english-sense-learning-workspace-v3";
 const firstReason = "브라우저 검사 입력: 아이 전체가 떠오릅니다.";
@@ -10,12 +11,14 @@ const firstForm = (page: Page, number: number) => page.getByRole("form", { name:
 const reply = (body: ArtifactLearningChatRequest, text: string) => ({ requestId: body.requestId, artifactId: body.artifactId, questionId: body.questionId, contentVersion: body.contentVersion, reply: text, mode: "ai" });
 
 async function submitFirstAnswer(page: Page, number = 1) {
+  await openFirstAnswerInput(page, number);
   const form = firstForm(page, number);
   await form.locator('input[type="radio"]').nth(1).check();
   await form.getByLabel("그 문장을 고른 까닭").fill(firstReason);
   await form.getByRole("button", { name: "내 답 제출하고 대화하기" }).click();
 }
 async function submitWriting(page: Page, number: number, text: string) {
+  await openFirstAnswerInput(page, number);
   const form = firstForm(page, number);
   await form.getByLabel("내가 쓴 영어 문장").fill(text);
   await form.getByRole("button", { name: "내 답 제출하고 대화하기" }).click();
@@ -25,9 +28,10 @@ async function addNext(page: Page, number: number) {
   await expect(card(page, number)).toHaveCount(1);
 }
 async function target(page: Page, number: number) {
-  await page.getByLabel("질문 대상", { exact: true }).selectOption({ label: `${number}번 퀴즈 · ${number <= 5 ? "고르기" : "쓰기"}` });
+  await page.getByLabel("함께 풀 문제", { exact: true }).selectOption({ label: `${number}번 퀴즈 · ${number <= 5 ? "고르기" : "쓰기"}` });
 }
 async function ask(page: Page, text: string) {
+  await openQuestionInput(page);
   await page.getByLabel("이 장면에 대해 질문하기").fill(text);
   await page.getByRole("button", { name: "질문 보내기", exact: true }).click();
 }
@@ -73,15 +77,19 @@ test("seven quiz artifacts retain targets, first answers, drafts, event order an
   await addNext(page, 2);
   const secondId = await card(page, 2).getAttribute("data-artifact-id");
   await target(page, 1);
+  await openQuestionInput(page);
   await page.getByLabel("이 장면에 대해 질문하기").fill("아직 보내지 않은 1번 초안");
   await target(page, 2);
+  await openQuestionInput(page);
   await page.getByLabel("이 장면에 대해 질문하기").fill("아직 보내지 않은 2번 초안");
   await target(page, 1);
+  await openQuestionInput(page);
   await expect(page.getByLabel("이 장면에 대해 질문하기")).toHaveValue("아직 보내지 않은 1번 초안");
   await ask(page, "검사용 1번 지연 질문");
   await expect.poll(() => !!releaseReply).toBe(true);
   await revise(page, 1);
   await target(page, 2);
+  await openQuestionInput(page);
   await expect(page.getByLabel("이 장면에 대해 질문하기")).toHaveValue("아직 보내지 않은 2번 초안");
   releaseReply!();
   const delayed = page.locator(`.lw-timeline-event[data-event-kind="reply"][data-artifact-id="${firstId}"]`).filter({ hasText: "검사용 모의 응답 2" });
@@ -112,14 +120,17 @@ test("seven quiz artifacts retain targets, first answers, drafts, event order an
   await submitWriting(page, 7, "Browser test: She has a quiet moment.");
   await expect(page.getByText("검사용 모의 응답 9", { exact: true })).toBeVisible();
   expect(requests[8]).toMatchObject({ questionId: questionId(7), initialAttempt: { kind: "produce", text: "Browser test: She has a quiet moment." }, messages: [] });
+  await openQuestionInput(page);
   await page.getByLabel("이 장면에 대해 질문하기").fill("아직 보내지 않은 7번 초안");
   const beforeReload = await events(page);
   await page.reload();
+  await openQuestionInput(page);
   await expect(page.getByLabel("이 장면에 대해 질문하기")).toHaveValue("아직 보내지 않은 7번 초안");
   await expect(page.locator(".lw-quiz-artifact")).toHaveCount(7);
   expect(await events(page)).toEqual(beforeReload);
   expect(requests).toHaveLength(9);
   await target(page, 2);
+  await openQuestionInput(page);
   await expect(page.getByLabel("이 장면에 대해 질문하기")).toHaveValue("아직 보내지 않은 2번 초안");
   await target(page, 1);
   await expect(page.locator(`.lw-timeline-event[data-event-kind="initial"][data-artifact-id="${firstId}"]`)).toContainText(firstReason);
@@ -193,12 +204,14 @@ test("image failure, blocked storage and IME input preserve the quiz and compose
   await firstForm(page, 1).getByLabel("그 문장을 고른 까닭").fill("저장 차단 검사용 초안");
   await expect(page.getByText("임시 저장 실패 · 화면에 유지 중", { exact: true })).toBeVisible();
   await expect(firstForm(page, 1).getByLabel("그 문장을 고른 까닭")).toHaveValue("저장 차단 검사용 초안");
+  await openQuestionInput(page);
   const input = page.getByLabel("이 장면에 대해 질문하기");
   await input.fill("아직 조합 중인 검사용 질문");
   await input.evaluate(element => element.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, isComposing: true, bubbles: true })));
   await input.press("Enter");
   expect(calls).toBe(0);
   await expect(input).toHaveValue("아직 조합 중인 검사용 질문\n");
+  await openFirstAnswerInput(page, 1);
   await expect(firstForm(page, 1).getByLabel("그 문장을 고른 까닭")).toHaveValue("저장 차단 검사용 초안");
 });
 
@@ -228,6 +241,7 @@ for (const version of [1, 2] as const) {
       await route.fulfill({ json: reply(body, "검사용 이관 후 응답") });
     });
     await page.goto("/");
+    await openQuestionInput(page);
     await expect(page.getByLabel("이 장면에 대해 질문하기")).toHaveValue("이전 질문 초안");
     await expect.poll(async () => page.evaluate(key => localStorage.getItem(key) !== null, storageKey)).toBe(true);
     expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe(raw);
@@ -241,6 +255,7 @@ for (const version of [1, 2] as const) {
     await expect(page.locator(".lw-timeline")).toContainText("검사용 이전 응답");
     const prior = await events(page);
     await page.reload();
+    await openQuestionInput(page);
     await expect(page.getByLabel("이 장면에 대해 질문하기")).toHaveValue("이전 질문 초안");
     expect(await events(page)).toEqual(prior);
     expect(calls).toBe(0);
@@ -319,6 +334,7 @@ test("reading earlier chat stays put on a new reply and the narrow flow keeps ma
   await expect(page.locator(".lw-reference .lw-sense-image img")).toBeInViewport();
   await haveReference.click();
   await page.getByRole("button", { name: "대화로 이동", exact: true }).click();
+  await openQuestionInput(page);
   const input = page.getByLabel("이 장면에 대해 질문하기");
   await input.fill("좁은 화면에서 직접 이어 쓰는 검사 초안");
   await input.focus();

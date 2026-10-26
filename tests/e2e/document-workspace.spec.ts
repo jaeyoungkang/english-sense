@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { ArtifactLearningChatRequest } from "../../lib/learning-chat-contract";
+import { openFirstAnswerInput, openQuestionInput } from "./workspace-input";
 
 const learningKey = "english-sense-learning-workspace-v3";
 const uiKey = "english-sense-document-ui-v1";
@@ -7,7 +8,7 @@ const reference = (page: Page, id: string) => page.locator(`.lw-document-referen
 const stack = (page: Page) => page.locator(".lw-reference");
 const outline = (page: Page) => page.getByRole("navigation", { name: "학습 문서 목차", exact: true });
 const message = (page: Page) => page.getByLabel("이 장면에 대해 질문하기");
-const target = (page: Page) => page.getByLabel("질문 대상", { exact: true });
+const target = (page: Page) => page.getByLabel("함께 풀 문제", { exact: true });
 const response = (body: ArtifactLearningChatRequest, reply: string) => ({ requestId: body.requestId, artifactId: body.artifactId, questionId: body.questionId, contentVersion: body.contentVersion, reply, mode: "ai" });
 
 async function addReference(page: Page, id: string) {
@@ -43,6 +44,7 @@ async function jumpTo(page: Page, id: string) {
   await expect(page.locator(`#doc-${id}`)).toBeFocused();
 }
 async function submitFirst(page: Page) {
+  await openFirstAnswerInput(page, 1);
   const form = page.getByRole("form", { name: "1번 퀴즈 첫 답", exact: true });
   await form.locator('input[type="radio"]').nth(1).check();
   await form.getByLabel("그 문장을 고른 까닭").fill("문서 화면 검사 입력: 한 장면을 떠올립니다.");
@@ -104,36 +106,45 @@ test("reading references and using the outline preserve quiz targets, drafts and
   await expect(page.getByText("검사용 문서의 첫 응답", { exact: true })).toBeVisible();
   const firstId = await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-1"]').getAttribute("data-artifact-id");
   await addReference(page, "get");
+  await openQuestionInput(page);
   await message(page).fill("아직 보내지 않은 1번 질문 초안");
   await page.getByRole("button", { name: "다음 퀴즈 추가", exact: true }).click();
   const second = page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]');
   const secondId = await second.getAttribute("data-artifact-id");
+  await openQuestionInput(page);
   await message(page).fill("아직 보내지 않은 2번 질문 초안");
   await target(page).selectOption(firstId!);
+  await openQuestionInput(page);
   await expect(message(page)).toHaveValue("아직 보내지 않은 1번 질문 초안");
   await jumpTo(page, "reference-get");
   await expect(target(page)).toHaveValue(firstId!);
+  await openQuestionInput(page);
   await expect(message(page)).toHaveValue("아직 보내지 않은 1번 질문 초안");
   await expect(page.locator(".lw-reading-context")).toContainText("펼친 감각 자료: get");
-  await expect(page.locator(".lw-reading-context")).toContainText("AI 질문 대상: have · 1번 퀴즈");
+  await expect(page.locator(".lw-reading-context")).toContainText("입력 대상: have · 1번 퀴즈");
+  await openQuestionInput(page);
   await message(page).fill("검사용 자료를 읽으며 묻는 1번 질문");
   await page.getByRole("button", { name: "질문 보내기", exact: true }).click();
   await expect.poll(() => !!release).toBe(true);
+  await openQuestionInput(page);
   await message(page).fill("응답 대기 중 새로 쓰는 1번 초안");
   await stack(page).getByRole("button", { name: "have 감각 자료 펼치기", exact: true }).click();
   await jumpTo(page, `artifact-${secondId}`);
   await expect(target(page)).toHaveValue(firstId!);
+  await openQuestionInput(page);
   await expect(message(page)).toHaveValue("응답 대기 중 새로 쓰는 1번 초안");
   release!();
   const delayed = page.locator(`.lw-timeline-event[data-event-kind="reply"][data-artifact-id="${firstId}"]`).filter({ hasText: "검사용 자료 열람 중 지연 응답" });
   await expect(delayed).toHaveCount(1);
   await expect(page.locator(`.lw-timeline-event[data-artifact-id="${secondId}"]`).filter({ hasText: "검사용 자료 열람 중 지연 응답" })).toHaveCount(0);
+  await openQuestionInput(page);
   await expect(message(page)).toHaveValue("응답 대기 중 새로 쓰는 1번 초안");
   expect(requests).toHaveLength(2);
   expect(requests[1]).toMatchObject({ artifactId: firstId, questionId: "titanic-have-1", initialAttempt: requests[0].initialAttempt });
   expect(JSON.stringify(requests[1])).not.toContain("아직 보내지 않은 2번 질문 초안");
-  await second.getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
+  await second.getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
   await expect(target(page)).toHaveValue(secondId!);
+  await openQuestionInput(page);
   await expect(message(page)).toHaveValue("아직 보내지 않은 2번 질문 초안");
 });
 
@@ -143,13 +154,16 @@ test("damaged document navigation resets independently while preserving the exac
   await page.goto("/");
   const reason = page.getByRole("form", { name: "1번 퀴즈 첫 답", exact: true }).getByLabel("그 문장을 고른 까닭");
   await reason.fill("UI 저장 손상에도 남아야 하는 검사용 답 초안");
+  await openQuestionInput(page);
   await message(page).fill("UI 저장 손상에도 남아야 하는 검사용 질문 초안");
   await addReference(page, "get");
   await expect.poll(async () => page.evaluate(key => localStorage.getItem(key), learningKey)).toContain("UI 저장 손상에도 남아야 하는 검사용 질문 초안");
   const original = await page.evaluate(key => localStorage.getItem(key), learningKey);
   await page.evaluate(key => localStorage.setItem(key, "{broken document navigation"), uiKey);
   await page.reload();
+  await openFirstAnswerInput(page, 1);
   await expect(reason).toHaveValue("UI 저장 손상에도 남아야 하는 검사용 답 초안");
+  await openQuestionInput(page);
   await expect(message(page)).toHaveValue("UI 저장 손상에도 남아야 하는 검사용 질문 초안");
   await expect(reference(page, "have")).toHaveCount(1);
   await expect(reference(page, "get")).toHaveCount(0);
@@ -214,6 +228,7 @@ test("mobile outline keyboard navigation returns focus and leaves the document a
   await expect(stack(page).locator('[data-reference-id] button[aria-expanded="true"]')).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await goToChat.click();
+  await openQuestionInput(page);
   await message(page).fill("목차 이동 뒤 보존하는 키보드 검사 초안");
   await message(page).focus();
   await message(page).press("Tab");
@@ -242,6 +257,7 @@ test("a reference with a missing insertion anchor stays discoverable at the docu
   await page.getByRole("button", { name: "다음 퀴즈 추가", exact: true }).click();
   const firstId = await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-1"]').getAttribute("data-artifact-id");
   const secondId = await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]').getAttribute("data-artifact-id");
+  await openQuestionInput(page);
   await message(page).fill("자료 위치 손상에도 남는 2번 질문 초안");
   const originalOrder = ["reference-have", `artifact-${firstId}`, "reference-get", `artifact-${secondId}`];
   expect(await bodyOrder(page)).toEqual(originalOrder);
@@ -253,6 +269,7 @@ test("a reference with a missing insertion anchor stays discoverable at the docu
     localStorage.setItem(key, JSON.stringify(ui));
   }, uiKey);
   await page.reload();
+  await openQuestionInput(page);
   await expect(message(page)).toHaveValue("자료 위치 손상에도 남는 2번 질문 초안");
   await expect(target(page)).toHaveValue(secondId!);
   const recoveredOrder = ["reference-have", `artifact-${firstId}`, `artifact-${secondId}`, "reference-get"];
