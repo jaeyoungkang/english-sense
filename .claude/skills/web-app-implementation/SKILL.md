@@ -2,7 +2,7 @@
 name: web-app-implementation
 description: 승인한 웹앱 동작을 실제 실행 경로로 구현하고 실패 경로와 배포 런타임까지 확인하며, 정해진 계약대로 기능을 만들거나 버그·API·저장·외부 연동·배포 경계를 고칠 때 쓴다.
 metadata:
-  background: "web-app-production@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53, web-app-architecture@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53, nextjs-development@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53, production@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53"
+  background: "web-app-production@d0ef635740b10ce5901f26b8219bc7979d40e3b8, web-app-architecture@d0ef635740b10ce5901f26b8219bc7979d40e3b8, nextjs-development@d0ef635740b10ce5901f26b8219bc7979d40e3b8, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # 웹앱 구현

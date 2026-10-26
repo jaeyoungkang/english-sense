@@ -2,7 +2,7 @@
 name: web-app-planning
 description: 승인된 웹앱 요구를 사용자 과업·수용 조건·구조 영향·검증 계획이 이어지는 작업 계약으로 구체화하며, 구현 범위와 수용 조건을 정하거나 다시 정할 때 쓴다.
 metadata:
-  background: "web-app-production@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53, web-app-architecture@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53, production@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53"
+  background: "web-app-production@d0ef635740b10ce5901f26b8219bc7979d40e3b8, web-app-architecture@d0ef635740b10ce5901f26b8219bc7979d40e3b8, production@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # 웹앱 작업 기획

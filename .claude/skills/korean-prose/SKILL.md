@@ -3,7 +3,7 @@ name: korean-prose
 description: 한국어 작문법 모델을 따라 한국어 글을 쓰거나 다듬는 방법. 한국어 문서, 이슈와 댓글, PR 설명, 커밋 본문, 답변에 싣는 문안을 쓰기 전에 먼저 불러 쓰고, 이미 쓴 글을 한국어 어법에 맞게, 자연스럽게 다시 써 달라는 요청에도 쓴다. 한국어 글쓰기, 한국어 교정, 한국어 어법, 한국어법, 어색한 말, 문장 다듬기, Korean prose/writing.
 metadata:
   picked_from: "project-base:korean-prose@99111d9b0c5e77e7350fa6485bfdbf50ae81da8e"
-  background: "korean-writing@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53, document-format@7d8102f52cc2f1e7c3091dc6e8101dd1b75a9d53"
+  background: "korean-writing@d0ef635740b10ce5901f26b8219bc7979d40e3b8, document-format@d0ef635740b10ce5901f26b8219bc7979d40e3b8"
 ---
 
 # Korean Prose — 한국어답게 쓰고 다듬기
