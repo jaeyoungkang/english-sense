@@ -54,3 +54,7 @@ export type PrepWork = {
   units: PrepUnit[];
 };
 export type PrepData = { works: PrepWork[] };
+/** 목록과 작품 페이지에 필요한 사전 훈련 정보. 카드를 담지 않으므로 빈칸 정답(`drill.answers`)이 브라우저 쪽 산출물로 가지 않는다. */
+export type PrepSummaryUnit = Pick<PrepUnit, "n" | "when" | "summary"> & { cardCount: number };
+export type PrepSummaryWork = Omit<PrepWork, "units"> & { cardCount: number; units: PrepSummaryUnit[] };
+export type PrepSummary = { works: PrepSummaryWork[] };

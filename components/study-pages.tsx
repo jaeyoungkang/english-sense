@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import type { StudyPart } from "@/lib/content";
-import { cardCount, getWork, minutesLabel, pairStories, sourceLabel, unitPath, workLabel } from "@/lib/study-content";
-import type { PrepData, ReadingSummary, ReadingSummaryStory } from "@/lib/study-content-types";
+import { getWork, minutesLabel, unitPath, workLabel } from "@/lib/study-content";
+import type { PrepSummary, ReadingSummary, ReadingSummaryStory } from "@/lib/study-content-types";
 
 /**
- * 서버가 읽어 넘긴다. 컴포넌트는 정본 JSON을 import하지 않는다.
- * 이야기는 목록·짝 링크용 요약뿐이고(이야기 수업 화면은 `story-workspace.tsx`), 카드 정답은 단계 7까지 `prep`에 남는다.
+ * 목록 페이지(`/reading/`, `/prep/`, `/prep/<작품>/`)가 그리는 공개 요약. 서버가 `getStudyListing()`으로 만들어 넘기고,
+ * 컴포넌트는 정본 JSON을 import하지 않는다. 이야기·유닛 수업 화면은 `story-workspace.tsx`·`card-lesson.tsx`가 그린다.
  */
-type StudySource = { reading: ReadingSummary; prep: PrepData };
+type StudyListing = { reading: ReadingSummary; prep: PrepSummary };
 
 function DraftTag() {
   return <span className="tag draft-tag">초안</span>;
@@ -20,7 +20,7 @@ function StoryLink({ story, label }: { story: ReadingSummaryStory; label?: strin
   </a>;
 }
 
-function ReadingList({ reading, prep }: StudySource) {
+function ReadingList({ reading, prep }: StudyListing) {
   const plain = reading.stories.filter(story => !story.pair);
   const paired = prep.works.map(work => ({ work, stories: reading.stories.filter(story => story.pair?.work === work.id) })).filter(group => group.stories.length);
   return <>
@@ -48,7 +48,7 @@ function ReadingList({ reading, prep }: StudySource) {
   </>;
 }
 
-function PrepList({ prep }: Pick<StudySource, "prep">) {
+function PrepList({ prep }: Pick<StudyListing, "prep">) {
   const groups = [["book", "책"], ["movie", "영화"]] as const;
   return <>
     <header className="hero">
@@ -61,7 +61,7 @@ function PrepList({ prep }: Pick<StudySource, "prep">) {
       <div className="links">{prep.works.filter(work => work.kind === kind).map(work =>
         <a className="link-card" key={work.id} href={`/prep/${work.id}/`}>
           <span className="t"><i>{work.title}</i></span>
-          <span className="s">{work.creator ? `${work.creator} · ` : ""}{work.year} · 유닛 {work.units.length}개 · 표현 {cardCount(work)}개</span>
+          <span className="s">{work.creator ? `${work.creator} · ` : ""}{work.year} · 유닛 {work.units.length}개 · 표현 {work.cardCount}개</span>
         </a>)}
       </div>
     </section>)}
@@ -69,7 +69,7 @@ function PrepList({ prep }: Pick<StudySource, "prep">) {
   </>;
 }
 
-function PrepWorkPage({ id, prep }: Pick<StudySource, "prep"> & { id: string }) {
+function PrepWorkPage({ id, prep }: Pick<StudyListing, "prep"> & { id: string }) {
   const work = getWork(prep, id);
   if (!work) notFound();
   return <>
@@ -99,10 +99,10 @@ function PrepWorkPage({ id, prep }: Pick<StudySource, "prep"> & { id: string }) 
 }
 
 /** 이야기 수업(`reading`)은 작업 공간이 따로 그린다. */
-export function StudyPartView({ part, source }: { part: Exclude<StudyPart, { kind: "reading" }>; source: StudySource }) {
-  if (part.kind === "reading-list") return <ReadingList {...source} />;
-  if (part.kind === "prep-list") return <PrepList prep={source.prep} />;
-  if (part.kind === "prep-work") return <PrepWorkPage id={part.id} prep={source.prep} />;
+export function StudyPartView({ part, listing }: { part: Exclude<StudyPart, { kind: "reading" }>; listing: StudyListing }) {
+  if (part.kind === "reading-list") return <ReadingList {...listing} />;
+  if (part.kind === "prep-list") return <PrepList prep={listing.prep} />;
+  if (part.kind === "prep-work") return <PrepWorkPage id={part.id} prep={listing.prep} />;
   // 카드 수업(prep-unit)은 라우트가 작업 공간으로 렌더링한다(components/card-lesson.tsx).
   notFound();
 }

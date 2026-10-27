@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getPublicLesson, getStoryLessonLinks } from "../lib/server/lesson-catalog";
-import { getLegacyStudySource, getStudySource } from "../lib/server/study-source";
+import { getStudyListing, getStudySource } from "../lib/server/study-source";
 import { clockLabel, pairStories } from "../lib/study-content";
 
 const { reading } = getStudySource();
@@ -18,7 +18,7 @@ async function pageProps(storyId: string) {
   return JSON.stringify({ lesson: await getPublicLesson(storyId), links: getStoryLessonLinks(storyId) });
 }
 
-test("the props of every story page carry no answer, explanation or basis, and the legacy source keeps only a summary of the stories", async () => {
+test("the props of every story page carry no answer, explanation or basis, and the listing summary keeps only a summary of the stories", async () => {
   for (const story of reading.stories) {
     const props = await pageProps(story.id);
     for (const question of story.questions) {
@@ -33,11 +33,11 @@ test("the props of every story page carry no answer, explanation or basis, and t
     // The public part really is there, so the check above is not vacuous.
     assert.ok(props.includes(JSON.stringify(story.questions[0].question).slice(1, -1)));
   }
-  const legacy = JSON.stringify(getLegacyStudySource().reading);
-  assert.ok(!/"(questions|options|answer|explain|basis)"/.test(legacy));
-  for (const story of reading.stories) for (const question of story.questions) assert.ok(!legacy.includes(secretOf(story, question.explain)));
-  assert.deepEqual(getLegacyStudySource().reading.stories.map(story => story.id), reading.stories.map(story => story.id));
-  assert.deepEqual(getLegacyStudySource().reading.stories.map(story => story.questionCount), reading.stories.map(story => story.questions.length));
+  const listed = JSON.stringify(getStudyListing().reading);
+  assert.ok(!/"(questions|options|answer|explain|basis)"/.test(listed));
+  for (const story of reading.stories) for (const question of story.questions) assert.ok(!listed.includes(secretOf(story, question.explain)));
+  assert.deepEqual(getStudyListing().reading.stories.map(story => story.id), reading.stories.map(story => story.id));
+  assert.deepEqual(getStudyListing().reading.stories.map(story => story.questionCount), reading.stories.map(story => story.questions.length));
 });
 
 test("a paired story links its unit and each expression question's card; a plain story has no links", () => {
@@ -59,6 +59,6 @@ test("the reading clock label and the paired-story lookup work on summaries as w
   assert.equal(clockLabel(0), "0:00");
   assert.equal(clockLabel(-4), "0:00");
   assert.equal(clockLabel(180), "3:00");
-  const summaries = getLegacyStudySource().reading;
+  const summaries = getStudyListing().reading;
   assert.deepEqual(pairStories(summaries, "wonder", 3).map(story => story.id), ["prep-wonder-3"]);
 });

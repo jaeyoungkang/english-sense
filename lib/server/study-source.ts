@@ -2,7 +2,8 @@ import readingData from "../../content/reading.json";
 import prepData from "../../content/prep.json";
 import type { ContentPage } from "../content";
 import { cardCount, minutesLabel, unitPath, workLabel } from "../study-content";
-import type { PrepData, ReadingData, ReadingSummary } from "../study-content-types";
+import { lessonListing, type LessonListing } from "../lesson-list";
+import type { PrepData, PrepSummary, ReadingData, ReadingSummary } from "../study-content-types";
 
 // 읽기·사전 훈련 정본 JSON을 import하는 유일한 모듈이다. 정답·해설을 담으므로 서버 밖으로 내보내지 않는다.
 const reading = readingData as ReadingData;
@@ -12,15 +13,19 @@ const prep = prepData as PrepData;
 export const getStudySource = () => ({ reading, prep });
 
 /**
- * 임시 어댑터(계약 단계 1). 이야기는 목록·짝 링크에 필요한 요약만 내고(정답·해설은 단계 6에서 뗐다),
- * 카드의 `drill.answers`는 단계 7에서 걷었다: 목록·작품 페이지와 이야기의 짝 링크는 카드 정답이 필요 없다.
+ * 목록용 공개 요약: `/reading/`·`/prep/`·`/prep/<작품>/` 목록 페이지와 홈의 수업 목록 창이 쓴다.
+ * 이야기는 문항 없이 제목·낱말·제한 시간·짝·문제 수만, 사전 훈련은 카드 없이 작품·유닛·카드 수만 낸다.
+ * 이야기의 `answer`·`explain`·`basis`와 카드의 `drill.answers`가 담길 자리가 없는 모양이라 브라우저로 나가도 된다.
  */
-export function getLegacyStudySource(): { reading: ReadingSummary; prep: PrepData } {
+export function getStudyListing(): { reading: ReadingSummary; prep: PrepSummary } {
   return {
     reading: { stories: reading.stories.map(({ id, title, words, limitSeconds, draft, pair, questions }) => ({ id, title, words, limitSeconds, draft, ...(pair ? { pair: { ...pair } } : {}), questionCount: questions.length })) },
-    prep: { works: prep.works.map(work => ({ ...work, units: work.units.map(unit => ({ ...unit, cards: unit.cards.map(card => ({ ...card, drill: { ...card.drill, answers: [] as string[] } })) })) })) } satisfies PrepData,
+    prep: { works: prep.works.map(({ units, ...work }) => ({ ...work, cardCount: cardCount({ units }), units: units.map(({ n, when, summary, cards }) => ({ n, when, summary, cardCount: cards.length })) })) },
   };
 }
+
+/** 홈의 수업 목록 창에 넘기는 이야기 15편·유닛 13개의 제목과 주소. */
+export const getLessonListing = (): LessonListing => lessonListing(getStudyListing());
 
 /** pages.json의 공개 페이지와 같은 꼴로 읽기·사전 훈련 페이지를 만든다. */
 export function studyPages(): ContentPage[] {

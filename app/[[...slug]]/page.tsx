@@ -9,7 +9,7 @@ import LearningWorkspace from "@/components/learning-workspace";
 import { StoryWorkspace } from "@/components/story-workspace";
 import { site, type ContentPage, type ContentPart, type StudyPart } from "@/lib/content";
 import { getPage, pages } from "@/lib/server/site-pages";
-import { getLegacyStudySource } from "@/lib/server/study-source";
+import { getLessonListing, getStudyListing } from "@/lib/server/study-source";
 import { getPublicLearningCatalog } from "@/lib/server/learning-catalog";
 import { getPublicLesson, getStoryLessonLinks } from "@/lib/server/lesson-catalog";
 import { getPublicReferenceMaterials } from "@/lib/server/reference-materials";
@@ -43,7 +43,7 @@ export default async function ContentRoute({ params }: Props) {
   const page = getPage((await params).slug);
   if (!page) notFound();
   if (page.path === "") {
-    return <LearningWorkspace catalog={await getPublicLearningCatalog()} materials={getPublicReferenceMaterials()} />;
+    return <LearningWorkspace catalog={await getPublicLearningCatalog()} materials={getPublicReferenceMaterials()} lessons={getLessonListing()} />;
   }
   const structured = structuredData(page).map((data, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />);
   const story = page.parts.find((part): part is Extract<ContentPart, { kind: "reading" }> => part.kind === "reading");
@@ -70,7 +70,7 @@ export default async function ContentRoute({ params }: Props) {
         if (part.kind === "quiz") return <Quiz key={index} content={part} />;
         if (part.kind === "ask") return <Ask key={index} />;
         if (part.kind === "reading") return null;
-        return <StudyPartView key={index} part={part} source={getLegacyStudySource()} />;
+        return <StudyPartView key={index} part={part} listing={getStudyListing()} />;
       })}
     </main><SiteFooter />
   </>;
