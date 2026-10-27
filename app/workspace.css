@@ -65,3 +65,53 @@
 @media(max-width:1099px){.lw-app.lw-split-app .lw-document-shell{align-items:stretch}.lw-app.lw-split-app .lw-document-shell>.lw-document-toc,.lw-app.lw-split-app .lw-document-shell>.lw-document-toc.lw-toc-open{position:static;height:auto;max-height:none;align-self:stretch;overflow:visible}.lw-app.lw-split-app .lw-chat-pane{position:static;align-self:stretch;height:82svh;min-height:480px}.lw-app.lw-split-app .lw-content-pane .lw-reference-stack{position:static;z-index:auto}}
 
 @media(min-width:1100px){.lw-app.lw-split-app .lw-toolbar{position:sticky;top:0;z-index:5}.lw-app.lw-split-app .lw-document-shell>.lw-document-toc,.lw-app.lw-split-app .lw-chat-pane,.lw-app.lw-split-app .lw-content-pane .lw-reference-stack{top:70px}.lw-app.lw-split-app .lw-document-shell>.lw-document-toc,.lw-app.lw-split-app .lw-chat-pane{height:calc(100svh - 86px);max-height:calc(100svh - 86px)}}
+
+/* Story lessons: timed reading zone, judgement items, reading clock in the toolbar. Scoped so the scene lesson looks the same. */
+.lw-app.lw-split-app .lw-toolbar-actions .lw-reading-controls{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.lw-app.lw-split-app .lw-toolbar-actions .lw-reading-timer{font-size:11px;color:#3e5830;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lw-app.lw-split-app .lw-toolbar-actions .lw-reading-timer b{font-size:16px;font-weight:600;margin-left:3px}
+.lw-app.lw-split-app .lw-toolbar-actions .lw-reading-controls button:last-child{border:1px solid #cbd6bd;border-radius:3px;min-width:44px;max-width:none;padding:7px 11px;font-size:11px;line-height:1.5;background:#fff;color:#3e5830}
+.lw-story-word{line-height:1.35;padding-bottom:2px;display:inline-block;max-width:min(46vw,420px);overflow:hidden;text-overflow:ellipsis;vertical-align:bottom;white-space:nowrap}
+.lw-story-word+.draft-tag{margin-left:8px;font-style:normal;font:600 10px/1.6 var(--f-body);vertical-align:3px}
+.lw-toolbar:has(.lw-story-word){min-width:0}
+.lw-toolbar:has(.lw-story-word) .lw-lesson-title{min-width:0;flex:1 1 auto}
+.lw-toolbar:has(.lw-story-word) .lw-lesson-title h1{min-width:0}
+@media(max-width:1099px){.lw-app.lw-split-app .lw-toolbar:has(.lw-story-word){flex-wrap:wrap;padding-block:2px}.lw-app.lw-split-app .lw-toolbar:has(.lw-story-word) .lw-toolbar-actions{flex:1 1 auto;justify-content:flex-end;flex-wrap:wrap}}
+@media(max-width:640px){.lw-story-word{max-width:46vw}}
+.lw-reading-zone{display:grid;gap:14px}
+.lw-reading-zone>h2{font:italic 600 22px/1.4 var(--f-en);color:#26301f}
+.lw-reading-gate,.lw-body-hidden{display:grid;gap:10px;justify-items:start;padding:20px 22px;border:1px solid #dce4d2;border-radius:6px;background:#f6f8f1;font-size:13px;line-height:1.8;min-width:0}
+.lw-reading-gate b{font-variant-numeric:tabular-nums}
+.lw-reading-gate .lw-button,.lw-body-hidden .lw-button,.lw-reading-finish .lw-button{min-height:44px;padding:9px 16px;font-size:12px;border:1px solid #96aa7e;background:#fff;color:#3e5830;border-radius:3px;cursor:pointer}
+.lw-reading-gate .lw-primary{background:#4f6740;color:#fff;border-color:#4f6740}
+.lw-body-hidden .lw-button:disabled,.lw-reading-gate .lw-button:disabled{opacity:.5;cursor:default}
+.lw-story-body{font:18px/1.85 var(--f-en);color:#26301f;max-width:68ch;word-break:normal;overflow-wrap:break-word}
+.lw-story-body p{margin:0 0 1.05em}
+.lw-reading-clock{margin:0;font-size:12px;color:#3e5830;font-variant-numeric:tabular-nums}
+.lw-reading-clock b{font-size:16px;font-weight:600;margin-left:3px}
+@media(min-width:1100px){.lw-reading-clock{display:none}}
+.lw-reading-finish{padding-top:6px}
+.lw-story-question>.lw-story-ask{font:500 17px/1.7 var(--f-en);margin:4px 0 12px;color:#26301f;overflow-wrap:anywhere;word-break:normal}
+.lw-story-question>h2:not(.lw-story-ask){font-size:13px;font-weight:600;margin:0 0 4px;color:#3e5830}
+.lw-question-options{font-family:var(--f-en);word-break:normal}
+.lw-option-tag{display:inline-block;margin-left:8px;font:600 10px/1.7 var(--f-body);border:1px solid #b8c4a8;border-radius:2px;padding:0 6px;color:#3f5334;background:#f1f5ea;vertical-align:2px;white-space:nowrap}
+.lw-locked-note{margin:6px 0;font-size:12px;line-height:1.8;color:#5c6750}
+.lw-draft-note{font-size:11px;line-height:1.8;color:#6b5a2a;margin-top:6px}
+.lw-old-version{display:grid;gap:8px;margin-top:12px;padding:12px 14px;border:1px solid #d9c9a0;background:#fbf6e6;font-size:12px;line-height:1.8;border-radius:3px}
+.lw-old-version button{justify-self:start;min-height:44px;padding:8px 14px;border:1px solid #b99a4a;background:#fff;color:#6b4d0e;border-radius:3px;font-size:12px;cursor:pointer}
+.lw-reading-marker{margin:0;padding-top:8px;border-top:1px dashed #cfd8c3;font-size:11px;line-height:1.8;color:#59684b}
+.lw-judgement{display:grid;gap:8px;padding:14px 16px;border:1px solid #c9d2bd;border-left:4px solid #58724a;border-radius:3px;background:#f4f7ee;min-width:0}
+.lw-judgement .lw-message-meta{margin:0}
+.lw-app.lw-split-app .lw-judgement .lw-message-meta>span.lw-judgement-mark{display:inline-block;padding:1px 7px;border-radius:2px;background:#58724a;color:#fff;font-size:10px;font-weight:600}
+.lw-judgement-line{font-size:14px;font-weight:600}
+.lw-judgement-same{color:#2d5f2f}
+.lw-judgement-differs{color:#8a3d27}
+.lw-judgement-answer{font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+.lw-judgement-answer [lang=en]{font-family:var(--f-en);font-size:15px}
+.lw-question-options li[lang=ko],.lw-judgement-answer [lang=ko]{font-family:var(--f-body)}
+.lw-judgement h3{margin:4px 0 0;font:600 11px/1.6 var(--f-body);color:#4a5b3e}
+.lw-judgement p{font-size:13px;line-height:1.8}
+.lw-judgement-basis,.lw-judgement-card{font-size:12px;color:#59684b;overflow-wrap:anywhere}
+.lw-judgement-status{display:grid;gap:6px;justify-items:start;margin-top:10px;padding:10px 12px;border:1px dashed #b8c4a8;border-radius:3px;font-size:12px;line-height:1.8}
+.lw-judgement-failed button{min-height:44px;padding:7px 14px;border:1px solid #96aa7e;background:#fff;color:#3e5830;border-radius:3px;font-size:12px;cursor:pointer}
+.lw-judgement-failed{border-color:#d3a28f;background:#fbf0ec}

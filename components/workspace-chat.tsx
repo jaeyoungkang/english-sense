@@ -7,8 +7,9 @@ import { characterCount, type WorkspaceTurn } from "@/lib/learning-thread";
 
 /** Conversation pieces every lesson kind shows the same way. `label` names the target ("3번 퀴즈"). */
 
-export function UserRequest({ label, turn }: { label: string; turn: WorkspaceTurn }) {
-  return <div className="lw-user-message"><div className="lw-message-meta">{turn.origin === "submission" ? "피드백 요청" : "나"} · {label}{turn.origin === "submission" && <span>제출 버튼으로 보낸 요청</span>}</div><p>{turn.user}</p></div>;
+/** `sentVia` names the button that sent a `submission` turn; the scene lesson sends it from its submit button. */
+export function UserRequest({ label, turn, sentVia = "제출 버튼으로 보낸 요청" }: { label: string; turn: WorkspaceTurn; sentVia?: string }) {
+  return <div className="lw-user-message"><div className="lw-message-meta">{turn.origin === "submission" ? "피드백 요청" : "나"} · {label}{turn.origin === "submission" && <span>{sentVia}</span>}</div><p>{turn.user}</p></div>;
 }
 
 export function AssistantReply({ label, turn }: { label: string; turn: WorkspaceTurn }) {

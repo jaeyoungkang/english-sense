@@ -6,10 +6,12 @@ import { Quiz } from "@/components/quiz";
 import { Ask } from "@/components/ask";
 import { StudyPartView } from "@/components/study-pages";
 import LearningWorkspace from "@/components/learning-workspace";
-import { site, type ContentPage } from "@/lib/content";
+import { StoryWorkspace } from "@/components/story-workspace";
+import { site, type ContentPage, type ContentPart } from "@/lib/content";
 import { getPage, pages } from "@/lib/server/site-pages";
 import { getLegacyStudySource } from "@/lib/server/study-source";
 import { getPublicLearningCatalog } from "@/lib/server/learning-catalog";
+import { getPublicLesson, getStoryLessonLinks } from "@/lib/server/lesson-catalog";
 import { getPublicReferenceMaterials } from "@/lib/server/reference-materials";
 
 type Props = { params: Promise<{ slug?: string[] }> };
@@ -41,8 +43,16 @@ export default async function ContentRoute({ params }: Props) {
   if (page.path === "") {
     return <LearningWorkspace catalog={await getPublicLearningCatalog()} materials={getPublicReferenceMaterials()} />;
   }
+  const structured = structuredData(page).map((data, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />);
+  const story = page.parts.find((part): part is Extract<ContentPart, { kind: "reading" }> => part.kind === "reading");
+  if (story) {
+    // 이야기 수업은 홈의 작업 공간과 같은 틀이다. 브라우저에는 공개 투영만 넘기고 정답·해설은 서버 정본에만 둔다.
+    const lesson = await getPublicLesson(story.id);
+    if (lesson.kind !== "story") notFound();
+    return <>{structured}<StoryWorkspace lesson={lesson} links={getStoryLessonLinks(story.id)} /></>;
+  }
   return <>
-    {structuredData(page).map((data, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />)}
+    {structured}
     <SiteHeader menu={page.menu} />
     <main className="wrap" id="main-content"><Breadcrumbs page={page} />
       {page.parts.map((part, index) => {
@@ -50,6 +60,7 @@ export default async function ContentRoute({ params }: Props) {
         if (part.kind === "stage") return <SenseStage key={index} content={part} />;
         if (part.kind === "quiz") return <Quiz key={index} content={part} />;
         if (part.kind === "ask") return <Ask key={index} />;
+        if (part.kind === "reading") return null;
         return <StudyPartView key={index} part={part} source={getLegacyStudySource()} />;
       })}
     </main><SiteFooter />

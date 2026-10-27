@@ -62,6 +62,12 @@ export type PublicStoryLesson = {
   questions: PublicStoryQuestion[];
 };
 
+/** 이야기 수업 화면의 짝 링크: 짝 유닛과, expression 문항이 묻는 카드로 가는 주소. 표현·주소만 담으며 정답이 아니다. */
+export type StoryLessonLinks = {
+  pair?: { workTitle: string; unit: number; href: string };
+  cards: Record<string, { href: string; expression: string }>;
+};
+
 /** 카드 수업의 공개 카드. 빈칸 정답(`drill.answers`)은 빈칸 수로만 남긴다. */
 export type PublicCard = {
   questionId: string;

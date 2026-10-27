@@ -2,7 +2,7 @@ import readingData from "../../content/reading.json";
 import prepData from "../../content/prep.json";
 import type { ContentPage } from "../content";
 import { cardCount, minutesLabel, unitPath, workLabel } from "../study-content";
-import type { PrepData, ReadingData } from "../study-content-types";
+import type { PrepData, ReadingData, ReadingSummary } from "../study-content-types";
 
 // 읽기·사전 훈련 정본 JSON을 import하는 유일한 모듈이다. 정답·해설을 담으므로 서버 밖으로 내보내지 않는다.
 const reading = readingData as ReadingData;
@@ -12,10 +12,15 @@ const prep = prepData as PrepData;
 export const getStudySource = () => ({ reading, prep });
 
 /**
- * 임시 어댑터(계약 단계 1). `/reading/*`·`/prep/*` 페이지의 기존 컴포넌트가 정답·해설을 props로 계속 받는다.
- * 단계 6·7에서 수업 공개 투영으로 바꾸고 이 함수를 없앤다.
+ * 임시 어댑터(계약 단계 1). 카드 부분은 단계 7까지 `/prep/*`의 기존 컴포넌트가 `drill.answers`를 props로 받는다.
+ * 이야기는 단계 6에서 정본(`answer`·`explain`·`basis`)을 떼고 목록·짝 링크에 필요한 요약만 낸다.
  */
-export const getLegacyStudySource = getStudySource;
+export function getLegacyStudySource(): { reading: ReadingSummary; prep: PrepData } {
+  return {
+    reading: { stories: reading.stories.map(({ id, title, words, limitSeconds, draft, pair, questions }) => ({ id, title, words, limitSeconds, draft, ...(pair ? { pair: { ...pair } } : {}), questionCount: questions.length })) },
+    prep,
+  };
+}
 
 /** pages.json의 공개 페이지와 같은 꼴로 읽기·사전 훈련 페이지를 만든다. */
 export function studyPages(): ContentPage[] {

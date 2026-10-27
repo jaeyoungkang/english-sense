@@ -26,6 +26,9 @@ export type ReadingStory = {
   questions: ReadingQuestion[];
 };
 export type ReadingData = { stories: ReadingStory[] };
+/** 목록과 짝 링크에 필요한 이야기 정보. 문항을 담지 않으므로 정답·해설이 브라우저 쪽 산출물로 가지 않는다. */
+export type ReadingSummaryStory = { id: string; title: string; words: number; limitSeconds: number; draft: boolean; pair?: ReadingPair; questionCount: number };
+export type ReadingSummary = { stories: ReadingSummaryStory[] };
 
 /** 예문과 빈칸 문장의 자리. 책은 부 번호, 영화는 대사의 타임코드다. */
 export type Place = { part: number } | { time: string };

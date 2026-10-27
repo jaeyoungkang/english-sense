@@ -1,21 +1,23 @@
 import { notFound } from "next/navigation";
 import type { StudyPart } from "@/lib/content";
-import { cardCount, cardPath, getStory, getWork, minutesLabel, pairStories, sourceLabel, storyPair, unitPath, workLabel } from "@/lib/study-content";
-import type { PrepData, ReadingData, ReadingStory } from "@/lib/study-content-types";
-import { TimedReading } from "@/components/timed-reading";
+import { cardCount, getWork, minutesLabel, pairStories, sourceLabel, unitPath, workLabel } from "@/lib/study-content";
+import type { PrepData, ReadingSummary, ReadingSummaryStory } from "@/lib/study-content-types";
 import { FillDrill } from "@/components/fill-drill";
 
-/** 정본을 서버가 읽어 넘긴다. 컴포넌트는 정본 JSON을 import하지 않는다. */
-type StudySource = { reading: ReadingData; prep: PrepData };
+/**
+ * 서버가 읽어 넘긴다. 컴포넌트는 정본 JSON을 import하지 않는다.
+ * 이야기는 목록·짝 링크용 요약뿐이고(이야기 수업 화면은 `story-workspace.tsx`), 카드 정답은 단계 7까지 `prep`에 남는다.
+ */
+type StudySource = { reading: ReadingSummary; prep: PrepData };
 
 function DraftTag() {
   return <span className="tag draft-tag">초안</span>;
 }
 
-function StoryLink({ story, label }: { story: ReadingStory; label?: string }) {
+function StoryLink({ story, label }: { story: ReadingSummaryStory; label?: string }) {
   return <a className="link-card" href={`/reading/${story.id}/`}>
     <span className="t"><span className="en">{story.title}</span> {story.draft && <DraftTag />}</span>
-    <span className="s">{label ? `${label} · ` : ""}{story.words}낱말 · 제한 시간 {minutesLabel(story.limitSeconds)} · 문제 {story.questions.length}개</span>
+    <span className="s">{label ? `${label} · ` : ""}{story.words}낱말 · 제한 시간 {minutesLabel(story.limitSeconds)} · 문제 {story.questionCount}개</span>
   </a>;
 }
 
@@ -44,22 +46,6 @@ function ReadingList({ reading, prep }: StudySource) {
       </section>)}
     </section>}
     <p className="note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>
-  </>;
-}
-
-function ReadingStoryPage({ id, reading, prep }: StudySource & { id: string }) {
-  const story = getStory(reading, id);
-  if (!story) notFound();
-  const pair = storyPair(prep, story);
-  const cards = pair ? Object.fromEntries(pair.unit.cards.map(card => [card.id, { href: cardPath(pair.work, pair.unit.n, card.id), expression: card.expression }])) : {};
-  return <>
-    <header className="hero">
-      <span className="eyebrow">시간 제한 읽기 {story.draft && <DraftTag />}</span>
-      <h1 className="en-title">{story.title}</h1>
-      <p className="lede">{story.words}낱말을 {minutesLabel(story.limitSeconds)} 안에 읽습니다. 시작하면 본문과 남은 시간이 보입니다. 시간이 끝나거나 다 읽었다고 누르면 본문을 가리고 {story.questions.length}문제를 풉니다.</p>
-      {pair && <p className="pair-note"><i>{pair.work.title}</i> 유닛 {pair.unit.n} 표현으로 쓴 이야기입니다. <a href={unitPath(pair.work, pair.unit.n)}>유닛 {pair.unit.n} 카드 보기</a></p>}
-    </header>
-    <TimedReading story={story} cards={cards} />
   </>;
 }
 
@@ -151,7 +137,7 @@ function PrepUnitPage({ id, n, reading, prep }: StudySource & { id: string; n: n
       <div className="links">{stories.map(story =>
         <a className="link-card" key={story.id} href={`/reading/${story.id}/`}>
           <span className="t">이 표현으로 읽기: <span className="en">{story.title}</span> ({minutesLabel(story.limitSeconds)}) {story.draft && <DraftTag />}</span>
-          <span className="s">카드 표현으로 쓴 새 이야기 · {story.words}낱말 · 문제 {story.questions.length}개</span>
+          <span className="s">카드 표현으로 쓴 새 이야기 · {story.words}낱말 · 문제 {story.questionCount}개</span>
         </a>)}
       </div>
     </section>}
@@ -162,9 +148,9 @@ function PrepUnitPage({ id, n, reading, prep }: StudySource & { id: string; n: n
   </>;
 }
 
-export function StudyPartView({ part, source }: { part: StudyPart; source: StudySource }) {
+/** 이야기 수업(`reading`)은 작업 공간이 따로 그린다. */
+export function StudyPartView({ part, source }: { part: Exclude<StudyPart, { kind: "reading" }>; source: StudySource }) {
   if (part.kind === "reading-list") return <ReadingList {...source} />;
-  if (part.kind === "reading") return <ReadingStoryPage id={part.id} {...source} />;
   if (part.kind === "prep-list") return <PrepList prep={source.prep} />;
   if (part.kind === "prep-work") return <PrepWorkPage id={part.id} prep={source.prep} />;
   return <PrepUnitPage id={part.id} n={part.unit} {...source} />;

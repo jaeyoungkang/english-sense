@@ -1,7 +1,8 @@
-import { getLessonEntry, type LessonEntry, type PublicCard, type PublicCardsLesson, type PublicStoryLesson } from "../lesson-registry";
+import { getLessonEntry, type LessonEntry, type PublicCard, type PublicCardsLesson, type PublicStoryLesson, type StoryLessonLinks } from "../lesson-registry";
 import { splitBlanks } from "../fill-blank";
 import type { PublicLearningCatalog } from "../learning-catalog";
 import type { PrepCard, PrepUnit, PrepWork, ReadingQuestion, ReadingStory } from "../study-content-types";
+import { cardPath, storyPair, unitPath } from "../study-content";
 import { getStudySource } from "./study-source";
 import { getPublicLearningCatalog } from "./learning-catalog";
 
@@ -121,4 +122,15 @@ export function getServerLessonQuestion(lessonId: unknown, questionId: unknown):
     if (card) return { kind: "cards", lessonId: lesson.lessonId, questionId: card.id, card };
   }
   throw new Error("lesson_question_unavailable");
+}
+
+export function getStoryLessonLinks(lessonId: unknown): StoryLessonLinks {
+  const lesson = getServerLesson(lessonId);
+  if (lesson.kind !== "story") throw new Error("lesson_unavailable");
+  const pair = storyPair(getStudySource().prep, lesson.story);
+  if (!pair) return { cards: {} };
+  return {
+    pair: { workTitle: pair.work.title, unit: pair.unit.n, href: unitPath(pair.work, pair.unit.n) },
+    cards: Object.fromEntries(pair.unit.cards.map(card => [card.id, { href: cardPath(pair.work, pair.unit.n, card.id), expression: card.expression }])),
+  };
 }
