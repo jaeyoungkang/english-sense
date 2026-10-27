@@ -64,28 +64,14 @@ test("when time runs out the story closes and the quiz starts", async ({ page })
   await expect(page.locator(".opt")).toHaveCount(story.questions[0].options.length);
 });
 
-test("fill-in drills accept lenient right answers, flag wrong ones and reveal answers with sources", async ({ page }) => {
+test("unit cards show their source line and whether the count is for the whole work", async ({ page }) => {
   await page.goto("/prep/wonder/unit-0/");
-  const card = page.locator("article", { has: page.locator("#wonder-0-12-h") });
-  await expect(card.locator(".count")).toContainText("책 전체");
-  await expect(card.locator("figcaption")).toHaveText(/^Wonder \(R\. J\. Palacio, 2012\) · \d부$/);
-  await card.getByLabel("빈칸 1").fill("pick");
-  await card.getByLabel("빈칸 2").fill("out");
-  await card.getByRole("button", { name: "확인" }).click();
-  await expect(card.getByRole("status")).toHaveText("아직 아닙니다. 고쳐 쓰거나 답을 보십시오.");
-  await card.getByLabel("빈칸 2").fill("  UP ");
-  await card.getByLabel("빈칸 2").press("Enter");
-  await expect(card.getByRole("status")).toHaveText("맞습니다.");
-  await expect(card.getByRole("button", { name: "확인" })).toBeDisabled();
-
-  const other = page.locator("article").first();
-  await other.getByRole("button", { name: "답 보기" }).click();
-  await expect(other.getByRole("status")).toContainText("답: kind of");
-  await expect(other.getByLabel("빈칸", { exact: true })).toHaveValue("kind of");
-
+  const card = page.locator("section.cl-card", { has: page.locator("#wonder-0-12") });
+  await expect(card.locator(".cl-count")).toContainText("책 전체");
+  await expect(card.locator(".cl-example figcaption")).toHaveText(/^Wonder \(R\. J\. Palacio, 2012\) · \d부$/);
   await page.goto("/prep/zootopia/unit-0/");
-  await expect(page.locator("article").first().locator("figcaption")).toHaveText(/^Zootopia \(2016\) · \d\d:\d\d:\d\d$/);
-  await expect(page.locator("article").first().locator(".count")).toContainText("영화 전체");
+  await expect(page.locator("section.cl-card").first().locator(".cl-example figcaption")).toHaveText(/^Zootopia \(2016\) · \d\d:\d\d:\d\d$/);
+  await expect(page.locator("section.cl-card").first().locator(".cl-count")).toContainText("영화 전체");
 });
 
 test("the reading list separates paired stories by work and marks every story as a draft", async ({ page }) => {
@@ -122,7 +108,7 @@ test("a paired story links to its unit, labels expression questions and links ea
   await expect(link).toHaveAttribute("href", `/prep/wonder/unit-3/#${q.card}`);
   await link.click();
   await expect(page).toHaveURL(new RegExp(`/prep/wonder/unit-3/#${q.card}$`));
-  await expect(page.locator(`article#${q.card}`)).toBeInViewport();
+  await expect(page.locator(`section.cl-card[data-question-id="${q.card}"]`)).toBeInViewport();
 });
 
 test("a prep unit links to the story written with its expressions", async ({ page }) => {

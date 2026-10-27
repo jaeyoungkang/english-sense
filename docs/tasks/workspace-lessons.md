@@ -587,3 +587,85 @@ e2e는 테스트 파일을 한 줄도 바꾸지 않았다. 옛 `/reading/`·`/pr
 - 저장 문구는 `useRecordStore`의 `overwritePrompt`로 종류마다 정한다(v4는 v1/v2 원본 문구가 필요 없다).
 - 읽기 구역·카드 문서의 문서 구역 ID는 `documentAnchorId(id)`(`doc-<id>`)로 그려야 목차 이동·읽기 위치 추적이 된다. 구역 요소에 `id={documentAnchorId(id)}`와 `tabIndex={-1}`을 둔다.
 - 실행 방법(로컬 Workers): `npm run cf:build`로 만든 뒤 `npx wrangler dev --ip 127.0.0.1 --port 8787 --persist-to <임시 폴더>`를 띄운다. 실제 AI는 `.dev.vars`의 키가 필요하고, 키 없이도 문서·판정·기록은 동작한다. e2e는 `npx playwright test`가 같은 서버를 직접 띄우고 끝나면 내린다. 직접 띄운 서버는 자신이 만든 프로세스 ID로 종료한다.
+
+### 단계 7 — 카드 수업 (2026-10-27)
+
+만든 것:
+
+- `components/card-lesson.tsx`(+ `card-lesson.css`): 카드 수업의 작업 공간. `useRecordStore<LessonState>`(키 `english-sense-lesson-v4:<수업>`), `useWorkspaceShell({ documentMode: "plain", storageKeys: lessonStorageKeys(id) })`, `useTurnRequests`를 쓰고 `WorkspaceFrame`의 칸을 채운다.
+  - 문서: 카드마다 한 절(표현·횟수·뜻·감각·예문·근거·빈칸 문장·한국어 힌트)과 "이 카드로 이어 가기" 단추. 목차는 카드 수만큼이고 대화 선택기도 같다. 문서 끝에 "이 표현으로 읽기"(짝 이야기 링크, 옛 마크업 `#pair-read-h + .links .link-card` 그대로)와 "다른 유닛" 이전·다음 링크가 있다. 문서 영역에는 입력이 없다.
+  - 옛 주소의 `#<카드 id>`: 카드 제목(`h2`)이 그 id를 가지고, 하이드레이션 뒤 첫 로드와 `hashchange`에서 그 카드로 이동하고 입력 대상으로 고른다(선택은 사건이 아니다).
+  - 입력: 대화 칸의 빈칸 입력(빈칸 수만큼, `aria-label="빈칸 n"`, 편집 중 검증 없음). 첫 답은 "첫 답 남기기", 직전 판정이 다르면 "수정해서 다시 판정"이다. 수정은 새 시도이고 한도는 6회다. 직전 답과 같은 내용은 새 시도로 남기지 않는다. 대상 표시는 "입력 대상: 카드 3 · kind of"다.
+  - 판정: `/api/lesson-check/`에 첫 답을 보내 빈칸별 같음/다름만 받는다. 대화에는 AI 말풍선과 다른 "판정" 항목(`.cl-judgement`)으로 쌓고 문구는 "정본 답과 같습니다/다릅니다"와 빈칸별 "같음/다름"이다. 판정 대기·실패를 구분하고, 실패하면 "판정을 받지 못했습니다. 답은 남아 있습니다."와 "다시 판정" 단추를 보인다(복원 뒤에도 같고, 복원이 요청을 만들지 않는다).
+  - '답 보기': 첫 답 전에는 닫혀 있고(비활성과 안내) 첫 답 뒤에 열려 `reveal` 사건과 "정본 답" 항목을 남긴다. 그 뒤 시도에는 "답을 본 뒤"를 표시한다. 요청에는 첫 답 입력을 함께 보낸다.
+  - AI: "AI에게 설명 요청" 단추와 질문 입력으로만 보낸다. 요청은 단계 4 결과대로(`initialAttempt: { kind: "fill", inputs }`, 수정은 `{ text }`에 빈칸 입력을 " / "로 합친 한 줄, 비운 빈칸은 "(비움)"). 대기 중 다른 카드를 골라도 응답은 요청 당시 카드에 붙는다. 한도·실패는 질문을 보존하고 판정·문서·기록은 계속 동작한다.
+  - 옛 판 기록: 읽기 전용으로 보존하고(입력·판정·AI 전송 막음) 안내와 "이 기록을 지우고 새 판으로 시작" 단추를 둔다. 확인 한 번("되돌릴 수 없습니다")을 거쳐 그 수업의 기록 키 하나만 지우고 새 기록으로 시작하며, 고른 카드는 유지한다.
+- `lib/card-lesson.ts`(순수): 화면이 쓰는 타입(`CardLessonView`), 빈칸 초안 갱신(`setCardInput`·`setCardMessageDraft`, 첫 입력 때 사건 없이 카드 기록을 만든다), AI 요청 재료(`cardAttemptsForRequest`·`joinInputs`·`explainRequestMessage`), 카드의 자리(`cardStage`: `old`·`first`·`waiting`·`match`·`revise`·`limit`), 출처 줄(`placeLabel`).
+- `lib/server/card-lesson-view.ts`: 유닛 페이지가 브라우저로 넘기는 값. 공개 투영(`getPublicLesson`), 이웃 유닛, 짝 이야기의 공개 필드만 담는다(`drill.answers` 없음).
+- 라우트: `app/[[...slug]]/page.tsx`가 `prep-unit` 부분이 있는 페이지를 작업 공간으로 렌더링한다(JSON-LD는 그대로, 사이트 머리·꼬리는 없음. 홈과 같다). 제목·설명·canonical·sitemap 코드는 바꾸지 않았다.
+- 정답 분리: `getLegacyStudySource()`의 카드 부분을 걷었다(`drill.answers`를 빈 배열로 바꾼 사본을 넘긴다. 목록·작품 페이지와 이야기의 짝 링크는 카드 정답이 필요 없다). 이야기 부분(`reading`)은 건드리지 않았다.
+- 지운 것: `components/fill-drill.tsx`, `components/study-pages.tsx`의 `PrepUnitPage`와 그 import, `app/globals.css`의 `.prep-*`·`.drill*`·`.blank*`·`.basis` 규칙(18줄). `lib/fill-blank.ts`는 서버 판정용으로 남았다.
+
+계약과 다르거나 계약이 정하지 않아 고른 것:
+
+- 목차는 카드 수만큼 항목이 모두 보이게 두고(접힌 묶음 없음) 셸의 기존 기본값을 따랐다: 1100px 이상에서는 처음부터 펼침이고 그보다 좁으면 목차 단추 뒤에 접혀 있다(have와 같다). 22장 목차를 390px 화면 맨 위에 펼쳐 시작하면 본문이 한참 아래로 밀리기 때문이다. "접힘으로 시작하지 않는다"를 좁은 화면에서도 글자 그대로 지키려면 셸의 첫 방문 기본값을 수업별로 바꿔야 한다. 강PD가 정할 일이다.
+- "AI에게 설명 요청"의 문장은 have의 `submission` 문장("처음 제출한 답과 이유를 장면에 비추어…")을 그대로 쓰지 않고 카드용으로 썼다(`explainRequestMessage`). 카드에는 이유 입력과 장면이 없다. 질문 종류(`origin: "question"`)로 보내 대화에 "제출 버튼으로 보낸 요청" 표시가 붙지 않는다(제출 버튼이 아니라 설명 요청 단추여서).
+- 직전 답과 같은 내용의 수정은 새 시도로 남기지 않는다(단추 비활성과 안내).
+- "내 수행 기록" 창과 "수업 목록" 창은 만들지 않았다(수업 목록은 단계 8). 도구 막대에는 "목록"(작품의 유닛 목록 링크)과 "이 카드 새 대화"가 있다.
+- 단계 6과 같은 기능(옛 판 기록 읽기 전용+새로 시작)은 카드 전용 이름으로 만들었다: `CardLesson` 안의 `restartFromNewVersion`, `.cl-old-banner`. 합칠 때 공통화한다. 단계 6의 코드는 이 사본에 없어 겹침 여부는 보지 못했다.
+- 카드 화면의 CSS는 `app/workspace.css`·`app/globals.css`를 늘리지 않고 컴포넌트가 import하는 `components/card-lesson.css`(`.cl-*`)에 두었다. 이 페이지에서만 로드된다.
+
+실행한 검사와 결과(로컬 Workers는 8791번 포트와 임시 `--persist-to` 폴더로 띄우고 `TEST_BASE_URL=http://127.0.0.1:8791`로 Playwright를 돌렸다. 설정 파일은 고치지 않았다. 실제 AI는 호출하지 않았다):
+
+| 검사 | 결과 |
+| --- | --- |
+| `npm run check` | 통과. 단위 153개(기존 143개는 수정 없이 통과, 새 10개가 `tests/card-lesson.test.ts`) |
+| 새 단위 10개: 13개 유닛 전부의 뷰에 `"answers"` 키·정답 배열·채운 문장 0건, 이웃 유닛·짝 이야기·출처 줄, 빈칸 초안(첫 입력만 기록 생성·사건 없음·100자 제한·옛 판은 불변), 첫 답→일부만 맞음→수정→답 보기→같음의 단계와 "답을 본 뒤", 수정 한도, AI 요청 모양이 `isLessonChatRequest`를 통과, 옛 판 복원 | 통과. 뷰에 `leak` 필드를 일부러 넣으면 첫 검사가 실패함을 확인하고 되돌렸다 |
+| `npm run cf:build` | 성공 |
+| `npx playwright test`(전체, chromium+mobile, 작업자 2) | 116개 통과. 기존 72개 가운데 `study-content.spec.ts`의 2곳만 고쳤고(아래) 나머지는 수정 없이 통과. 새 `card-lesson.spec.ts`는 22개×2 프로젝트 |
+| 새 e2e를 `--repeat-each=3`(132회) | 모두 통과 |
+| 흔들림: 서버를 새로 띄운 직후 처음 돌린 mobile 실행에서 "첫 답 전 질문은 무료 준비 안내" 한 개가 실패했다. 같은 테스트를 따로 10회 돌려 모두 통과했고 이후 전체 실행도 통과해 재현하지 못했다. 서버를 막 띄운 첫 요청의 지연으로 추정할 뿐 원인은 확인하지 못했다 | 미확인 |
+| 산출물 검사(e2e 한 개): `.next/static`, `.next/server/app`의 `.html`·`.rsc`·`.meta`·`.segments`, `.open-next/assets`, `.open-next/cache`(선생성 `.cache`)를 읽어, 13개 유닛 모든 카드의 `drill.answers` 배열 문자열(이스케이프 포함)과 "빈칸 문장 옆의 채운 문장"을 찾음. 이어서 13개 유닛 주소의 첫 HTML과 RSC 응답에도 같은 검사와 `"answers"` 키 부재 검사 | 0건. 일부러 뷰에 정답을 넣고 다시 빌드하면 선생성 `.html`에서 걸리는 것을 확인하고 되돌렸다 |
+
+산출물 검사의 범위와 한계: 서버 번들(`.next/server/**/*.js`, `.open-next/server-functions`, `worker.js`)은 정본 JSON을 담는 것이 정해진 일이라 읽지 않았다. 브라우저나 캐시가 내주는 것만 읽었다. 채운 문장은 다른 카드의 예문과 같은 작품의 한 줄일 수 있어(`wonder-0-09`의 채운 문장이 유닛 6의 예문과 같다) 문장만 찾으면 거짓 경보가 난다. 그래서 그 카드의 빈칸 문장이 함께 보이는 파일에서만 채운 문장을 찾는다. 빈칸 문장 없이 답 낱말만 따로 실린 경우는 정답 배열 문자열 검사만 잡는다.
+
+수용 조건 표에 채울 값(표 자체는 고치지 않았다):
+
+| 조건 | 실제 실행·관찰 근거와 판 | 결과와 남은 한계 |
+| --- | --- | --- |
+| 정본 분리(카드 부분) | 위 단위 검사(13개 유닛)와 산출물 검사(선생성 산출물·첫 HTML·RSC·클라이언트 JS 0건). 판은 수업별 `contentVersion` | 통과. 이야기 부분은 단계 6 몫이라 이 사본의 읽기 페이지 산출물에는 `answer`·`explain`이 여전히 있다 |
+| 전체 문서(카드) | e2e: 카드 21장과 22장 유닛에서 하이드레이션 뒤 절·목차 항목·선택기 항목 수가 카드 수와 같음 | 통과. 첫 응답 HTML의 항목 수는 따로 세지 않았다(서버 렌더링 결과를 스크린샷으로 본 정도) |
+| 자유 순서(카드) | e2e: 읽기·카드 선택·목차 이동 뒤 `events`와 `artifacts`가 빈 채이고 `/api/` 요청 0건 | 통과 |
+| 첫 답 보존(카드) | e2e: 틀린 첫 답→수정→새로고침. 첫 시도의 입력·판정이 그대로이고 사건 순서가 `initial, check, reveal, revision, check` | 통과 |
+| 무료 판정(화면 연결) | e2e: 판정 응답 본문에 `"up"`·`answers` 없음, 첫 답 때 `/api/learn-chat/` 호출 0회 | 통과 |
+| 판정 실패 | e2e: `lesson-check` 요청 차단→"판정을 받지 못했습니다. 답은 남아 있습니다."→새로고침 뒤에도 유지→차단 해제 뒤 "다시 판정"으로 복구. 같은 요청을 두 번 보내 응답이 같음. '답 보기' 실패도 첫 답을 두고 다시 시도할 수 있음 | 통과 |
+| 서버 판정과 AI 분리 | e2e: 첫 답 0회, 설명 요청 1회(요청 모양 단언), 질문 1회. 한도 429 흉내에서도 판정·카드 선택·기록 동작 | 통과. 공급자는 모의로만 썼다 |
+| 대상과 늦은 응답 | e2e(응답을 붙잡아 둔 모의): 대기 중 다른 카드 선택→응답이 원래 카드에 붙고 선택·`scrollY` 불변(±2px) | 통과. 실제 AI 한 번은 단계 8 |
+| 수업별 복원 | e2e: 두 유닛을 오가며 새로고침해도 분리, 한쪽 기록을 손상시켜도 다른 수업이 열림 | 통과 |
+| have 호환 | 기존 e2e·단위가 수정 없이 통과(`study-content.spec.ts`의 사전 훈련 화면 단언 2곳만 새 화면에 맞게 고침) | 통과 |
+| 주소와 sitemap(카드) | e2e: 유닛 13개의 제목·description·canonical·`sitemap.xml`, 기존 `study-content` 주소 순회, 옛 `#<카드 id>`가 그 카드를 뷰포트에 둠 | 통과 |
+| 좁은 화면(카드) | e2e: 22장 유닛을 1440·1100·390·320px에서 목차 마지막 항목·마지막 카드 제목·선택기·빈칸 입력·"첫 답 남기기"·질문 칸에 닿고(hit-test) 가로 넘침 없음. 화면 확인은 1440·390px | 통과. 사람이 읽기에 편한지는 미확인 |
+| 숙달 미표시(카드) | e2e: 화면 글에 숙달·완료·진행률·마스터·달성·"정답입니다"·"맞습니다" 없음. 사실 서술만("첫 답을 남긴 카드 1개", 카드별 "첫 답을 남겼습니다 · 수정 n회") | 통과 |
+
+`tests/e2e/study-content.spec.ts`에서 바꾼 곳(옛 화면 단언 2곳):
+
+- 67~76줄: 테스트 "fill-in drills accept lenient right answers, flag wrong ones and reveal answers with sources"를 "unit cards show their source line and whether the count is for the whole work"로 바꿨다. 옛 `FillDrill`의 입력·"확인"·"맞습니다"·"답: kind of" 단언은 없앴다(새 판정 흐름은 `card-lesson.spec.ts`가 본다). 출처 줄과 "책/영화 전체" 단언은 새 마크업(`section.cl-card`, `.cl-example figcaption`, `.cl-count`)으로 옮겨 유지했다.
+- 111줄: `article#${q.card}`를 `section.cl-card[data-question-id="${q.card}"]`로 바꿨다(이야기의 "카드에서 다시 보기" 링크가 그 카드를 뷰포트에 두는지 보는 단언).
+
+남은 한계:
+
+- 사람이 보고 써 본 판단은 없다(22장 문서가 편한지, 판정 문구가 엄한지, 대화 칸에서 빈칸을 채우는 것이 자연스러운지). 키보드만의 조작과 스크린 리더 낭독은 확인하지 않았다.
+- 판정 실패 안내는 모든 실패에 같은 문장을 쓴다(서버가 준 사유는 있을 때 뒤에 붙인다).
+- 셸의 "한 번에 요청 하나" 규칙 때문에 AI 응답을 기다리는 동안은 다른 카드에서도 AI 질문을 보낼 수 없다(판정·답 보기·입력은 된다).
+- 단계 6의 이야기 코드와 합친 상태는 보지 못했다.
+
+합칠 때 충돌이 날 곳(작업 사본 `/Users/jaeyoungkang/english-sense-card`, 브랜치 `step7-card-lesson`): `app/[[...slug]]/page.tsx`(import 두 줄과 `if (unit) {…}` 블록 하나, 홈 분기와 마지막 `return` 사이), `components/study-pages.tsx`(위쪽 import 두 줄, `PrepUnitPage` 삭제, `StudyPartView` 마지막 줄), `lib/server/study-source.ts`(`getLegacyStudySource` 주석과 정의), `app/globals.css`(18줄 삭제), `tests/e2e/study-content.spec.ts`(위 두 곳), `docs/tasks/workspace-lessons.md`(맨 끝 절). 새 파일: `components/card-lesson.tsx`·`.css`, `lib/card-lesson.ts`, `lib/server/card-lesson-view.ts`, `tests/card-lesson.test.ts`, `tests/e2e/card-lesson.spec.ts`. 삭제: `components/fill-drill.tsx`.
+
+단계 8에 넘길 사항:
+
+- 이야기와 카드가 같은 기능을 각자 만든 곳을 공통화한다: 옛 판 기록 안내와 "지우고 새 판으로 시작", 판정 요청(`runCheck` 계열)과 실패·다시 판정 표시, 대화 칸의 "판정" 항목 스타일(`.cl-judgement`), 저장 경고.
+- `getLegacyStudySource()`는 이야기 부분이 걷히면 함께 없앨 수 있다. 목록·작품 페이지가 쓰는 `prep`은 `getStudySource()`에서 정답을 뺀 투영으로 바꿀 수 있다.
+- 수업 목록 창과 "내 수행 기록" 창은 아직 카드 수업에 없다.
+- 좁은 화면의 목차 기본값(위 "고른 것")을 강PD가 정한다.
+- 실제 AI 한 번으로 카드 설명 요청이 서버 판정을 지키고 '답 보기' 전에 답을 먼저 말하지 않는지 확인한다(단계 4 한계와 같다).
+- 운영 반영 전에 `docs/architecture.md`·`docs/ux-design.md`의 수업 종류 설명을 갱신한다(이 단계는 계약 문서만 고쳤다).

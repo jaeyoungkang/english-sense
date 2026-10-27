@@ -12,10 +12,13 @@ const prep = prepData as PrepData;
 export const getStudySource = () => ({ reading, prep });
 
 /**
- * 임시 어댑터(계약 단계 1). `/reading/*`·`/prep/*` 페이지의 기존 컴포넌트가 정답·해설을 props로 계속 받는다.
- * 단계 6·7에서 수업 공개 투영으로 바꾸고 이 함수를 없앤다.
+ * 임시 어댑터(계약 단계 1). 이야기 페이지의 기존 컴포넌트가 정답·해설을 props로 계속 받는다(단계 6에서 없앤다).
+ * 카드의 `drill.answers`는 단계 7에서 걷었다: 목록·작품 페이지와 이야기의 짝 링크는 카드의 정답이 필요 없다.
  */
-export const getLegacyStudySource = getStudySource;
+export const getLegacyStudySource = () => ({
+  reading,
+  prep: { works: prep.works.map(work => ({ ...work, units: work.units.map(unit => ({ ...unit, cards: unit.cards.map(card => ({ ...card, drill: { ...card.drill, answers: [] as string[] } })) })) })) } satisfies PrepData,
+});
 
 /** pages.json의 공개 페이지와 같은 꼴로 읽기·사전 훈련 페이지를 만든다. */
 export function studyPages(): ContentPage[] {
