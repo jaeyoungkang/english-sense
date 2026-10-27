@@ -121,7 +121,7 @@
 | 전체 문서 | 수업마다 본문 전체와 목차가 같은 항목을 가리킨다. 이야기는 여덟, 카드는 카드 수만큼 | 수업 투영 → 문서 노드 | 첫 응답 HTML과 hydration 뒤 항목 수 비교 | 미실행 | 미확인 |
 | 자유 순서 | 이전 답 없이 어느 문제·카드든 고른다. 선택만으로 사건·요청이 생기지 않는다 | 선택 함수 | 단위: 7번→2번, 읽기만으로 기록 불변. e2e | 미실행 | 미확인 |
 | 첫 답 보존 | 첫 답과 판정은 바뀌지 않고, 수정과 질문은 따로 남는다. 빈칸 수정이 첫 시도를 덮지 않는다 | 기록 v4 | 단위+e2e: 틀린 첫 답 → 수정 → 새로고침 | 미실행 | 미확인 |
-| 무료 판정 | 판정은 공급자·사용량 처리에 닿지 않고, 잘못된 입력·옛 판·다른 Origin은 판정 전에 거절된다 | `/api/lesson-check/` | 단위: fetch 주입이 호출되지 않음, 한도 객체 미호출. 로컬 Workers에서 실제 요청 | 미실행 | 미확인 |
+| 무료 판정 | 판정은 공급자·사용량 처리에 닿지 않고, 잘못된 입력·옛 판·다른 Origin은 판정 전에 거절된다 | `/api/lesson-check/` | 단위: fetch 주입이 호출되지 않음, 한도 객체 미호출. 로컬 Workers에서 실제 요청 | 단계 2: 단위 14개와 로컬 Workers 실행("결과"의 단계 2) | 통과. 화면 연결은 단계 3 이후 |
 | 판정 실패 | 판정 요청이 실패해도 첫 답이 남고 다시 판정할 수 있다. 같은 요청을 반복해도 결과가 같다 | 요청 실패 주입 | e2e: 요청 차단 → 복구 | 미실행 | 미확인 |
 | 서버 판정과 AI 분리 | 첫 답이 AI를 자동 호출하지 않는다. 단추로만 호출한다. 한도 도달 뒤에도 판정이 동작한다 | 대화 API | 단위: 한도 소진 상태에서 판정 200. e2e: 호출 횟수 | 미실행 | 미확인 |
 | 읽기 구역 | 시작 전 본문 없음, 읽는 중 남은 시간, 끝나면 본문 가림과 문제 열림, 읽는 중 새로고침 뒤 남은 시간 유지, 마감 지난 뒤 복원은 시간 마감 | 읽기 사건과 시계 | e2e: 브라우저 시계 앞당김, 읽기 중 새로고침, 마감 뒤 새로고침. 끝 사건이 한 번 | 미실행 | 미확인 |
@@ -379,3 +379,54 @@
   단위 검사가 실패한다. `scripts/import-study-content.ts`는 건드리지 않아 가져오기가 이를 자동으로 부르지는 않는다.
 - 공개 투영과 판 해시는 아직 어떤 페이지·API도 쓰지 않는다. `getServerLessonQuestion`도 판정(단계 2)이 쓰기 전이다.
 
+### 단계 2 — 판정 계약과 `/api/lesson-check/` (2026-10-27)
+
+만든 것:
+
+- `lib/lesson-contract.ts`(순수): 시도 `choose`(보기 번호 0~3, 이유 없음)와 `fill`(빈칸 1~3개, 빈칸당 100자, 모두 비어 있으면 거절),
+  요청(`action` `check`·`reveal`, `lessonId`·`questionId`·`contentVersion`·`artifactId`·`requestId`·`attempt`), 응답, 한도(본문 4KB),
+  요청·응답 검사 함수. 응답 판정 필드는 `choose`의 `match`·`answerIndex`·`explain`·`basis`, `fill`의 `matches`(빈칸별)·`allMatch`,
+  `reveal`의 `answers`다. "정답"을 단정하는 필드 이름은 쓰지 않았다.
+- `lib/server/lesson-judge.ts`: `judge`(정본과의 결정적 비교)와 `revealAnswers`. 문항과 시도의 종류·보기 수·빈칸 수가 맞지 않으면
+  `LessonAttemptError`를 던진다. 단계 4의 대화 API가 같은 함수를 쓴다.
+- `lib/server/lesson-check.ts`의 `handleLessonCheck`와 `app/api/lesson-check/route.ts`. 처리 순서는 메서드 → Origin → 본문 형식·크기
+  → 계약 형식 → 수업·문항 존재(404 `not_found`, 장면은 400 `unsupported_lesson`) → 판 대조(409 `content_changed`) → 시도 검사(400) → 판정이다.
+  경로는 `getApiEnvironment`를 부르지 않아 Cloudflare 바인딩(한도 객체·키)을 읽지 않는다.
+- `docs/architecture.md`에 책임 표 행과 "수업 판정의 현재 처리 순서"를 더했다.
+
+계약과 다르거나 계약이 정하지 않아 고른 것:
+
+- 요청의 `artifactId`와 `questionId`를 대화 API처럼 따로 받는다. 계약 "수행과 판정"이 응답에 `artifactId`·`questionId`를 모두 되돌린다고
+  적었고, 대화 API에서 `artifactId`는 브라우저의 문제 카드 식별이고 `questionId`는 정본의 문항 ID이기 때문이다.
+- `reveal`은 요청에 첫 답으로 쓸 `fill` 시도(비어 있지 않은 입력이 하나 이상, 빈칸 수 일치)가 있을 때만 답을 낸다. 서버는 그 입력이 실제로
+  판정을 받은 첫 답인지 알 수 없다. 이야기에 `reveal`을 보내면 형식 거절이다. 계약 "첫 답을 낸 뒤에만 열리고"에 어긋나는 부분은 없고, 서버가
+  지킬 수 있는 만큼만 지킨다.
+- 오류 코드는 대화 API 것에서 `not_found`·`unsupported_lesson`을 더하고 `quota_exceeded`·`provider_error`·`timeout`·`cancelled`는 뺐다.
+- `handleLessonCheck(request, env?, dependencies?)`는 뒤의 두 인자를 읽지 않는다. 대화 API와 호출 모양을 맞추고, 테스트가 접근하면 실패하는
+  객체를 넘겨 건드리지 않음을 확인하기 위해서다.
+
+실행한 검사와 결과:
+
+| 검사 | 결과 |
+| --- | --- |
+| `npm run check`(`tsc --noEmit` + `tests/*.test.ts`) | 통과. 단위 108개 통과, 실패 0. 기존 94개는 수정 없이 통과하고 새 14개가 `tests/lesson-check.test.ts`다 |
+| 단위: 이야기 한 문항의 선택 판정과 정답 보기·해설·근거 공개, 15편 모든 문항의 `basis` 유무, 빈칸 정규화(대소문자·공백·굽은 따옴표는 같음, `gonna school`과 `going to school`은 다름, 일부 빈칸 비움), 카드 전체의 틀린 응답이 키 집합과 값 구조(불린만)로 정답을 담지 않음, 정답을 입력해도 `answers` 키가 생기지 않음, `reveal`은 첫 답 입력이 있을 때만 열림, 옛 판 409(본문에 해설 없음), 형식 거절 20종과 종류·빈칸 수 불일치, 모르는 수업·문항·`__proto__`·장면 수업 거절, 본문 4KB(413)·content-type(415)·다른 Origin(403, 형식 오류보다 먼저), 멱등, 29개 수업의 모든 문항 판정과 계약 통과 | 통과 |
+| 단위: 한도 객체·공급자 미호출. 접근하면 던지는 `env`·`dependencies`를 넘기고, 한도가 0인 가짜 한도 객체와 전역 `fetch` 감시를 넣은 상태에서 200 판정 세 가지와 거절 두 가지를 보내 호출 0건을 단언. 판정 모듈과 route가 `takeQuota`·`QUOTA_LIMITER`·`getApiEnvironment`·`fetch(`를 쓰지 않는지 소스 검사 | 통과 |
+| 위 검사가 실제로 실패하는지: `judge`의 `fill` 결과에 `answers`를 일부러 넣음 / 처리기가 `env.QUOTA_LIMITER`를 읽게 함 | 각각 3개 / 12개 검사가 실패함을 확인하고 되돌렸다 |
+| `npm run cf:build` | 성공 |
+| 로컬 Workers(`wrangler dev --ip 127.0.0.1 --port 8787 --persist-to <임시 폴더>`)에서 `curl`로 실제 요청: 이야기 `green-umbrella`의 첫 문항에 `choice: 0` | 200, `match:false`, `answerIndex:1`, `explain` 포함 |
+| 같은 서버: 카드 `wonder-0-12`(빈칸 둘, 정답 `pick`·`up`)에 `["pick","down"]` | 200, 본문 `{"kind":"fill","matches":[true,false],"allMatch":false}`와 되돌린 ID뿐. `up`과 정답 문자열 없음 |
+| 같은 서버: 첫 답 없는 `reveal`, 옛 판, 다른 Origin, 장면 수업 | 각각 400 `invalid_request`, 409 `content_changed`, 403 `origin_forbidden`, 400 `unsupported_lesson` |
+| 한도 객체를 건드리지 않는지: `--var`로 가짜 키(`test-key-never-real`)를 준 서버에서 판정 요청 6건을 보낸 뒤 wrangler의 관찰 기록(`observability/query`의 `spans`)과 Durable Object 저장 폴더를 봄 | 판정 6건 모두 200. 기록에 `POST` 6건뿐이고 `durable_object_*`·`fetch` 구간이 없으며 `DailyQuota`의 `<id>.sqlite`가 생기지 않았다 |
+| 위 관찰이 한도 사용을 가려내는지(대조): 같은 서버에 `/api/learn-chat/` 첫 답 요청 1건 | 502(가짜 키라 공급자가 거절). 이 요청만 `durable_object_subrequest`·`durable_object_storage_exec` 구간과 `fetch` 2건, `DailyQuota`의 `<id>.sqlite`를 만들었다 |
+| 개발 서버 종료 | wrangler 프로세스를 종료하고 8787 포트가 비었음을 확인했다 |
+
+남은 한계:
+
+- 한도 객체 미접촉은 로컬 Workers의 관찰 기록과 저장 폴더로 봤다. 운영 Workers에서는 보지 않았다. 대조 요청이 외부 공급자(`api.anthropic.com`)에
+  가짜 키로 한 번 나갔다(거절됨, 비밀 값은 쓰지 않았다).
+- 화면, 브라우저 조작, `test:e2e`는 이 단계 범위가 아니라 실행하지 않았다. 판정을 쓰는 화면과 기록은 단계 3 이후다.
+- 카드 틀린 응답의 정답 비노출은 빈칸별 같음/다름 자체가 정보라는 한계가 있다. 이 경로를 아는 사람은 답을 여러 번 대 볼 수 있다(질문 b의 승인 해석).
+- `reveal`의 "첫 답 뒤에만" 정책은 요청에 첫 답 입력이 있는지까지만 서버가 본다. 실제 판정을 받았는지는 브라우저 기록(단계 3·7)이 지킨다.
+- 이야기 문항의 보기 수는 모두 4개임을 정본에서 확인했고 계약 검사도 0~3으로 고정했다. 보기 수가 다른 문항이 생기면 계약 상수를 고쳐야 한다(서버는 실제 보기 수로 한 번 더 거른다).
+- 읽기·사전 훈련 페이지의 선생성 산출물에는 단계 1이 적은 대로 정답·해설이 여전히 있다(단계 6·7에서 닫는다). 이 단계는 그 산출물을 바꾸지 않았다.

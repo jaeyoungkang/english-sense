@@ -18,6 +18,7 @@
 | `lib/learning-catalog.ts`, `lib/server/learning-catalog.ts` | 공개 문항 계약과 정본 일곱 문항 조회·내용 해시 | 브라우저 타입 모듈은 정답 데이터를 import하지 않고 서버가 공개 필드만 넘긴다 | (검사: `npm test`) |
 | `lib/lesson-registry.ts`, `lib/lesson-registry-data.ts` | 수업 29개(장면 1·이야기 15·카드 13)의 ID·종류·주소·문항 ID 목록과 공개 투영 타입 | 순수 모듈이라 정답·해설을 담지 않는다. 데이터 파일은 정본에서 만들고(`scripts/generate-lesson-registry.ts`) 단위 검사가 정본과 맞는지 비교한다 | (검사: `npm test`) |
 | `lib/server/lesson-catalog.ts`, `lib/server/study-source.ts` | 읽기·사전 훈련 정본 조회·수업별 공개 투영·수업별 자료 판 해시 | 정본 JSON(`content/reading.json`, `content/prep.json`)은 `lib/server/study-source.ts`만 import한다. 투영은 이야기의 `answer`·`explain`·`basis`와 카드의 `drill.answers`를 뺀다 | (검사: `npm test`의 `tests/lesson-catalog.test.ts`, `tests/import-direction.test.ts`) |
+| `lib/lesson-contract.ts`, `lib/server/lesson-judge.ts`, `lib/server/lesson-check.ts`, `app/api/lesson-check/` | 수업 판정 계약(시도 `choose`·`fill`, 요청·응답, 한도), 서버 정본과의 결정적 비교(`judge`·`revealAnswers`), 무료 판정 경로 | 판정 모듈은 사용량 한도·공급자·Cloudflare 바인딩을 import하지 않고 `fetch`를 부르지 않는다. 카드 빈칸의 틀린 응답에 정답 문자열을 담지 않는다. 장면 수업(have)은 받지 않는다 | (검사: `npm test`의 `tests/lesson-check.test.ts`. 로컬 Workers 실행은 `docs/tasks/workspace-lessons.md` 단계 2) |
 | `lib/server/site-pages.ts` | `pages.json`과 읽기·사전 훈련 페이지를 합친 공개 페이지 목록·조회 | `lib/content.ts`(순수)가 정본에 닿지 않도록 합치는 일을 서버 쪽에 둔다 | (리뷰. 단계 1에서 빌드 산출물을 옛 산출물과 비교했다) |
 | `app/api/` | Next.js HTTP 진입점 | 서버 환경과 API 처리를 연결한다 | (리뷰) |
 | `lib/server/api.ts` | 입력·Origin·한도·Claude 호출·응답 형식 | 잘못된 입력과 준비되지 않은 환경에서 유료 호출을 하지 않는다 | (검사: `npm test`) |
@@ -82,6 +83,20 @@ IP는 날짜별 해시만 저장하며 한도 상태는 약 48시간 뒤 지운�
 중단·타임아웃 뒤 명시적으로 다시 보내면 사용량이 추가로 발생할 수 있으며 pending 복원만으로 자동 재호출하지 않는다.
 일반 영어 감각 자료는 제출 전에도 읽을 수 있지만, 이번 버전의 제출 전 대화는 준비 안내에 한정된다.
 현재 AI는 서버의 장면 본문과 수행·대화 텍스트를 받는다. 감각 이미지의 픽셀이나 사용자가 보는 화면을 모델에 전송하는 시각 질답 기능은 없다.
+
+## 수업 판정의 현재 처리 순서
+
+읽기 이야기와 사전 훈련 카드의 판정은 `/api/lesson-check/`가 맡는다. 계약은 `lib/lesson-contract.ts`가 소유한다.
+
+1. 메서드(POST)와 Origin을 확인한다. 이 경로는 Cloudflare 바인딩을 읽지 않는다.
+2. 본문 형식(JSON)과 크기(4KB)를 확인하고, 정확한 키·ID 형식·시도 형식(`choose`는 보기 번호 0~3, `fill`은 빈칸 1~3개·빈칸당 100자)을 검사한다. `reveal`은 첫 답으로 쓸 입력이 함께 온 카드 요청만 받는다.
+3. 수업과 문항이 레지스트리에 있는지 본다. 장면 수업(`titanic-have`)은 `unsupported_lesson`으로 거절하고 기존 대화 경로에 둔다.
+4. 요청의 자료 판을 서버의 수업별 판과 대조한다. 다르면 409 `content_changed`이고 판정하지 않는다.
+5. 시도가 문항과 맞는지(종류, 실제 보기 수, 실제 빈칸 수) 확인한 뒤 `judge`가 정본과 비교한다. 이야기는 이 응답에서 처음으로 정답 보기와 `explain`·`basis`를 낸다. 카드는 빈칸별 같음/다름만 내고, 정답 문자열은 `reveal` 응답에만 있다. 빈칸 비교는 `lib/fill-blank.ts`의 정규화를 쓴다.
+6. 응답에 `requestId`·`lessonId`·`artifactId`·`questionId`·`contentVersion`을 되돌린다. 판정은 멱등이고 저장하지 않는다.
+
+AI와 사용량 한도를 쓰지 않으므로 한도가 찬 날에도 판정은 응답한다. "정답입니다"가 아니라 "정본 답과 같습니다/다릅니다"를 뜻하는 필드(`match`, `matches`, `allMatch`)를 낸다.
+`reveal`이 첫 답 입력을 요구하는 것은 공개 시점 규칙을 서버가 지키는 최소한이고, 그 입력이 실제 첫 답이었는지는 서버가 알 수 없다. 이 경로를 아는 사람이 답을 여러 번 대 보는 것은 막지 않는다.
 
 ## 실행·배포의 현재 선택
 
