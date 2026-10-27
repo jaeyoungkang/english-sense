@@ -72,6 +72,8 @@ test("the system prompt carries the sense frame for stories and cards, and the h
     assert.match(system, /게르만어는 감각을 보는 렌즈일 뿐/);
     assert.match(system, /역사나 어원을 강의하지 않고/);
     assert.match(system, /감각 사전에 아직 없는 표현입니다/);
+    assert.match(system, /끼워 맞추지 않습니다/);
+    assert.equal(/이름 붙이지 말고/.test(system), lessonId === "wonder-unit-0");
     assert.match(system, new RegExp(`${learningChatLimits.reply}자를 넘기지 않으며`));
     assert.ok(system.indexOf("일반 영어 학습 도구가 아닙니다") < system.indexOf(STORY_MARK));
   }
