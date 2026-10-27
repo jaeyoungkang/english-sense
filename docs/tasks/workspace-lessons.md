@@ -335,3 +335,47 @@
 - 미충족·미확인 조건: 위 표의 모든 조건. 단계 0의 답을 받기 전에는 단계 6·7의 설계가 확정되지 않는다.
 - 기대와 다른 관찰: 없음(구현 전).
 - 사용자 판단이 남은 것: 질문 0, a, b, c와 사용 뒤 판단할 질문.
+
+### 단계 1 — 수업 레지스트리·서버 정본·공개 투영 (2026-10-27)
+
+만든 것:
+
+- `lib/lesson-registry.ts`(순수): 수업 29개의 ID·종류·주소·문항 ID와 공개 투영 타입. 목록 데이터는
+  `lib/lesson-registry-data.ts`이고 `scripts/generate-lesson-registry.ts`가 정본에서 만든다. 수업 ID는 장면 `titanic-have`
+  (기존 상수를 가져와 포함만 했다), 이야기 ID(`green-umbrella`), 카드 수업 `<작품>-unit-<n>`(`wonder-unit-0`)이다.
+  문항 ID는 원본 ID(`green-umbrella-content-1`, 카드 `wonder-0-01`)다.
+- `lib/server/lesson-catalog.ts`: 정본 조회(`getServerLesson`, `getServerLessonQuestion`), 공개 투영(`getPublicLesson`),
+  수업별 자료 판(`getLessonContentVersion`, 공개·정본 필드를 모두 담은 정본의 SHA-256). 장면은 기존
+  `getPublicLearningCatalog`를 그대로 통과시키고 판은 기존 값(`LEGACY_HAVE_CONTENT_VERSION`)과 같다.
+- `lib/server/study-source.ts`: `content/reading.json`·`content/prep.json`을 import하는 유일한 모듈. 옛 `lib/study-content.ts`의
+  JSON 의존을 여기로 옮겼고, 그 파일에는 자료를 인자로 받는 순수 도우미만 남았다. `lib/content.ts`의 `pages`·`getPage`는
+  정본에 닿지 않도록 `lib/server/site-pages.ts`로 옮겼다(`app/sitemap.ts`와 `app/[[...slug]]/page.tsx`의 import만 바뀜).
+- 공개 투영: 이야기는 제목·본문·낱말 수·제한 시간·초안·짝·문항 ID·종류·발문·보기를 낸다. `expression` 문항은 묻는 카드의
+  `card` id도 낸다(기존 "카드에서 다시 보기" 링크에 필요하고 정답이 아니다). 카드는 표현·횟수·뜻·감각·근거·예문·빈칸 문장·힌트·
+  빈칸 수를 낸다. 이야기의 `answer`·`explain`·`basis`와 카드의 `drill.answers`는 낸 적이 없다.
+
+임시 어댑터(단계 6·7에서 없앤다): `lib/server/study-source.ts`의 `getLegacyStudySource()`. `app/[[...slug]]/page.tsx`가 이를
+`components/study-pages.tsx`의 `StudyPartView`에 `source` props로 넘겨, `/reading/*`·`/prep/*`의 `TimedReading`·`FillDrill`이
+지금처럼 정답·해설을 props로 받는다. **그러므로 이 단계 뒤에도 해당 페이지의 선생성 산출물에는 정답·해설이 그대로 있다.**
+정본 경계는 세웠으나 정답 비공개는 단계 6·7이 끝나야 성립한다.
+
+실행한 검사와 결과:
+
+| 검사 | 결과 |
+| --- | --- |
+| `npm run check`(`tsc --noEmit` + `tests/*.test.ts`) | 통과. 단위 94개 통과, 실패 0. 기존 81개는 수정 없이 통과 |
+| `tests/lesson-catalog.test.ts`(11개): 29개 수업(1·15·13)과 고정 순서, 수업·문항 ID가 `^[a-zA-Z0-9_-]{1,80}$`를 만족하고 중복 없음, 레지스트리 데이터가 정본과 생성기 출력에 일치, 이야기 15편의 투영에 `answer`·`explain`·`basis` 키와 해설·근거 문자열 0건, 카드 13유닛의 투영에 `answers` 키 0건·빈칸 수 일치, 판 해시가 독립 계산과 일치·수업마다 다름, `__proto__` 등 거절, 투영 변경이 다음 투영·정본에 닿지 않음 | 통과 |
+| 위 투영 검사가 실제로 실패하는지: 투영에 일부러 `explain`을 넣어 봄 | 해당 검사가 실패함을 확인하고 되돌렸다 |
+| `tests/import-direction.test.ts`(2개): `app/`·`components/`·`lib/`(서버 모듈 제외)의 모든 모듈이 정본 JSON과 `lib/server/*`를 import하는지 검사. 정본 JSON은 `lib/server/`만 import할 수 있다 | 통과 |
+| 어긋난 import를 일부러 넣어 봄: `components/quiz.tsx`에 `@/content/reading.json`, `components/ask.tsx`에 `@/lib/server/study-source`, `components/reference-material.tsx`에 `../content/prep.json` | 셋 다 검사가 실패했고 되돌렸다 |
+| 화면 불변: 변경 전후 `next build`의 `.next/server/app` 안 `.html`·`.rsc`·`.body` 247개를 정적 자산 이름·빌드 ID만 지워 비교 | 전부 같음. `sitemap.xml.body`도 같음 |
+
+남은 한계:
+
+- 위 화면 불변은 `next build`(정적 산출물)로 비교했다. `cf:build`·`preview`·`test:e2e`(로컬 Workers)는 이 단계에서 실행하지 않았다.
+- import 방향 검사는 정규식으로 `import … from`·`import()`·`require()` 문자열을 읽는다. 문자열을 조립한 동적 import는 잡지 못한다.
+  `lib/` 바로 아래·`components/`·"use client" 모듈을 브라우저 쪽으로 보고, `lib/server/`·`app/api/`·`app/*/page|layout|route.tsx`를 서버 쪽으로 본다.
+- 레지스트리 데이터 파일은 정본이 바뀌면 `npx tsx scripts/generate-lesson-registry.ts`로 다시 만들어야 하고, 잊으면
+  단위 검사가 실패한다. `scripts/import-study-content.ts`는 건드리지 않아 가져오기가 이를 자동으로 부르지는 않는다.
+- 공개 투영과 판 해시는 아직 어떤 페이지·API도 쓰지 않는다. `getServerLessonQuestion`도 판정(단계 2)이 쓰기 전이다.
+

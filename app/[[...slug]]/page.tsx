@@ -6,7 +6,9 @@ import { Quiz } from "@/components/quiz";
 import { Ask } from "@/components/ask";
 import { StudyPartView } from "@/components/study-pages";
 import LearningWorkspace from "@/components/learning-workspace";
-import { getPage, pages, site, type ContentPage } from "@/lib/content";
+import { site, type ContentPage } from "@/lib/content";
+import { getPage, pages } from "@/lib/server/site-pages";
+import { getLegacyStudySource } from "@/lib/server/study-source";
 import { getPublicLearningCatalog } from "@/lib/server/learning-catalog";
 import { getPublicReferenceMaterials } from "@/lib/server/reference-materials";
 
@@ -48,7 +50,7 @@ export default async function ContentRoute({ params }: Props) {
         if (part.kind === "stage") return <SenseStage key={index} content={part} />;
         if (part.kind === "quiz") return <Quiz key={index} content={part} />;
         if (part.kind === "ask") return <Ask key={index} />;
-        return <StudyPartView key={index} part={part} />;
+        return <StudyPartView key={index} part={part} source={getLegacyStudySource()} />;
       })}
     </main><SiteFooter />
   </>;

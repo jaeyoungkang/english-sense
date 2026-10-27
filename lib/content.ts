@@ -1,6 +1,5 @@
 import pageData from "@/content/pages.json";
 import siteData from "@/content/site.json";
-import { studyPages } from "@/lib/study-content";
 
 export type OptionKind = "en" | "ko" | "la";
 export type QuizOption = { t: string; k: OptionKind; why: string };
@@ -29,8 +28,5 @@ export type ContentPage = {
 };
 
 export const site = siteData;
-export const pages = [...(pageData as ContentPage[]), ...studyPages()];
-export function getPage(slug: string[] = []) {
-  const path = slug.length ? `${slug.join("/")}/` : "";
-  return pages.find((page) => page.path === path);
-}
+/** pages.json의 공개 페이지. 읽기·사전 훈련 페이지를 합친 전체 목록은 lib/server/site-pages.ts에 있다. */
+export const contentPages = pageData as ContentPage[];

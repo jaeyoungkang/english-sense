@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
 import type { StudyPart } from "@/lib/content";
-import { cardCount, cardPath, getStory, getWork, minutesLabel, pairStories, prep, reading, sourceLabel, storyPair, unitPath, workLabel } from "@/lib/study-content";
-import type { ReadingStory } from "@/lib/study-content-types";
+import { cardCount, cardPath, getStory, getWork, minutesLabel, pairStories, sourceLabel, storyPair, unitPath, workLabel } from "@/lib/study-content";
+import type { PrepData, ReadingData, ReadingStory } from "@/lib/study-content-types";
 import { TimedReading } from "@/components/timed-reading";
 import { FillDrill } from "@/components/fill-drill";
+
+/** 정본을 서버가 읽어 넘긴다. 컴포넌트는 정본 JSON을 import하지 않는다. */
+type StudySource = { reading: ReadingData; prep: PrepData };
 
 function DraftTag() {
   return <span className="tag draft-tag">초안</span>;
@@ -16,7 +19,7 @@ function StoryLink({ story, label }: { story: ReadingStory; label?: string }) {
   </a>;
 }
 
-function ReadingList() {
+function ReadingList({ reading, prep }: StudySource) {
   const plain = reading.stories.filter(story => !story.pair);
   const paired = prep.works.map(work => ({ work, stories: reading.stories.filter(story => story.pair?.work === work.id) })).filter(group => group.stories.length);
   return <>
@@ -44,10 +47,10 @@ function ReadingList() {
   </>;
 }
 
-function ReadingStoryPage({ id }: { id: string }) {
-  const story = getStory(id);
+function ReadingStoryPage({ id, reading, prep }: StudySource & { id: string }) {
+  const story = getStory(reading, id);
   if (!story) notFound();
-  const pair = storyPair(story);
+  const pair = storyPair(prep, story);
   const cards = pair ? Object.fromEntries(pair.unit.cards.map(card => [card.id, { href: cardPath(pair.work, pair.unit.n, card.id), expression: card.expression }])) : {};
   return <>
     <header className="hero">
@@ -60,7 +63,7 @@ function ReadingStoryPage({ id }: { id: string }) {
   </>;
 }
 
-function PrepList() {
+function PrepList({ prep }: Pick<StudySource, "prep">) {
   const groups = [["book", "책"], ["movie", "영화"]] as const;
   return <>
     <header className="hero">
@@ -81,8 +84,8 @@ function PrepList() {
   </>;
 }
 
-function PrepWorkPage({ id }: { id: string }) {
-  const work = getWork(id);
+function PrepWorkPage({ id, prep }: Pick<StudySource, "prep"> & { id: string }) {
+  const work = getWork(prep, id);
   if (!work) notFound();
   return <>
     <header className="hero">
@@ -110,15 +113,15 @@ function PrepWorkPage({ id }: { id: string }) {
   </>;
 }
 
-function PrepUnitPage({ id, n }: { id: string; n: number }) {
-  const work = getWork(id);
+function PrepUnitPage({ id, n, reading, prep }: StudySource & { id: string; n: number }) {
+  const work = getWork(prep, id);
   const index = work?.units.findIndex(unit => unit.n === n) ?? -1;
   if (!work || index < 0) notFound();
   const unit = work.units[index];
   const prev = work.units[index - 1];
   const next = work.units[index + 1];
   const countLabel = work.kind === "book" ? "책 전체" : "영화 전체";
-  const stories = pairStories(work.id, unit.n);
+  const stories = pairStories(reading, work.id, unit.n);
   return <>
     <header className="hero">
       <span className="eyebrow"><i>{work.title}</i> · 유닛 {unit.n} · {unit.when}</span>
@@ -159,10 +162,10 @@ function PrepUnitPage({ id, n }: { id: string; n: number }) {
   </>;
 }
 
-export function StudyPartView({ part }: { part: StudyPart }) {
-  if (part.kind === "reading-list") return <ReadingList />;
-  if (part.kind === "reading") return <ReadingStoryPage id={part.id} />;
-  if (part.kind === "prep-list") return <PrepList />;
-  if (part.kind === "prep-work") return <PrepWorkPage id={part.id} />;
-  return <PrepUnitPage id={part.id} n={part.unit} />;
+export function StudyPartView({ part, source }: { part: StudyPart; source: StudySource }) {
+  if (part.kind === "reading-list") return <ReadingList {...source} />;
+  if (part.kind === "reading") return <ReadingStoryPage id={part.id} {...source} />;
+  if (part.kind === "prep-list") return <PrepList prep={source.prep} />;
+  if (part.kind === "prep-work") return <PrepWorkPage id={part.id} prep={source.prep} />;
+  return <PrepUnitPage id={part.id} n={part.unit} {...source} />;
 }

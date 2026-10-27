@@ -16,6 +16,9 @@
 | `lib/reference-materials.ts`, `lib/server/reference-materials.ts` | have·get·be·go 공개 감각 설명·예시 전달 | stage 공개 필드만 복사하며 정답·해설을 넘기지 않는다 | (검사: `npm test`) |
 | `lib/learning-workspace-state.ts` | 문항별 수행·스레드와 전체 사건 순서·v3 복원 검사 | 스냅샷·대상·요청 식별을 분리하고 이전 키를 덮어쓰지 않는다 | (검사: `npm test`, `npm run test:e2e`) |
 | `lib/learning-catalog.ts`, `lib/server/learning-catalog.ts` | 공개 문항 계약과 정본 일곱 문항 조회·내용 해시 | 브라우저 타입 모듈은 정답 데이터를 import하지 않고 서버가 공개 필드만 넘긴다 | (검사: `npm test`) |
+| `lib/lesson-registry.ts`, `lib/lesson-registry-data.ts` | 수업 29개(장면 1·이야기 15·카드 13)의 ID·종류·주소·문항 ID 목록과 공개 투영 타입 | 순수 모듈이라 정답·해설을 담지 않는다. 데이터 파일은 정본에서 만들고(`scripts/generate-lesson-registry.ts`) 단위 검사가 정본과 맞는지 비교한다 | (검사: `npm test`) |
+| `lib/server/lesson-catalog.ts`, `lib/server/study-source.ts` | 읽기·사전 훈련 정본 조회·수업별 공개 투영·수업별 자료 판 해시 | 정본 JSON(`content/reading.json`, `content/prep.json`)은 `lib/server/study-source.ts`만 import한다. 투영은 이야기의 `answer`·`explain`·`basis`와 카드의 `drill.answers`를 뺀다 | (검사: `npm test`의 `tests/lesson-catalog.test.ts`, `tests/import-direction.test.ts`) |
+| `lib/server/site-pages.ts` | `pages.json`과 읽기·사전 훈련 페이지를 합친 공개 페이지 목록·조회 | `lib/content.ts`(순수)가 정본에 닿지 않도록 합치는 일을 서버 쪽에 둔다 | (리뷰. 단계 1에서 빌드 산출물을 옛 산출물과 비교했다) |
 | `app/api/` | Next.js HTTP 진입점 | 서버 환경과 API 처리를 연결한다 | (리뷰) |
 | `lib/server/api.ts` | 입력·Origin·한도·Claude 호출·응답 형식 | 잘못된 입력과 준비되지 않은 환경에서 유료 호출을 하지 않는다 | (검사: `npm test`) |
 | `lib/learning-chat-contract.ts`, `lib/server/learning-chat.ts` | 다중 대화 계약·서버 정본 맥락 구성·공급자 응답 | 브라우저 대화는 비신뢰 자료로 받고 기존 Origin·사용량 정책을 공유한다 | (검사: `npm test`) |
