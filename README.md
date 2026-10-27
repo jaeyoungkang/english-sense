@@ -43,6 +43,7 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | `content/site.json` | 표제어와 책, 사이트 기본 설정 |
 | `content/pages.json` | 공개 페이지의 본문, 메타데이터, 문제와 쓰임 그림 데이터 |
 | `content/ask.json` | 해설기 예시 문장과 예시 해설 |
+| `content/reading.json`, `content/prep.json` | 시간 제한 읽기와 책·영화 사전 훈련. study-and-learn 정본에서 만든 결과이며 손으로 고치지 않는다 |
 | `lib/content.ts` | 콘텐츠 타입과 페이지 조회 |
 | `lib/learning-catalog.ts`, `lib/server/learning-catalog.ts` | 공개 문항 타입과 서버 정본 조회·자료 판·안전한 공개 필드 변환 |
 | `lib/learning-workspace-state.ts` | 카드별 수행·전체 사건·임시 기록 검사와 이전 버전 이관 |
@@ -56,6 +57,7 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 기존 원리 페이지와 연습 주소를 유지한다. `/have.html` 같은 옛 주소는 해당 페이지로 영구 이동한다.
 콘텐츠를 고칠 때는 `content/`와 해당 컴포넌트를 고친다. HTML을 따로 생성해 커밋하지 않는다.
 학습 모델, 원본 문제와 학습 기록의 정본은 study-and-learn 프로젝트가 관리한다.
+읽기·사전 훈련 정본(study-and-learn `content/reading`, `content/book-prep`, `content/movie-prep`)이 바뀌면 `npm run import:study -- <study-and-learn 경로>`를 다시 돌려 두 JSON을 커밋한다.
 
 ## 해설 API
 

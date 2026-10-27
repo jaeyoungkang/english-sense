@@ -4,6 +4,7 @@ import { Breadcrumbs, SiteFooter, SiteHeader } from "@/components/site-shell";
 import { SenseStage } from "@/components/sense-stage";
 import { Quiz } from "@/components/quiz";
 import { Ask } from "@/components/ask";
+import { StudyPartView } from "@/components/study-pages";
 import LearningWorkspace from "@/components/learning-workspace";
 import { getPage, pages, site, type ContentPage } from "@/lib/content";
 import { getPublicLearningCatalog } from "@/lib/server/learning-catalog";
@@ -46,7 +47,8 @@ export default async function ContentRoute({ params }: Props) {
         if (part.kind === "html") return <div className="content-fragment" key={index} dangerouslySetInnerHTML={{ __html: part.html }} />;
         if (part.kind === "stage") return <SenseStage key={index} content={part} />;
         if (part.kind === "quiz") return <Quiz key={index} content={part} />;
-        return <Ask key={index} />;
+        if (part.kind === "ask") return <Ask key={index} />;
+        return <StudyPartView key={index} part={part} />;
       })}
     </main><SiteFooter />
   </>;

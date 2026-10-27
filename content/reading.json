@@ -1,0 +1,410 @@
+{
+  "stories": [
+    {
+      "id": "green-umbrella",
+      "title": "The Green Umbrella",
+      "words": 438,
+      "limitSeconds": 180,
+      "draft": true,
+      "paragraphs": [
+        [
+          {
+            "text": "It was raining hard when Mina left the café. She took her umbrella from the stand by the door, opened it, and ran to the bus stop."
+          }
+        ],
+        [
+          {
+            "text": "On the bus, she looked down at it and saw something strange. Her umbrella was black. This one was dark green."
+          }
+        ],
+        [
+          {
+            "text": "\"Oh no,\" she said. She had taken the wrong one."
+          }
+        ],
+        [
+          {
+            "text": "She turned it around in her hands. It was old but good, the kind of umbrella you keep for years. Inside, a small piece of paper was taped to the handle. She pulled it off and read it."
+          }
+        ],
+        [
+          {
+            "text": "If you found this, you have my umbrella. That's okay. Keep it. But please do one thing for me: be kind to someone today.",
+            "em": true
+          }
+        ],
+        [
+          {
+            "text": "Mina laughed. Then she read it again and didn't laugh."
+          }
+        ],
+        [
+          {
+            "text": "The bus stopped. An old man got on, wet from head to toe. There were no free seats. Mina stood up. \"Here,\" she said. He smiled and sat down."
+          }
+        ],
+        [
+          {
+            "text": "That's one,",
+            "em": true
+          },
+          {
+            "text": " she thought."
+          }
+        ],
+        [
+          {
+            "text": "At work, her coworker Jun was at his desk with his head in his hands. Usually Mina walked past him. Today she stopped."
+          }
+        ],
+        [
+          {
+            "text": "\"Are you okay?\""
+          }
+        ],
+        [
+          {
+            "text": "He looked up, surprised. They talked for ten minutes. It turned out his mother was in the hospital, and he hadn't slept for two days. Before Mina went back to her desk, he said, \"Thanks. Really. Nobody ever asks.\""
+          }
+        ],
+        [
+          {
+            "text": "That evening the rain stopped, but Mina kept the green umbrella next to her bag. She didn't know why."
+          }
+        ],
+        [
+          {
+            "text": "All week she kept counting. She held the door for a man with a heavy box. She called her sister, who she hadn't talked to since summer. On Friday she left work on time, bought herself a good dinner, and ate it slowly."
+          }
+        ],
+        [
+          {
+            "text": "A week later, it was raining again. Mina went back to the same café. The stand by the door was full of umbrellas, and hers, the black one, was still there. She picked it up. Then she looked at the green one in her other hand."
+          }
+        ],
+        [
+          {
+            "text": "She took a pen out of her bag, found a piece of paper, and wrote:"
+          }
+        ],
+        [
+          {
+            "text": "I had your umbrella for a week. I was kind to six people. One of them was me. Thank you. Now it's someone else's turn.",
+            "em": true
+          }
+        ],
+        [
+          {
+            "text": "She taped the note to the handle, put the green umbrella back in the stand, and walked out into the rain with her own."
+          }
+        ],
+        [
+          {
+            "text": "At the door she stopped and looked back. A young man in a hurry was reaching for the stand. His hand went past three black umbrellas and closed around the green one."
+          }
+        ],
+        [
+          {
+            "text": "Mina smiled and opened her umbrella."
+          }
+        ]
+      ],
+      "questions": [
+        {
+          "id": "green-umbrella-content-1",
+          "kind": "content",
+          "question": "Why did Mina have a green umbrella?",
+          "options": [
+            "She bought a new one at the café.",
+            "She took the wrong umbrella by mistake.",
+            "A man on the bus gave it to her.",
+            "Jun lent it to her."
+          ],
+          "answer": 1,
+          "explain": "카페 우산꽂이에서 자기 것인 줄 알고 집어 들었다. 버스에서 보니 검은색이 아니라 짙은 초록색이었다."
+        },
+        {
+          "id": "green-umbrella-content-2",
+          "kind": "content",
+          "question": "What did the note ask her to do?",
+          "options": [
+            "Bring the umbrella back to the café.",
+            "Call the owner of the umbrella.",
+            "Be kind to someone that day.",
+            "Buy a new umbrella."
+          ],
+          "answer": 2,
+          "explain": "쪽지는 우산은 가져도 된다며, 대신 오늘 누군가에게 친절해 달라고 했다."
+        },
+        {
+          "id": "green-umbrella-content-3",
+          "kind": "content",
+          "question": "Why was Jun sitting with his head in his hands?",
+          "options": [
+            "He lost his job.",
+            "His mother was in the hospital and he hadn't slept.",
+            "He had too much work.",
+            "He had a fight with Mina."
+          ],
+          "answer": 1,
+          "explain": "어머니가 입원해 이틀 동안 잠을 못 잤다."
+        },
+        {
+          "id": "green-umbrella-content-4",
+          "kind": "content",
+          "question": "\"I was kind to six people. One of them was me.\" What does Mina mean?",
+          "options": [
+            "She forgot to count one person.",
+            "She also took good care of herself that week.",
+            "She gave herself the green umbrella.",
+            "She was kind to the same person six times."
+          ],
+          "answer": 1,
+          "explain": "금요일에 제때 퇴근해 자신에게 좋은 저녁을 사 주고 천천히 먹었다. 그것도 친절의 하나로 셌다."
+        },
+        {
+          "id": "green-umbrella-content-5",
+          "kind": "content",
+          "question": "What happened at the very end?",
+          "options": [
+            "Mina kept the green umbrella.",
+            "The owner came back for the green umbrella.",
+            "A young man took the green umbrella with the new note.",
+            "Mina lost her black umbrella again."
+          ],
+          "answer": 2,
+          "explain": "서두르던 젊은 남자가 검은 우산 셋을 지나쳐 초록 우산을 집었다. 이제 그 사람의 차례다."
+        },
+        {
+          "id": "green-umbrella-sense-1",
+          "kind": "sense",
+          "question": "\"Before Mina went back to her desk...\" Why went, not came?",
+          "options": [
+            "Her desk is far from the café.",
+            "The scene is at Jun's desk, and she moves away from there.",
+            "Went is the past tense of come.",
+            "Came would mean she never left her desk."
+          ],
+          "answer": 1,
+          "explain": "장면의 기준점은 지금 이야기가 벌어지는 준의 자리다. 미나는 그 자리에서 멀어지므로 went back이다(go: 기준점에서 멀어진다).",
+          "basis": "감각 사전 go"
+        },
+        {
+          "id": "green-umbrella-sense-2",
+          "kind": "sense",
+          "question": "\"His hand ... closed around the green one.\" What picture does this give?",
+          "options": [
+            "He looked at the umbrella.",
+            "His fingers wrapped around the handle and held it.",
+            "He shut the umbrella.",
+            "He pushed the umbrella away."
+          ],
+          "answer": 1,
+          "explain": "close는 열린 것이 닫히는 그림이다. 펼친 손이 손잡이를 감싸며 닫힌다. 그래서 '잡았다'보다 움직임이 보인다.",
+          "basis": "모델 밖(작업자 판단). close는 표제어가 아니다"
+        }
+      ]
+    },
+    {
+      "id": "bus-dog",
+      "title": "Ticket",
+      "words": 441,
+      "limitSeconds": 180,
+      "draft": true,
+      "paragraphs": [
+        [
+          {
+            "text": "I drive the number 12 bus in a small city. I have seen a lot of strange things on my bus, but nothing like the dog."
+          }
+        ],
+        [
+          {
+            "text": "He was brown, with one white ear. The first time, he got on at 7:15 at Hill Road, walked past me, and sat down by the window. Nobody was with him. I thought he was lost. But at Park Street, when the doors opened, he got up and got off like any other passenger."
+          }
+        ],
+        [
+          {
+            "text": "At 5:30 that evening, he was waiting at Park Street. He got on, sat by the same window, and got off at Hill Road."
+          }
+        ],
+        [
+          {
+            "text": "The next day he did the same thing. And the next. After two weeks, the regular passengers started saying good morning to him. A student named him Ticket, because he never had one."
+          }
+        ],
+        [
+          {
+            "text": "\"Where does he go every day?\" people asked me. I didn't know. Nobody knew."
+          }
+        ],
+        [
+          {
+            "text": "So on my day off, I found out."
+          }
+        ],
+        [
+          {
+            "text": "At 7:15 I was standing at Hill Road in my own clothes. Ticket came around the corner, looked at me for a second, and got on the bus. I got on behind him. At Park Street we both got off."
+          }
+        ],
+        [
+          {
+            "text": "He walked fast. He knew the way. Two streets, left at the bakery, then up a small hill. At the top there was a long white building with a garden. A sign on the gate said "
+          },
+          {
+            "text": "Green Hill Care Home",
+            "em": true
+          },
+          {
+            "text": "."
+          }
+        ],
+        [
+          {
+            "text": "Ticket went through a hole under the fence, clearly not for the first time, and sat down under one of the windows on the ground floor."
+          }
+        ],
+        [
+          {
+            "text": "A minute later the window opened. An old woman looked out, and her whole face lit up."
+          }
+        ],
+        [
+          {
+            "text": "\"There you are,\" she said. She put her hand out through the window, and Ticket pushed his head up under it."
+          }
+        ],
+        [
+          {
+            "text": "I stood at the gate and watched. They stayed like that for a long time. She talked to him quietly. He didn't move."
+          }
+        ],
+        [
+          {
+            "text": "Later, a nurse told me the story. The woman, Mrs. Hall, had lived on Hill Road for forty years. When she moved into the care home in the spring, she couldn't bring her dog, so a neighbor took him in."
+          }
+        ],
+        [
+          {
+            "text": "\"He was fine for about a week,\" the nurse said. \"Then one morning he was here, under her window. We still don't know how he found it.\""
+          }
+        ],
+        [
+          {
+            "text": "\"He takes the bus,\" I said."
+          }
+        ],
+        [
+          {
+            "text": "The nurse looked at me like I was crazy."
+          }
+        ],
+        [
+          {
+            "text": "The next morning at 7:15, Ticket got on my bus as usual. He walked past me and sat down by the window."
+          }
+        ],
+        [
+          {
+            "text": "He never paid for a ticket. I never asked him to."
+          }
+        ]
+      ],
+      "questions": [
+        {
+          "id": "bus-dog-content-1",
+          "kind": "content",
+          "question": "Where did the dog get off every morning?",
+          "options": [
+            "Hill Road",
+            "Park Street",
+            "At the bakery",
+            "At the care home"
+          ],
+          "answer": 1,
+          "explain": "아침 7시 15분에 힐 로드에서 타서 파크 스트리트에서 내렸다."
+        },
+        {
+          "id": "bus-dog-content-2",
+          "kind": "content",
+          "question": "Why did the student call the dog Ticket?",
+          "options": [
+            "He liked to eat paper.",
+            "He never had a ticket.",
+            "He sat by the ticket machine.",
+            "His owner's name was Ticket."
+          ],
+          "answer": 1,
+          "explain": "표 없이 타는 개라서 '티켓'이라고 불렀다."
+        },
+        {
+          "id": "bus-dog-content-3",
+          "kind": "content",
+          "question": "How did the driver find out where the dog went?",
+          "options": [
+            "A passenger told him.",
+            "He followed the dog on his day off.",
+            "The nurse called him.",
+            "He saw the dog from the bus window."
+          ],
+          "answer": 1,
+          "explain": "쉬는 날 평상복을 입고 같은 버스를 타서 따라갔다."
+        },
+        {
+          "id": "bus-dog-content-4",
+          "kind": "content",
+          "question": "Who was the old woman at the window?",
+          "options": [
+            "The nurse's mother",
+            "The bus driver's friend",
+            "The dog's owner, who now lived in the care home",
+            "A neighbor from Park Street"
+          ],
+          "answer": 2,
+          "explain": "홀 부인은 힐 로드에 40년 살다가 요양원에 들어갔고, 개는 데려갈 수 없어 이웃이 맡았다."
+        },
+        {
+          "id": "bus-dog-content-5",
+          "kind": "content",
+          "question": "\"He never paid for a ticket. I never asked him to.\" What does the driver feel?",
+          "options": [
+            "He is angry at the dog.",
+            "He is happy to let the dog ride free.",
+            "He wants the nurse to pay.",
+            "He plans to stop the dog next time."
+          ],
+          "answer": 1,
+          "explain": "사연을 안 뒤로 기사는 티켓을 그냥 태워 준다. 묻지도 않는 것이 그의 마음이다."
+        },
+        {
+          "id": "bus-dog-sense-1",
+          "kind": "sense",
+          "question": "\"So on my day off, I found out.\" What does out add?",
+          "options": [
+            "The answer came out into the open after looking.",
+            "He went outside.",
+            "He found something he had lost.",
+            "He was out of work."
+          ],
+          "answer": 0,
+          "explain": "out은 안에 감춰져 있던 것이 밖으로 드러나는 그림이다. find는 찾는 것, find out은 몰랐던 사실이 드러나 알게 되는 것이다.",
+          "basis": "감각 사전 out"
+        },
+        {
+          "id": "bus-dog-sense-2",
+          "kind": "sense",
+          "question": "\"He was fine for about a week.\" What does for show?",
+          "options": [
+            "The week was a gift for him.",
+            "How long he was fine, from start to end.",
+            "The reason he was fine.",
+            "The day he became fine."
+          ],
+          "answer": 1,
+          "explain": "for는 그 상태가 얼마 동안 이어졌는지, 처음부터 끝까지의 길이를 보인다. 어느 때인지를 말할 때는 during을 쓴다(보강 9.11).",
+          "basis": "감각 사전 for, 보강 9.11"
+        }
+      ]
+    }
+  ]
+}

@@ -209,3 +209,33 @@ span.en { line-height: 1; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .tab:disabled, .ex:disabled { opacity: .45; cursor: default; }
 .feedback > [role="status"] { display: grid; gap: 10px; }
+
+/* 시간 제한 읽기와 사전 훈련 */
+.menu { flex-wrap: wrap; }
+.draft-tag { background: var(--warn-soft); color: var(--warn); letter-spacing: .02em; vertical-align: 2px; }
+.en-title { font-family: var(--f-en); font-weight: 600; }
+.reading { gap: 14px; }
+.reading-start b { font-variant-numeric: tabular-nums; }
+.timer-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.timer { font-variant-numeric: tabular-nums; }
+.timer b { font-size: 1.2rem; color: var(--accent); }
+.timer.low b { color: var(--bad); }
+.story { font-family: var(--f-en); font-size: 1.12rem; line-height: 1.7; gap: 12px; }
+.story:focus { outline: none; }
+.story h2 { font-size: 1.4rem; }
+.prep-cards { gap: 16px; }
+.prep-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; }
+.prep-expression { font-size: 1.45rem; font-weight: 600; display: flex; align-items: baseline; gap: 10px; }
+.prep-num { font: 600 .8rem var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
+.prep-card .kv { font-size: .95rem; }
+.prep-example { margin: 0; }
+.prep-example blockquote { margin: 0; font-size: 1.1rem; line-height: 1.5; }
+.drill { display: grid; gap: 10px; border-top: 1px dashed var(--line); padding-top: 14px; }
+.drill-sentence { font-size: 1.15rem; line-height: 2.1; }
+.blank { font: 1rem var(--f-en); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-bottom: 2px solid var(--accent); border-radius: 6px; padding: 2px 6px; margin: 0 4px; max-width: 100%; }
+.blank:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.blank.miss { border-color: var(--bad); background: var(--bad-soft); }
+.blank.done { border-color: var(--good); background: var(--good-soft); }
+.drill-result:empty { display: none; }
+.basis { font-size: .8rem; }
+.blank.shown { background: var(--accent-soft); }

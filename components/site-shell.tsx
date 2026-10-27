@@ -4,7 +4,7 @@ export function SiteHeader({ menu }: { menu?: string }) {
   return <header className="top"><div className="top-in">
     <a className="brand" href="/"><span className="brand-mark" aria-hidden="true" />{site.name}</a>
     <nav className="menu" aria-label="사이트">
-      {[["words", "/#words", "표제어"], ["practice", "/practice/", "연습"], ["ask", "/ask/", "해설기"]].map(([key, href, label]) =>
+      {[["words", "/#words", "표제어"], ["practice", "/practice/", "연습"], ["reading", "/reading/", "읽기"], ["prep", "/prep/", "사전 훈련"], ["ask", "/ask/", "해설기"]].map(([key, href, label]) =>
         <a key={key} href={href} aria-current={menu === key ? "page" : undefined}>{label}</a>)}
     </nav>
   </div></header>;
