@@ -405,7 +405,7 @@ test("a paired story links its unit and its expression question links its card a
   await expect(link).toHaveAttribute("href", `/prep/wonder/unit-3/#${paired.questions[index].card}`);
   await link.click();
   await expect(page).toHaveURL(new RegExp(`/prep/wonder/unit-3/#${paired.questions[index].card}$`));
-  await expect(page.locator(`article#${paired.questions[index].card}`)).toBeInViewport();
+  await expect(page.locator(`section.cl-card[data-question-id="${paired.questions[index].card}"]`)).toBeInViewport();
 });
 
 test("no completion, mastery or progress wording appears, only facts about first answers", async ({ page }) => {
