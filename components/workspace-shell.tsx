@@ -154,9 +154,11 @@ export type WorkspaceFrameProps = {
   /** Chat: what is being worked on (target, stage, judgement status), the conversation, the current input form, and the composer. */
   chat: { context: ReactNode; timeline: ReactNode; input: ReactNode; composer: ReactNode };
   dialog: { heading: string; body: ReactNode } | null;
+  /** Fixed layers of the kind (the pen-note tools). They render inside the main landmark, after the dialog. */
+  layer?: ReactNode;
 };
 
-export function WorkspaceFrame({ shell, lessonWord, toolbarActions, save, outline, toc, referenceStack, documentHeading, document: documentBody, documentEnd, chat, dialog }: WorkspaceFrameProps) {
+export function WorkspaceFrame({ shell, lessonWord, toolbarActions, save, outline, toc, referenceStack, documentHeading, document: documentBody, documentEnd, chat, dialog, layer }: WorkspaceFrameProps) {
   const { documentState, layoutState, outlineOpen } = shell;
   const outlineRef = useRef(outline);
   outlineRef.current = outline;
@@ -183,5 +185,6 @@ export function WorkspaceFrame({ shell, lessonWord, toolbarActions, save, outlin
 </div></div></section><section className="lw-chat-pane" role="region" aria-label="AI 대화"><header className="lw-pane-header"><h2 id="lw-chat-heading" tabIndex={-1}>AI와 함께 풀기</h2><button type="button" onClick={shell.moveToContent}>콘텐츠로 이동 <span aria-hidden="true">↗</span></button></header><div className="lw-input-context">{chat.context}</div><div className="lw-conversation-area"><div className="lw-transcript" ref={shell.chatScroll} onScroll={event => shell.captureChatReading(event.currentTarget)}><div className="lw-transcript-inner"><div className="lw-timeline" role="log" aria-label="학습 수행과 대화" aria-live="polite" aria-relevant="additions text">{chat.timeline}</div>      {chat.input}
 </div></div><div className="lw-composer-area">{shell.unseen && <button className="lw-new-response" type="button" onClick={shell.goToEnd}>새 응답 보기 <span aria-hidden="true">↓</span></button>}<div className="lw-composer-inner">{chat.composer}</div></div></div></section></div></div>
     {dialog && <dialog className="lw-dialog" ref={shell.modal} onCancel={event => { event.preventDefault(); shell.closeDialog(); }} aria-labelledby="lw-dialog-heading"><header><h2 id="lw-dialog-heading">{dialog.heading}</h2><button type="button" onClick={shell.closeDialog} aria-label="닫고 학습으로 돌아가기"><Icon kind="close" /></button></header><div className="lw-dialog-scroll">{dialog.body}</div></dialog>}
+    {layer}
   </main>;
 }

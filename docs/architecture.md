@@ -18,6 +18,7 @@
 | `components/card-lesson.tsx`, `components/card-lesson.css`, `lib/card-lesson.ts`, `lib/server/card-lesson-view.ts` | 카드 수업(`/prep/<작품>/unit-<n>/`)의 작업 공간: 카드마다 한 절의 문서(옛 `#<카드 id>` 해시 이동), 빈칸 입력·첫 답·수정(6회)·답 보기(첫 답 뒤에만), 설명 요청(`explainRequestMessage`)·질문. 서버가 넘기는 뷰(`CardLessonView`)는 공개 투영과 이웃 유닛·짝 이야기뿐이다. 공유 셸의 칸을 채운다 | `drill.answers`는 브라우저로 가지 않고 판정 응답(빈칸별 같음/다름)과 `reveal` 응답으로만 온다. 수정은 새 시도이고 첫 시도를 덮지 않는다 | (검사: `npm test`의 `tests/card-lesson.test.ts`, `npm run test:e2e`의 `tests/e2e/card-lesson.spec.ts`) |
 | `components/lesson-common.tsx` | 이야기·카드 수업이 같게 만드는 것: 수업 기록 열기(`useLessonRecord`), 판정 요청의 전송·실패·다시 판정(`postLessonCheck`·`useLessonChecks`), "판정" 항목과 상태(`JudgementItem`·`JudgementLine`·`JudgementStatus`), 옛 판 기록 안내와 새 판 시작(`OldVersionNotice`), 도구 막대의 "수업 목록" 링크(`LessonListLink`) | 언제 보일지와 판정이 무엇을 말하는지는 종류가 정한다. 판정 요청은 20초에 중단하고, 응답은 요청 당시 대상과 맞을 때만 기록에 붙인다. 대화 응답의 대상 대조는 `lib/lesson-chat-contract.ts`의 `readLessonChatResponse`가 한 곳에서 한다 | (검사: `npm test`의 `tests/lesson-common.test.ts`, `npm run test:e2e`) |
 | `lib/lesson-list.ts`, `components/lesson-list-dialog.tsx` | 홈 도구 막대 "수업 목록" 창의 이야기 15편·유닛 13개 제목과 기존 주소 | 서버가 목록용 공개 요약에서 만들어 props로 넘긴다. 문항 ID(약 350개)·카드·정답은 홈의 props와 번들에 없다. 창은 열 때만 그려진다 | (검사: `npm test`의 `tests/lesson-list.test.ts`, `npm run test:e2e`의 `tests/e2e/lesson-list.spec.ts`) |
+| `lib/notes.ts`, `lib/note-blocks.ts`, `components/pen-notes.tsx`, `components/pen-notes.css` | 펜 노트(밑줄·형광펜·여백 메모): 노트의 모양·한도·검증·글에서 다시 찾기(`lib/notes.ts`, 순수), 수업마다 노트를 달 수 있는 글 블록의 키와 글(`lib/note-blocks.ts`, 공개 글만), 저장·선택 도구·메모·목록(`components/pen-notes.tsx`). 세 수업 화면이 글 요소를 `NoteBlock`으로 그리고 공유 셸의 `layer` 칸에 도구를 놓는다 | 수업마다 키 하나(`english-sense-notes-v1:<lessonId>`)에 저장하고 수업 기록(v3·v4)·문서 UI·레이아웃 키는 읽거나 쓰지 않는다. 노트는 요청·사건을 만들지 않고 AI 요청 본문에 들어가지 않는다. 저장 파일이 한 군데라도 어긋나면 그 수업의 노트만 버리고 안내한다. 블록 글은 React가 그린다(글 DOM을 직접 바꾸지 않는다) | (검사: `npm test`의 `tests/notes.test.ts`, `npm run test:e2e`의 `tests/e2e/notes.spec.ts`) |
 | `lib/workspace-layout-state.ts` | 목차 접힘·채팅 읽기 위치·끝 따라가기 UI 설정 | 별도 키로 검사·복원하며 학습 기록·문서 자료 상태를 바꾸지 않는다 | (검사: `npm test`, `npm run test:e2e`) |
 | `lib/document-workspace-state.ts` | 전체 공개 문서 투영·자료 추가 위치·펼침·목차 UI 상태. 참고 자료가 없는 수업은 `"plain"` 모드(자료 없음, 읽기 위치는 아무 문서 구역 ID) | 별도 키로 복원하며 학습 사건·수행을 바꾸지 않는다. 기본 모드는 have 문서의 모양과 검사 그대로다 | (검사: `npm test`, `npm run test:e2e`) |
 | `lib/reference-materials.ts`, `lib/server/reference-materials.ts` | have·get·be·go 공개 감각 설명·예시 전달 | stage 공개 필드만 복사하며 정답·해설을 넘기지 않는다 | (검사: `npm test`) |
@@ -131,6 +132,14 @@ AI와 사용량 한도를 쓰지 않으므로 한도가 찬 날에도 판정은 
 6. AI는 사용자가 "AI에게 설명 요청"이나 질문을 보낼 때만 `/api/learn-chat/`을 부른다. 판정·문서·기록은 한도와 AI 실패에 상관없이 계속 동작한다.
 7. 기록이 옛 자료 판이면 읽기 전용이다. 판정·AI 전송이 막히고, 확인 한 번을 거친 "이 기록을 지우고 새 판으로 시작"이 그 수업의 기록 하나만 새 기록으로 바꾼다.
 8. 수업 사이 이동은 페이지 이동이다. 홈의 "수업 목록" 창과 이야기·카드 도구 막대의 "수업 목록" 링크가 기존 주소로 간다.
+펜 노트는 이 순서와 따로 움직이는 별도 저장이다(홈 have도 같다).
+
+1. 화면이 글 요소를 `NoteBlock`(안정적인 블록 키 `data-note-block`)으로 그린다. 첫 HTML과 첫 클라이언트 렌더는 노트 없는 글이다.
+2. 하이드레이션 뒤 노트 키 하나(`english-sense-notes-v1:<lessonId>`)를 읽는다. 읽지 못하면 그 수업의 노트만 비우고 안내한다(손상 파일은 다음 노트를 저장할 때까지 그대로 둔다). 읽기는 요청도 사건도 만들지 않는다.
+3. 노트는 블록 키와 선택한 글(정확한 문구와 앞뒤 12자)로 글에 붙는다. 글이 달라져 찾지 못하면 지우지 않고 "이 글을 찾지 못한 노트"로 목록에 남긴다.
+4. 노트를 만들거나 고치거나 지울 때만 그 키에 쓴다. 쓰지 못하면 노트는 화면에 남고 상태 표시줄, 문서 위 안내, 도구, 메모 칸에 저장 경고와 "저장 다시 시도"가 나온다. 수업 기록의 저장 상태와는 따로다.
+5. 이야기 본문을 가린 동안에는 본문 노트의 글을 어디에도 그리지 않고 표시 종류와 메모만 보인다.
+
 
 ## 실행·배포의 현재 선택
 

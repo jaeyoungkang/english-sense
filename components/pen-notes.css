@@ -1,0 +1,99 @@
+/* Pen notes: a pen's underline, a highlighter and a memo in the margin, on the text of a lesson document. Light page only (the workspace has no dark theme). */
+.lw-app{--np-ink:#2f55a4;--np-paper:#fffbe3;--np-paper-line:#e5dca6;--np-memo-ink:#2c3f6b}
+
+/* Underline: a hand-drawn, slightly wobbling line under the text (a tile of an SVG path), not a straight rule. */
+.lw-app .np-seg{border-radius:.15em}
+.lw-app .np-u{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='7' viewBox='0 0 64 7'%3E%3Cpath d='M0 3.6C4 2.3 7 4.9 13 3.4S23 2.6 30 4.1 41 4.6 47 3 58 3.9 64 3.4' fill='none' stroke='%232f55a4' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:repeat-x;background-position:0 calc(100% + 1px);background-size:64px 7px;padding-bottom:1px}
+/* Highlight: a translucent fill with uneven ends, so the text keeps its colour and contrast. */
+.lw-app mark.np-seg{color:inherit;padding:0 .12em;margin:0 -.12em;border-radius:.35em .7em .4em .6em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.lw-app mark.np-yellow{background-color:rgba(255,222,64,.5)}
+.lw-app mark.np-rose{background-color:rgba(255,150,190,.42)}
+/* A memo without a mark: a dotted line under the text. */
+.lw-app .np-memo-only{border-bottom:1.5px dotted var(--np-ink)}
+/* The pin joins the noted text to its memo. */
+.lw-app .np-seg[data-pin]::after{content:attr(data-pin);font:600 .62em/1 var(--f-body,sans-serif);color:var(--np-ink);vertical-align:super;margin-left:.15em;font-style:normal}
+.lw-app .np-seg:focus-visible,.lw-app .np-flash{outline:2px solid var(--lw-accent);outline-offset:2px}
+.lw-app .np-seg{cursor:default}
+@media(prefers-reduced-motion:no-preference){.lw-app .np-flash{animation:np-flash 1.8s ease-out}}
+@keyframes np-flash{0%{outline-color:transparent}12%{outline-color:var(--lw-accent)}100%{outline-color:transparent}}
+.lw-app .np-gap{display:inline}
+
+/* The memo: a small note stuck in the margin, in the italic of the English text face. */
+.lw-app .np-margin{display:block;margin:8px 0 0;font:italic 400 13.5px/1.55 var(--f-en,Georgia,serif);letter-spacing:0;word-break:keep-all;overflow-wrap:anywhere;text-align:left;text-indent:0;color:var(--np-memo-ink);font-weight:400;max-width:none}
+.lw-app .np-fold{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:2px 10px;border:1px dashed var(--np-paper-line);border-radius:4px;background:var(--np-paper);color:var(--np-memo-ink);font:italic 13px/1.4 var(--f-en,Georgia,serif)}
+.lw-app .np-memos{display:block}
+.lw-app .np-memo{display:block;position:relative;margin:7px 0 0;padding:7px 10px 8px 26px;background:var(--np-paper);border:1px solid var(--np-paper-line);border-radius:2px 2px 7px 2px;box-shadow:1px 2px 0 rgba(120,100,20,.14);transform:rotate(-.6deg);transform-origin:left top}
+.lw-app .np-memo:nth-child(even){transform:rotate(.5deg)}
+.lw-app .np-pinno{position:absolute;left:8px;top:6px;font:600 12px/1.6 var(--f-body,sans-serif);font-style:normal;color:var(--np-ink)}
+.lw-app .np-memo-text{display:block;white-space:pre-wrap;overflow-wrap:anywhere}
+.lw-app .np-memo-actions,.lw-app .np-edit-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px;font-style:normal}
+.lw-app .np-margin button,.lw-app .np-bar button,.lw-app .np-banner button{font:inherit}
+.lw-app .np-memo-actions button,.lw-app .np-edit-foot button,.lw-app .np-save button{min-height:28px;padding:1px 9px;border:1px solid var(--np-paper-line);border-radius:3px;background:#fff;color:#33415e;font:500 11.5px/1.4 var(--f-body,sans-serif)}
+.lw-app .np-edit-foot .np-primary{background:#2f4f8f;border-color:#2f4f8f;color:#fff}
+.lw-app .np-edit{display:block;font-style:normal}
+.lw-app .np-edit textarea{display:block;width:100%;min-height:76px;box-sizing:border-box;padding:6px 8px;border:1px solid #c6bb78;border-radius:3px;background:#fffef6;color:#243556;font:italic 400 14px/1.6 var(--f-en,Georgia,serif);resize:vertical}
+.lw-app .np-count{margin-right:auto;font:500 11px/1.4 var(--f-body,sans-serif);color:#5a6070;font-variant-numeric:tabular-nums}
+.lw-app .np-save{display:block;margin-top:6px;padding:6px 8px;border:1px solid #cf9c8e;background:#fbeee9;color:#7a2f1e;font:500 12px/1.6 var(--f-body,sans-serif);border-radius:3px}
+
+/* Wide screens: the memo stands in the margin beside its block (a float in the block's right margin; the block holds it). */
+@media(min-width:1360px){
+  .lw-app .np-has-memo{display:flow-root;margin-right:176px!important}
+  .lw-app li.np-has-memo{display:list-item;display:flow-root list-item}
+  .lw-app .np-has-memo>.np-margin{float:right;width:158px;margin:0 -176px 0 0}
+  .lw-app .np-has-memo>.np-margin .np-fold{display:none}
+  .lw-app .np-has-memo>.np-margin .np-memo:first-child{margin-top:0}
+}
+@media(max-width:1359px){
+  .lw-app .np-has-memo>.np-margin{margin-top:6px}
+  /* Folded under the block until opened (a memo being edited keeps it open). */
+  .lw-app .np-margin[data-open=false] .np-memos{display:none}
+}
+
+/* The tool: next to the selection on a pointer screen, docked to an edge on a touch or narrow screen. */
+.lw-app .np-bar{position:fixed;z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:4px;max-width:min(560px,calc(100vw - 16px));padding:5px;border-radius:9px;background:#2b3425;color:#fff;box-shadow:0 8px 28px rgba(20,26,16,.32);font:500 13px/1.4 var(--f-body,sans-serif)}
+.lw-app .np-bar.np-pending{visibility:hidden}
+.lw-app .np-bar.np-dock{left:0;right:0;max-width:none;border-radius:0;justify-content:space-between;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 18px rgba(20,26,16,.25)}
+.lw-app .np-bar.np-dock-bottom{bottom:0}
+.lw-app .np-bar.np-dock-top{top:0;padding-top:calc(6px + env(safe-area-inset-top,0px));padding-bottom:6px;box-shadow:0 4px 18px rgba(20,26,16,.25)}
+.lw-app .np-bar button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;min-width:44px;padding:4px 10px;border:0;border-radius:6px;background:transparent;color:#fff;cursor:pointer}
+.lw-app .np-bar button:hover{background:rgba(255,255,255,.14)}
+.lw-app .np-bar button:focus-visible{outline:2px solid #fff;outline-offset:-3px;background:rgba(255,255,255,.18)}
+.lw-app .np-bar.np-dock button{flex:1 1 0;min-width:0;padding-inline:4px}
+.lw-app .np-bar .np-icon{flex:none}
+.lw-app .np-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px;width:100%}
+.lw-app .np-row b{flex:1 1 100%;padding:2px 8px 0;font-weight:600;font-size:12px;color:#e6ecd9}
+.lw-app .np-bar-note{flex:1 1 100%;padding:2px 8px 4px;font-size:12px;color:#ffe9b0}
+.lw-app .np-bar .np-save{flex:1 1 100%;margin:2px 4px 4px}
+@media(max-width:380px){.lw-app .np-bar button{font-size:12px;gap:3px}.lw-app .np-bar .np-icon{display:none}}
+
+/* The list. */
+.lw-app .np-panel .np-section{margin-bottom:22px}
+.lw-app .np-panel h3{font-size:13px;margin-bottom:8px}
+.lw-app .np-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.lw-app .np-item{margin:0;padding:10px 12px;border:1px solid var(--lw-line);border-radius:4px;background:#fff}
+.lw-app .np-item[data-found=false]{background:#f6f4ea;border-style:dashed}
+.lw-app .np-item p{margin:0}
+.lw-app .np-item-kind{font-size:12px;color:#4f5a45}
+.lw-app .np-item-quote{margin:4px 0;font:400 15px/1.7 var(--f-en,Georgia,serif);overflow-wrap:anywhere}
+.lw-app .np-item-memo{margin:4px 0;font:italic 400 14px/1.6 var(--f-en,Georgia,serif);color:var(--np-memo-ink);overflow-wrap:anywhere;white-space:pre-wrap}
+.lw-app .np-item-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.lw-app .np-item-actions button,.lw-app .np-section>.np-item-actions button{min-height:40px;padding:4px 12px;border:1px solid #ced5c4;border-radius:3px;background:#fff;color:#33402b;font:inherit;font-size:12px}
+.lw-app .np-item-actions button:disabled{opacity:.5}
+
+/* In the toolbar. */
+.lw-app .lw-toolbar-actions .np-trigger-count{display:none}
+@media(max-width:640px){
+  .lw-app .lw-toolbar-actions .np-trigger{position:relative}
+  .lw-app .lw-toolbar-actions .np-trigger>span{display:none}
+  .lw-app .lw-toolbar-actions .np-trigger-count{display:block;position:absolute;top:3px;right:0;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:var(--lw-accent);color:#fff;font:600 10px/16px var(--f-body,sans-serif);text-align:center}
+}
+
+/* Notices at the top of the document, and the covered story's list. */
+.lw-app .np-banner{margin:0 0 14px}
+.lw-app .np-banner p{margin:0 0 8px;padding:8px 12px;border:1px solid #d8c88a;background:#fbf5da;color:#4a3f14;font-size:12.5px;border-radius:3px}
+.lw-app .np-banner button{min-height:36px;margin-left:8px;padding:2px 10px;border:1px solid #cdbf80;background:#fff;border-radius:3px;font-size:12px}
+.lw-app .np-covered{margin-top:12px;font-size:12.5px;max-width:560px}
+.lw-app .np-covered summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:#33402b;font-weight:500}
+.lw-app .np-covered ul{margin:6px 0 0;padding-left:18px}
+.lw-app .np-covered li{margin:0 0 6px}
+@media(pointer:coarse){.lw-app .np-memo-actions button,.lw-app .np-edit-foot button,.lw-app .np-save button{min-height:40px;padding-inline:12px}}

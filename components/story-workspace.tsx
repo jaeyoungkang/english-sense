@@ -2,7 +2,7 @@
 
 import "./story-workspace.css";
 import "./lesson-common.css";
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { LessonCheckRequest } from "@/lib/lesson-contract";
 import { readLessonChatResponse, type LessonChatRequest } from "@/lib/lesson-chat-contract";
 import { LEARNING_CHAT_ENDPOINT, learningChatLimits } from "@/lib/learning-chat-contract";
@@ -17,6 +17,8 @@ import { Icon, WorkspaceFrame, useWorkspaceShell, type OutlineItem } from "@/com
 import { SaveWarning, useTurnRequests } from "@/components/workspace-session";
 import { EventLine, JudgementItem, JudgementLine, JudgementStatus, LessonListLink, OldVersionNotice, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
 import { AssistantReply, QuestionComposer, RequestStatus, UserRequest } from "@/components/workspace-chat";
+import { CoveredNotes, NoteBlock, NoteTools, NotesBanner, NotesButton, NotesFact, NotesProvider, usePenNotes } from "@/components/pen-notes";
+import { isStoryBodyKey, isStoryQuestionKey, storyAskKey, storyBlocks, storyBodyKey, storyOptionKey, storyParagraphRuns } from "@/lib/note-blocks";
 
 /**
  * A story lesson (`/reading/<id>/`): timed reading at a chosen level, then the seven choose questions in the same document, and the
@@ -83,6 +85,11 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   const answered = artifacts.filter(artifact => artifact.attempts.length > 0).length;
   const allAnswered = answered === artifacts.length;
   const oldVersion = record.artifacts.some(artifact => artifact.contentVersion !== lesson.contentVersion);
+  // Pen notes (a separate store, not the record). The story body shows only while it is being read or checked after all first answers;
+  // the questions show after the reading. A covered text is never shown through a note.
+  const bodyVisible = phase === "reading" || (phase === "ended" && peek && allAnswered);
+  const noteBlocks = useMemo(() => storyBlocks(lesson), [lesson]);
+  const notes = usePenNotes({ lessonId: lesson.lessonId, blocks: noteBlocks, hidden: block => (isStoryBodyKey(block) && !bodyVisible) || (isStoryQuestionKey(block) && phase !== "ended") });
 
   function chooseTarget(questionId: string, input = false) {
     update(previous => selectLessonQuestion(previous, lesson, questionId)); setNotice("");
@@ -203,7 +210,7 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
     return <div className="lw-turn"><UserRequest label={targetLabel(artifact)} turn={turn} sentVia="‘AI에게 설명 요청’ 단추로 보낸 요청" />{turnItems(artifact, turn, thread.id, event.requestId)}</div>;
   }
 
-  const body = <div className="lw-story-body" lang="en">{lesson.paragraphs.map((paragraph, index) => <p key={index}>{paragraph.map((piece, at) => piece.em ? <i key={at}>{piece.text}</i> : piece.text)}</p>)}</div>;
+  const body = <div className="lw-story-body" lang="en">{lesson.paragraphs.map((paragraph, index) => <NoteBlock as="p" key={index} block={storyBodyKey(index)} runs={storyParagraphRuns(paragraph)} />)}</div>;
   const ended = status?.phase === "ended" ? status : null;
   const readingZone = <>
     {ended ? <>
@@ -211,6 +218,7 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
         <p className="lw-reading-record"><span>읽기 기록</span> {readingFactsLine({ level: ended.level, readMs: ended.readMs, by: ended.by, words: lesson.words })}</p>
         <button type="button" className="lw-button" disabled={!allAnswered} aria-describedby="lw-peek-note" onClick={() => setPeek(open => !open)} aria-expanded={allAnswered && peek}>{peek && allAnswered ? "본문 가리기" : "본문 확인하기"}</button>
         <p id="lw-peek-note" className="lw-form-note">{allAnswered ? "모든 문제에 첫 답을 남겨 본문을 확인할 수 있습니다. 확인은 기록에 남지 않습니다." : "모든 문제에 첫 답을 남기면 본문 확인이 열립니다."}</p></div>
+      {!(peek && allAnswered) && <CoveredNotes isBody={isStoryBodyKey} />}
       {peek && allAnswered && body}
     </> : phase === "reading" ? <>
       <p className="lw-reading-clock" aria-hidden="true">남은 시간 <b>{clockLabel(remainingSeconds ?? 0)}</b> · 지난 시간 <b>{clockLabel(elapsedSeconds ?? 0)}</b></p>
@@ -223,6 +231,7 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
       </fieldset>
       <p className="lw-form-note">수준은 시간 제한만 바꿉니다. 시작을 누르면 시간이 흐릅니다. 다 읽으면 본문이 가려지니 한 번에 집중해서 읽으십시오. 문제는 읽기를 마치면 열립니다.</p>
       <button type="button" className="lw-button lw-primary" onClick={startClock} disabled={!hydrated || now === null}>읽기 시작</button>
+      <CoveredNotes isBody={isStoryBodyKey} />
     </div>}
   </>;
 
@@ -235,8 +244,8 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
       <section className={`lw-quiz-artifact lw-story-question ${isTarget ? "lw-artifact-selected" : ""}`} data-artifact-id={artifact.artifactId} data-question-id={question.questionId} data-content-version={artifact.contentVersion} aria-label={`문제 ${number}`}>
         <header className="lw-artifact-header"><div><span className="lw-artifact-index">문제 {number}</span></div>{isOpen && <button type="button" aria-pressed={isTarget} onClick={() => chooseTarget(question.questionId, true)}>이 문제에 질문하기</button>}</header>
         {isOpen ? <>
-          <h2 className="lw-story-ask" lang={langOf(question.question)}>{question.question}</h2>
-          {first || access === "old-version" ? <ol className="lw-question-options" aria-label={`문제 ${number} 보기`}>{question.options.map((option, at) => <li key={at} lang={langOf(option)}>{option}{optionTags(artifact, at).map(tag => <span className="lw-option-tag" key={tag}>{tag}</span>)}</li>)}</ol>
+          <NoteBlock as="h2" className="lw-story-ask" lang={langOf(question.question)} block={storyAskKey(question.questionId)} runs={[{ text: question.question }]} disabled={access === "old-version"} />
+          {first || access === "old-version" ? <ol className="lw-question-options" aria-label={`문제 ${number} 보기`}>{question.options.map((option, at) => <NoteBlock as="li" key={at} lang={langOf(option)} block={storyOptionKey(question.questionId, at)} runs={[{ text: option }]} disabled={access === "old-version"}>{optionTags(artifact, at).map(tag => <span className="lw-option-tag" key={tag} data-note-skip>{tag}</span>)}</NoteBlock>)}</ol>
             : <form className="lw-story-form" aria-label={`문제 ${number} 첫 답`} onSubmit={event => submitFirst(event, artifact)}>
               <fieldset><legend>어떤 보기를 고르겠습니까?</legend>{question.options.map((option, at) => <label className="lw-option lw-story-option" key={at}><input type="radio" name={`choice-${question.questionId}`} value={at} checked={artifact.choice === at} onChange={() => setChoice(artifact, at)} required /><span lang={langOf(option)}><b>{letter(at)}.</b> {option}</span></label>)}</fieldset>
               <div className="lw-form-actions"><button className="lw-button lw-primary" type="submit" disabled={!hydrated}>첫 답 남기기 <span aria-hidden="true">→</span></button></div>
@@ -255,15 +264,16 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
     <button type="button" onClick={finishReading}>다 읽었습니다</button>
   </span> : null;
 
-  return <WorkspaceFrame shell={shell} lessonWord={<><span className="lw-story-word" lang="en">{lesson.title}</span>{lesson.draft && <span className="tag draft-tag">초안</span>}</>} save={{ text: store.saveText, failed: store.saveState === "failed" }} outline={outline}
-    toolbarActions={<>{timerControls}<span className="lw-sr-only" role="status">{announce}</span><LessonListLink href="/reading/" /></>}
-    toc={{ title: <>이야기 수업<br />학습 문서</>, lead: "이야기를 읽고, 본문을 가린 뒤 이어지는 문제를 풉니다.", summary: <><p>이야기 1개 · 문제 {lesson.questions.length}개</p>{answered > 0 && <p>첫 답을 남긴 문제 {answered}개</p>}<p>문서 전체의 목차입니다. 문제는 원하는 순서로 풉니다.</p></> }}
+  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<><span className="lw-story-word" lang="en">{lesson.title}</span>{lesson.draft && <span className="tag draft-tag">초안</span>}</>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} outline={outline}
+    toolbarActions={<>{timerControls}<span className="lw-sr-only" role="status">{announce}</span><NotesButton /><LessonListLink href="/reading/" /></>}
+    toc={{ title: <>이야기 수업<br />학습 문서</>, lead: "이야기를 읽고, 본문을 가린 뒤 이어지는 문제를 풉니다.", summary: <><p>이야기 1개 · 문제 {lesson.questions.length}개</p>{answered > 0 && <p>첫 답을 남긴 문제 {answered}개</p>}<NotesFact /><p>문서 전체의 목차입니다. 문제는 원하는 순서로 풉니다.</p></> }}
     referenceStack={null}
     documentHeading={<><p>ENGLISH SENSE · TIMED READING</p><h2>읽고, 가리고, 떠올리기</h2><div><span>{lesson.draft ? "초안 · " : ""}{lesson.words}낱말 · 문제 {lesson.questions.length}개</span></div>
       {links.pair && <p className="pair-note"><i>{links.pair.workTitle}</i> 유닛 {links.pair.unit} 표현으로 쓴 이야기입니다. <a href={links.pair.href}>유닛 {links.pair.unit} 카드 보기</a></p>}
       {lesson.draft && <p className="lw-draft-note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>}
       {oldVersion && <OldVersionNotice confirmMessage="이 이야기의 이 브라우저 기록(읽기·첫 답·판정·대화·초안)을 지우고 새 판으로 시작합니다. 되돌릴 수 없습니다. 계속합니까?" note="지우면 되돌릴 수 없습니다. 이 이야기의 기록 하나만 지우고 다른 수업은 그대로입니다." onRestart={startOver}>이 이야기가 고쳐져 자료 판이 바뀌었습니다. 옛 판으로 남긴 답과 대화는 읽기만 하고, 그 문제의 판정과 AI 전송은 막았습니다.</OldVersionNotice>}</>}
     document={<>
+      <NotesBanner />
       <div className="lw-content-artifact lw-story-reading" data-outline-id="reading" data-phase={phase} id={documentAnchorId("reading")} tabIndex={-1}>
         <div className="lw-document-section-label">01 / 이야기 읽기</div>
         <section className="lw-reading-zone" aria-labelledby="lw-reading-title">
@@ -291,6 +301,6 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
           <p className="lw-ai-note">{firstAttempt ? "AI는 단추를 누르거나 질문을 보낼 때만 부릅니다. AI의 답은 틀릴 수 있고, 서버 판정은 바뀌지 않습니다." : "답 제출 전에는 AI 대신 무료 준비 안내를 제공합니다."}</p></>}
         {saveWarning}</>,
     }}
-    dialog={null} />;
+    dialog={null} layer={<NoteTools />} /></NotesProvider>;
 }
 export default StoryWorkspace;

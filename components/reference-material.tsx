@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { ReferenceMaterial, ReferenceZone } from "@/lib/reference-materials";
+import { NoteBlock } from "@/components/pen-notes";
+import { materialKey, materialZoneKey } from "@/lib/note-blocks";
 
 function SenseDrawing({ material, zone }: { material: ReferenceMaterial; zone: ReferenceZone }) {
   const instance = useId().replace(/:/g, "");
@@ -19,5 +21,5 @@ export function ReferenceMaterialContent({ material, compact = false }: { materi
   const image = useRef<HTMLImageElement>(null);
   const zone = material.zones[0];
   useEffect(() => { if (image.current?.complete && image.current.naturalWidth === 0) setFailed(true); }, []);
-  return <div className={`lw-material-content ${compact ? "lw-material-compact" : ""}`}><figure className="lw-sense-image">{material.image && !failed ? <img ref={image} src={material.image.src} alt={material.image.alt} onError={() => setFailed(true)} /> : <div className={material.image ? "lw-image-fallback" : "lw-material-diagram"}>{zone && <SenseDrawing material={material} zone={zone} />}{material.image && <p>이미지 대신 감각 도식을 표시합니다.</p>}</div>}<figcaption>{material.id} 감각 · 학습용 도해</figcaption></figure><div className="lw-material-explanation"><p>{material.description}</p>{!compact && <section className="lw-material-detail lw-continuous-examples" aria-label={`${material.id} 감각 예시 전체`}><h3>감각의 쓰임</h3>{material.zones.map(item => <article className="lw-material-example" key={item.k}><h4>{item.k}</h4><p lang="en">{item.ex}</p><dl><dt>장면</dt><dd>{item.ctx}</dd><dt>듣는 사람은</dt><dd>{item.lis}</dd></dl></article>)}<a href={material.href} target="_blank" rel="noopener">공개 감각 설명 전체 읽기 ↗<span className="lw-sr-only">새 창</span></a></section>}</div></div>;
+  return <div className={`lw-material-content ${compact ? "lw-material-compact" : ""}`}><figure className="lw-sense-image">{material.image && !failed ? <img ref={image} src={material.image.src} alt={material.image.alt} onError={() => setFailed(true)} /> : <div className={material.image ? "lw-image-fallback" : "lw-material-diagram"}>{zone && <SenseDrawing material={material} zone={zone} />}{material.image && <p>이미지 대신 감각 도식을 표시합니다.</p>}</div>}<figcaption>{material.id} 감각 · 학습용 도해</figcaption></figure><div className="lw-material-explanation"><NoteBlock as="p" block={materialKey(material.id, "desc")} runs={[{ text: material.description }]} disabled={compact} />{!compact && <section className="lw-material-detail lw-continuous-examples" aria-label={`${material.id} 감각 예시 전체`}><h3>감각의 쓰임</h3>{material.zones.map((item, index) => <article className="lw-material-example" key={item.k}><h4>{item.k}</h4><NoteBlock as="p" lang="en" block={materialZoneKey(material.id, index, "ex")} runs={[{ text: item.ex }]} /><dl><dt>장면</dt><NoteBlock as="dd" block={materialZoneKey(material.id, index, "ctx")} runs={[{ text: item.ctx }]} /><dt>듣는 사람은</dt><NoteBlock as="dd" block={materialZoneKey(material.id, index, "lis")} runs={[{ text: item.lis }]} /></dl></article>)}<a href={material.href} target="_blank" rel="noopener">공개 감각 설명 전체 읽기 ↗<span className="lw-sr-only">새 창</span></a></section>}</div></div>;
 }
