@@ -1,11 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { ArtifactLearningChatRequest } from "../../lib/learning-chat-contract";
 import type { WorkspaceState } from "../../lib/learning-workspace-state";
-import { openQuestionInput } from "./workspace-input";
+import { openQuestionInput, chooseQuiz, expectQuizTarget } from "./workspace-input";
 
 const key = "english-sense-learning-workspace-v3";
 const card = (page: Page, number: number) => page.locator(`.lw-quiz-artifact[data-question-id="titanic-have-${number}"]`);
-const target = (page: Page) => page.getByLabel("함께 풀 문제", { exact: true });
 const form = (page: Page, number: number) => page.getByRole("form", { name: `${number}번 퀴즈 첫 답`, exact: true });
 async function stored(page: Page): Promise<WorkspaceState> {
   await expect.poll(() => page.evaluate(key => localStorage.getItem(key), key)).not.toBeNull();
@@ -20,7 +19,7 @@ async function readCard(page: Page, number: number) {
   await openOutline(page);
   await page.getByRole("navigation", { name: "학습 문서 목차", exact: true }).locator(`a[href="#doc-artifact-${id}"]`).click();
   await expect(card(page, number).locator("h2")).toBeInViewport({ ratio: 1 });
-  const action = card(page, number).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true });
+  const action = card(page, number).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true });
   await expect(action).toBeInViewport({ ratio: 1 });
   await expect.poll(() => action.evaluate(element => {
     const bounds = element.getBoundingClientRect();
@@ -43,13 +42,17 @@ test("all explanations and seven questions are readable before any answer withou
   const initial = await stored(page);
   await expect(page.locator(".lw-content-pane .lw-quiz-artifact")).toHaveCount(7);
   await expect(page.getByRole("button", { name: "다음 퀴즈 추가", exact: true })).toHaveCount(0);
-  await expect(target(page).locator("option")).toHaveCount(7);
+  // Each of the seven quizzes can be picked as the input target and holds its own first-answer form; the conversation has only the question box.
+  await expect(page.locator(".lw-content-pane .lw-artifact-header button")).toHaveCount(7);
+  await expect(page.locator(".lw-content-pane form[aria-label$=\"번 퀴즈 첫 답\"]")).toHaveCount(7);
+  await expect(page.getByRole("region", { name: "AI 대화", exact: true }).locator("form")).toHaveCount(1);
+  await expect(page.getByLabel("함께 풀 문제", { exact: true })).toHaveCount(0);
   const reference = page.locator('.lw-document-reference[data-reference-id="have"]');
   expect(await reference.locator(".lw-material-example").count()).toBeGreaterThan(1);
   expect(await reference.locator(".lw-material-example").evaluateAll(nodes => nodes.every(node => !node.closest("details:not([open])") && getComputedStyle(node).display !== "none"))).toBe(true);
   for (let number = 1; number <= 7; number++) {
     await expect(card(page, number).locator(".lw-scene-text")).toBeVisible();
-    await expect(card(page, number).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true })).toBeEnabled();
+    await expect(card(page, number).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true })).toBeEnabled();
   }
   await openOutline(page);
   const links = page.getByRole("navigation", { name: "학습 문서 목차", exact: true }).getByRole("link");
@@ -80,7 +83,7 @@ test("the seventh question can be answered first and the second can remain a dra
     await route.fulfill({ json: { requestId: body.requestId, artifactId: body.artifactId, questionId: body.questionId, contentVersion: body.contentVersion, reply: "검사용 7번 먼저 풀기 피드백", mode: "ai" } });
   });
   await page.goto("/");
-  await card(page, 7).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
+  await card(page, 7).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
   await expect(form(page, 7)).toBeVisible();
   await expect(page.getByRole("region", { name: "AI 대화", exact: true }).locator("form")).toHaveCount(1);
   await form(page, 7).getByLabel("내가 쓴 영어 문장").fill("Browser test: I have a quiet moment.");
@@ -89,7 +92,7 @@ test("the seventh question can be answered first and the second can remain a dra
   expect(requests).toHaveLength(1);
   expect(requests[0]).toMatchObject({ questionId: "titanic-have-7", initialAttempt: { kind: "produce", text: "Browser test: I have a quiet moment." }, messages: [] });
   const secondId = await card(page, 2).getAttribute("data-artifact-id");
-  await target(page).selectOption(secondId!);
+  await chooseQuiz(page, secondId!);
   await form(page, 2).locator('input[type="radio"]').nth(2).check();
   await form(page, 2).getByLabel("그 문장을 고른 까닭").fill("검사용 2번 미제출 초안");
   await openQuestionInput(page);
@@ -98,7 +101,7 @@ test("the seventh question can be answered first and the second can remain a dra
   expect(before.artifacts.map(artifact => artifact.question.questionId)).toEqual(["titanic-have-1", "titanic-have-7", "titanic-have-2"]);
   expect(before.events.map(event => event.kind)).toEqual(["card", "card", "initial", "request", "reply", "card"]);
   await readCard(page, 4);
-  await expect(target(page)).toHaveValue(secondId!);
+  await expectQuizTarget(page, secondId!);
   expect(await stored(page)).toEqual(before);
   await page.reload();
   await expect(form(page, 2).getByLabel("그 문장을 고른 까닭")).toHaveValue("검사용 2번 미제출 초안");
@@ -139,10 +142,11 @@ test("the wide document scrolls as a web page while chat stays alongside and a r
   await page.getByRole("button", { name: "질문 보내기", exact: true }).click();
   await expect.poll(() => !!release).toBe(true);
   await readCard(page, 7);
-  const position = await page.evaluate(() => scrollY);
+  const position = await card(page, 7).locator("h2").evaluate(element => element.getBoundingClientRect().top);
   release!();
+  // The reply lands in the first quiz, above the seventh the reader is on: what the reader sees does not move.
   await expect(page.getByText("검사용 문서 읽기 중 준비 안내", { exact: true })).toHaveCount(1);
-  expect(await page.evaluate(() => scrollY)).toBe(position);
+  expect(Math.abs((await card(page, 7).locator("h2").evaluate(element => element.getBoundingClientRect().top)) - position)).toBeLessThanOrEqual(1);
   await expect(card(page, 7).locator("h2")).toBeInViewport({ ratio: 1 });
   expect((await stored(page)).artifacts).toHaveLength(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);

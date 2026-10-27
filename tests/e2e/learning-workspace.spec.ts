@@ -24,11 +24,12 @@ async function submitWriting(page: Page, number: number, text: string) {
   await form.getByRole("button", { name: "내 답 제출하고 대화하기" }).click();
 }
 async function addNext(page: Page, number: number) {
-  await card(page, number).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
+  await card(page, number).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
   await expect(card(page, number)).toHaveCount(1);
 }
 async function target(page: Page, number: number) {
-  await page.getByLabel("함께 풀 문제", { exact: true }).selectOption({ label: `${number}번 퀴즈 · ${number <= 5 ? "고르기" : "쓰기"}` });
+  await card(page, number).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
+  await expect(card(page, number).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true })).toHaveAttribute("aria-pressed", "true");
 }
 async function ask(page: Page, text: string) {
   await openQuestionInput(page);
@@ -36,7 +37,7 @@ async function ask(page: Page, text: string) {
   await page.getByRole("button", { name: "질문 보내기", exact: true }).click();
 }
 async function revise(page: Page, number = 1) {
-  await page.getByRole("button", { name: "답을 고쳐 쓰기", exact: true }).click();
+  await card(page, number).getByRole("button", { name: "답을 고쳐 쓰기", exact: true }).click();
   const form = page.getByRole("form", { name: `${number}번 퀴즈 수정`, exact: true });
   await form.getByLabel("내가 고친 답").fill(revisionText);
   await form.getByRole("button", { name: "수정한 답 남기기", exact: true }).click();
@@ -133,7 +134,10 @@ test("seven quiz artifacts retain targets, first answers, drafts, event order an
   await openQuestionInput(page);
   await expect(page.getByLabel("이 장면에 대해 질문하기")).toHaveValue("아직 보내지 않은 2번 초안");
   await target(page, 1);
-  await expect(page.locator(`.lw-timeline-event[data-event-kind="initial"][data-artifact-id="${firstId}"]`)).toContainText(firstReason);
+  // The conversation keeps one line of the first answer; the answer and its reason are in the quiz.
+  await expect(page.locator(`.lw-timeline-event[data-event-kind="initial"][data-artifact-id="${firstId}"]`)).toContainText("첫 답을 남겼습니다");
+  await expect(page.locator(`.lw-timeline-event[data-event-kind="initial"][data-artifact-id="${firstId}"]`)).not.toContainText(firstReason);
+  await expect(card(page, 1).locator(".lw-doc-performance")).toContainText(firstReason);
   await page.getByRole("button", { name: "내 수행 기록", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText(firstReason);
   await expect(page.getByRole("dialog")).toContainText(revisionText);
@@ -303,18 +307,22 @@ test("reading earlier chat stays put on a new reply and the narrow flow keeps ma
   await page.setViewportSize({ width: 1280, height: 900 });
   let calls = 0;
   let releaseReply: (() => void) | undefined;
+  const quick = 9;
   await page.route("**/api/learn-chat/**", async route => {
     const body = route.request().postDataJSON() as ArtifactLearningChatRequest;
     calls++;
-    if (calls === 2) await new Promise<void>(resolve => { releaseReply = resolve; });
-    await route.fulfill({ json: reply(body, calls === 1 ? "검사용 긴 모의 응답\n".repeat(70) : "검사용 읽기 중 새 응답") });
+    if (calls === quick + 2) await new Promise<void>(resolve => { releaseReply = resolve; });
+    await route.fulfill({ json: reply(body, calls === 1 ? "검사용 긴 모의 응답\n".repeat(70) : calls === quick + 2 ? "검사용 읽기 중 새 응답" : `검사용 짧은 응답 ${calls}`) });
   });
   await page.goto("/");
   await submitFirstAnswer(page);
   await expect(page.locator(".lw-assistant-message")).toHaveCount(1);
+  // The conversation holds one line per request and reply, so it needs many of them to be longer than its pane.
+  for (let index = 0; index < quick; index++) { await ask(page, `검사용 짧은 질문 ${index + 1}`); await expect(page.locator(".lw-assistant-message")).toHaveCount(index + 2); }
   await ask(page, "검사용 읽는 동안 기다리는 질문");
   await expect.poll(() => !!releaseReply).toBe(true);
   const transcript = page.locator(".lw-transcript");
+  expect(await transcript.evaluate(element => element.scrollHeight > element.clientHeight + 100)).toBe(true);
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await transcript.evaluate(element => { element.scrollTop = 0; element.dispatchEvent(new Event("scroll")); });
   const pinned = await page.locator(".lw-reference").boundingBox();
@@ -387,7 +395,9 @@ test("a changed material version shows its original snapshot and prevents AI tra
   }, storageKey);
   await page.reload();
   await expect(card(page, 1)).toContainText("검사용 이전 자료의 발문을 그대로 보존합니다.");
-  await expect(page.locator('.lw-timeline-event[data-event-kind="initial"]')).toContainText(firstReason);
+  await expect(card(page, 1).locator(".lw-doc-performance")).toContainText(firstReason);
+  await expect(page.locator('.lw-timeline-event[data-event-kind="initial"]')).toContainText("첫 답을 남겼습니다");
+  await expect(card(page, 1).getByRole("button", { name: "답을 고쳐 쓰기", exact: true })).toBeDisabled();
   await expect(page.locator(".lw-chat-notice")).toContainText("이 퀴즈의 자료 판이 현재 자료와 다릅니다. 당시 기록을 보존하고 AI 전송을 막았습니다.");
   await expect(page.getByRole("button", { name: "질문 보내기", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "다음 퀴즈 추가", exact: true })).toHaveCount(0);

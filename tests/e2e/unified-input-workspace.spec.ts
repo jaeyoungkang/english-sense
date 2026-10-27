@@ -1,13 +1,12 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import type { ArtifactLearningChatRequest } from "../../lib/learning-chat-contract";
 import type { WorkspaceState } from "../../lib/learning-workspace-state";
-import { openFirstAnswerInput, openQuestionInput } from "./workspace-input";
+import { openFirstAnswerInput, openQuestionInput, chooseQuiz, expectQuizTarget } from "./workspace-input";
 
 const storageKey = "english-sense-learning-workspace-v3";
 const firstForm = (page: Page, number = 1) => page.getByRole("form", { name: `${number}번 퀴즈 첫 답`, exact: true });
 const revisionForm = (page: Page, number = 1) => page.getByRole("form", { name: `${number}번 퀴즈 수정`, exact: true });
 const question = (page: Page) => page.getByLabel("이 장면에 대해 질문하기");
-const target = (page: Page) => page.getByLabel("함께 풀 문제", { exact: true });
 const card = (page: Page, number = 1) => page.locator(`.lw-quiz-artifact[data-question-id="titanic-have-${number}"]`);
 const response = (body: ArtifactLearningChatRequest, reply: string, mode: "guidance" | "ai" = "ai") => ({ requestId: body.requestId, artifactId: body.artifactId, questionId: body.questionId, contentVersion: body.contentVersion, reply, mode });
 
@@ -15,16 +14,19 @@ async function stored(page: Page): Promise<WorkspaceState> {
   await expect.poll(() => page.evaluate(key => localStorage.getItem(key), storageKey)).not.toBeNull();
   return page.evaluate(key => JSON.parse(localStorage.getItem(key)!), storageKey);
 }
-async function onlyInput(page: Page, kind: "initial" | "revision" | "question", number = 1) {
+// The first answer and the revision are made in the quiz itself; the conversation holds the question box and nothing else.
+async function onlyInput(page: Page, kind: "initial" | "revision" | "question" | "question-before-answer", number = 1) {
   const pane = page.getByRole("region", { name: "AI 대화", exact: true });
   await expect(pane.locator("form")).toHaveCount(1);
-  await expect(firstForm(page, number)).toHaveCount(kind === "initial" ? 1 : 0);
+  await expect(pane.getByRole("form", { name: /첫 답|수정/ })).toHaveCount(0);
+  await expect(question(page)).toHaveCount(1);
+  // Asking before the first answer leaves the first-answer form where it is: the question box is a separate input.
+  await expect(firstForm(page, number)).toHaveCount(kind === "initial" || kind === "question-before-answer" ? 1 : 0);
   await expect(revisionForm(page, number)).toHaveCount(kind === "revision" ? 1 : 0);
-  await expect(question(page)).toHaveCount(kind === "question" ? 1 : 0);
-  await expect(page.locator(".lw-content-pane form, .lw-content-pane textarea, .lw-content-pane input")).toHaveCount(0);
+  await expect(card(page, number).locator("form")).toHaveCount(kind === "question" ? 0 : 1);
 }
-async function openRevision(page: Page) {
-  await page.getByRole("button", { name: /^(답을 고쳐 쓰기|작성하던 수정 이어 쓰기)$/ }).click();
+async function openRevision(page: Page, number = 1) {
+  await card(page, number).getByRole("button", { name: /^(답을 고쳐 쓰기|작성하던 수정 이어 쓰기)$/ }).click();
 }
 async function unobscured(locator: Locator) {
   return locator.evaluate(element => {
@@ -36,7 +38,7 @@ async function unobscured(locator: Locator) {
 
 // Provider responses below are mocks. They verify interaction and request meaning,
 // not the quality of tutoring or the learner's understanding.
-test("one conversation input distinguishes a question, the first answer and a revision", async ({ page }) => {
+test("a question, the first answer and a revision are separate inputs: answer and revision in the quiz, question in the conversation", async ({ page }) => {
   const requests: ArtifactLearningChatRequest[] = [];
   await page.route("**/api/learn-chat/**", async route => {
     const body = route.request().postDataJSON() as ArtifactLearningChatRequest;
@@ -45,9 +47,10 @@ test("one conversation input distinguishes a question, the first answer and a re
   });
   await page.goto("/");
   await onlyInput(page, "initial");
-  await expect(card(page).getByRole("list", { name: "1번 퀴즈 보기", exact: true })).toHaveCount(1);
-  await card(page).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
-  await expect(firstForm(page).locator("input,textarea").first()).toBeFocused();
+  await expect(firstForm(page).locator('input[type="radio"]')).toHaveCount(3);
+  await expect(card(page).getByRole("list", { name: "1번 퀴즈 보기", exact: true })).toHaveCount(0);
+  await card(page).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
+  await expect(question(page)).toBeFocused();
   expect(requests).toHaveLength(0);
   await firstForm(page).locator('input[type="radio"]').nth(1).check();
   const reason = firstForm(page).getByLabel("그 문장을 고른 까닭");
@@ -58,7 +61,7 @@ test("one conversation input distinguishes a question, the first answer and a re
   expect(requests).toHaveLength(0);
 
   await openQuestionInput(page);
-  await onlyInput(page, "question");
+  await onlyInput(page, "question-before-answer");
   await question(page).fill("검사용 제출 전 질문입니다.");
   await question(page).evaluate(element => element.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, isComposing: true, bubbles: true })));
   expect(requests).toHaveLength(0);
@@ -93,6 +96,7 @@ test("one conversation input distinguishes a question, the first answer and a re
 
   await openRevision(page);
   await onlyInput(page, "revision");
+  await expect(question(page)).toHaveValue("검사용 아직 보내지 않은 추가 질문");
   const revision = revisionForm(page).getByLabel("내가 고친 답");
   await revision.fill("   ");
   await revisionForm(page).getByRole("button", { name: "수정한 답 남기기", exact: true }).click();
@@ -141,19 +145,19 @@ test("changing the input target and reloading preserves each draft without adopt
   await openRevision(page);
   await revisionForm(page).getByLabel("내가 고친 답").fill("검사용 1번 수정 초안");
   await revisionForm(page).getByRole("button", { name: "초안을 두고 나중에 쓰기", exact: true }).click();
-  await card(page, 2).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
+  await card(page, 2).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
   const secondId = await card(page, 2).getAttribute("data-artifact-id");
   await onlyInput(page, "initial", 2);
   await firstForm(page, 2).locator('input[type="radio"]').nth(2).check();
   await firstForm(page, 2).getByLabel("그 문장을 고른 까닭").fill("검사용 2번 첫 답 초안");
   await openQuestionInput(page);
   await question(page).fill("검사용 2번 질문 초안");
-  await target(page).selectOption(firstId);
+  await chooseQuiz(page, firstId);
   await expect(question(page)).toHaveValue("검사용 1번 질문 초안");
   await page.getByRole("button", { name: "질문 보내기", exact: true }).click();
   await expect.poll(() => !!release).toBe(true);
   await question(page).fill("검사용 1번 응답 대기 중 새 질문 초안");
-  await target(page).selectOption(secondId!);
+  await chooseQuiz(page, secondId!);
   await openFirstAnswerInput(page, 2);
   await expect(page.getByRole("button", { name: "1번 응답 중단", exact: true })).toBeVisible();
   await expect(firstForm(page, 2).getByLabel("그 문장을 고른 까닭")).toHaveValue("검사용 2번 첫 답 초안");
@@ -161,8 +165,8 @@ test("changing the input target and reloading preserves each draft without adopt
 
   // Reading the first card through its existing reference is independent of the
   // second card selected for input, even while the first request is pending.
-  await page.getByRole("link", { name: "1번 퀴즈 본문 보기", exact: true }).click();
-  await expect(target(page)).toHaveValue(secondId!);
+  await page.locator('.lw-event-line[data-summary-of="titanic-have-1"]').first().getByRole("button", { name: "문서에서 보기", exact: true }).click();
+  await expectQuizTarget(page, secondId!);
   await onlyInput(page, "initial", 2);
   await openQuestionInput(page);
   await expect(question(page)).toHaveValue("검사용 2번 질문 초안");
@@ -170,12 +174,12 @@ test("changing the input target and reloading preserves each draft without adopt
   await page.reload();
   release!();
   await onlyInput(page, "initial", 2);
-  await expect(target(page)).toHaveValue(secondId!);
+  await expectQuizTarget(page, secondId!);
   await expect(firstForm(page, 2).getByLabel("그 문장을 고른 까닭")).toHaveValue("검사용 2번 첫 답 초안");
   await expect(firstForm(page, 2).locator('input[type="radio"]').nth(2)).toBeChecked();
   await openQuestionInput(page);
   await expect(question(page)).toHaveValue("검사용 2번 질문 초안");
-  await target(page).selectOption(firstId);
+  await chooseQuiz(page, firstId);
   await expect(question(page)).toHaveValue("검사용 1번 응답 대기 중 새 질문 초안");
   await openRevision(page);
   await expect(revisionForm(page).getByLabel("내가 고친 답")).toHaveValue("검사용 1번 수정 초안");
@@ -191,7 +195,7 @@ test("changing the input target and reloading preserves each draft without adopt
   expect(JSON.stringify(requests[1])).not.toContain("검사용 2번");
 });
 
-test("the single input remains reachable with the document at wide and short narrow sizes", async ({ page }) => {
+test("the quiz inputs and the question box remain reachable with the document at wide and short narrow sizes", async ({ page }) => {
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
   await page.goto("/");
@@ -199,15 +203,18 @@ test("the single input remains reachable with the document at wide and short nar
     await page.setViewportSize(size);
     await openFirstAnswerInput(page, 1);
     await onlyInput(page, "initial");
-    await card(page).getByRole("button", { name: "이 퀴즈로 이어 가기", exact: true }).click();
+    await card(page).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
+    await expect(question(page)).toBeFocused();
+    expect(await unobscured(question(page))).toBe(true);
     const firstField = firstForm(page).locator("input,textarea").first();
-    await expect(firstField).toBeFocused();
+    await firstField.evaluate(element => element.scrollIntoView({ block: "center", behavior: "instant" }));
     expect(await unobscured(firstField)).toBe(true);
     await firstForm(page).locator('input[type="radio"]').nth(1).check();
     const draft = `검사용 ${size.width}폭 이유 초안`;
     await firstForm(page).getByLabel("그 문장을 고른 까닭").fill(draft);
     const submit = firstForm(page).getByRole("button", { name: "내 답 제출하고 대화하기" });
-    await submit.scrollIntoViewIfNeeded();
+    // The form is in the page: reading to it is a page scroll, and the sticky toolbar and reference stack must not cover it.
+    await submit.evaluate(element => element.scrollIntoView({ block: "center", behavior: "instant" }));
     expect(await unobscured(submit)).toBe(true);
     const panes = await page.evaluate(() => {
       const content = document.querySelector(".lw-content-pane")!.getBoundingClientRect();
@@ -217,7 +224,7 @@ test("the single input remains reachable with the document at wide and short nar
     if (size.width >= 1100) expect(panes.contentRight).toBeLessThanOrEqual(panes.chatLeft + 1);
     else expect(panes.contentBottom).toBeLessThanOrEqual(panes.chatTop + 1);
     await openQuestionInput(page);
-    await onlyInput(page, "question");
+    await onlyInput(page, "question-before-answer");
     await question(page).fill(`검사용 ${size.width}폭 질문 초안`);
     await question(page).focus();
     expect(await unobscured(question(page))).toBe(true);

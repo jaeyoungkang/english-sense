@@ -49,11 +49,14 @@ export function useWorkspaceShell(options: WorkspaceShellOptions) {
   const outlineTrigger = useRef<HTMLButtonElement>(null);
   const restoredReading = useRef(false);
   const allowReadingRestore = useRef(false);
+  // The saved reading anchor is taken when the saved state is read: the page may grow at hydration (answers and replies appear in the
+  // document), the browser then moves the scroll and the tracker would overwrite the saved anchor before the restore ran.
+  const savedAnchor = useRef<string | null>(null), restoreSettled = useRef(true);
   const contentScroll = useRef<HTMLDivElement>(null), chatScroll = useRef<HTMLDivElement>(null), modal = useRef<HTMLDialogElement>(null);
   const stickToEnd = useRef(false), lastEvent = useRef<string | null>(null), returnFocus = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    try { const raw = localStorage.getItem(storageKeys.document); const restored = restoreDocumentState(raw, documentMode); allowReadingRestore.current = raw !== null && !restored.recovered; setDocumentState(restored.state); if (restored.recovered) setDocumentNotice("탐색 설정만 기본값으로 복구했습니다. 학습 기록은 유지합니다."); }
+    try { const raw = localStorage.getItem(storageKeys.document); const restored = restoreDocumentState(raw, documentMode); allowReadingRestore.current = raw !== null && !restored.recovered; savedAnchor.current = allowReadingRestore.current ? restored.state.readingAnchor || null : null; restoreSettled.current = !allowReadingRestore.current; setDocumentState(restored.state); if (restored.recovered) setDocumentNotice("탐색 설정만 기본값으로 복구했습니다. 학습 기록은 유지합니다."); }
     catch { setDocumentNotice("탐색 설정을 읽지 못했습니다. 학습 기록과 별도로 기본 목차를 사용합니다."); }
     setDocumentReady(true);
   }, [storageKeys.document, documentMode]);
@@ -81,7 +84,7 @@ export function useWorkspaceShell(options: WorkspaceShellOptions) {
   useEffect(() => {
     if (!documentReady || !layoutReady || !hydrated || restoredReading.current || !allowReadingRestore.current) return;
     restoredReading.current = true;
-    requestAnimationFrame(() => { const element = document.getElementById(documentAnchorId(documentState.readingAnchor || defaultAnchor)); if (element) revealDocumentSection(element); });
+    requestAnimationFrame(() => { const element = document.getElementById(documentAnchorId(savedAnchor.current || defaultAnchor)); if (element) revealDocumentSection(element); restoreSettled.current = true; });
   }, [documentReady, layoutReady, hydrated, documentState.readingAnchor]);
   useEffect(() => {
     if (!hydrated) return;
@@ -129,7 +132,7 @@ export function useWorkspaceShell(options: WorkspaceShellOptions) {
     if (dialog) closeDialog();
     jumpToOutline(referenceOutlineId(id), id);
   }
-  return { documentState, setDocumentState, documentNotice, layoutState, layoutReady, layoutNotice, outlineOpen, dialog, setDialog, unseen, contentScroll, chatScroll, modal, outlineTrigger, closeDialog, goToEnd, captureChatReading, moveToChat, moveToContent, openOutline, closeOutline, jumpToOutline, addMaterial };
+  return { restoreSettled, documentState, setDocumentState, documentNotice, layoutState, layoutReady, layoutNotice, outlineOpen, dialog, setDialog, unseen, contentScroll, chatScroll, modal, outlineTrigger, closeDialog, goToEnd, captureChatReading, moveToChat, moveToContent, openOutline, closeOutline, jumpToOutline, addMaterial };
 }
 export type WorkspaceShell = ReturnType<typeof useWorkspaceShell>;
 
@@ -159,7 +162,7 @@ export function WorkspaceFrame({ shell, lessonWord, toolbarActions, save, outlin
   outlineRef.current = outline;
   function trackDocumentReading() {
     const container = shell.contentScroll.current;
-    if (!container) return;
+    if (!container || !shell.restoreSettled.current) return;
     const bounds = container.getBoundingClientRect();
     if (bounds.bottom <= 0 || bounds.top >= window.innerHeight) return;
     const stack = document.querySelector<HTMLElement>(".lw-reference-stack");
