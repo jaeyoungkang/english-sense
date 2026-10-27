@@ -11,6 +11,9 @@ import type { ApiEnv } from "../lib/server/api";
 import { handleLearningChat } from "../lib/server/learning-chat";
 import { getLessonContentVersion, getPublicLesson, getServerLesson, getServerLessonQuestion } from "../lib/server/lesson-catalog";
 import { handleLessonCheck } from "../lib/server/lesson-check";
+import { lessonContext } from "../lib/server/lesson-chat-context";
+import { judge } from "../lib/server/lesson-judge";
+import { optionLetter, storyExplainRequestMessage } from "../lib/story-lesson";
 
 const STORY = "green-umbrella";
 const UNIT = "wonder-unit-0";
@@ -371,4 +374,71 @@ test("a real card reply is adopted by the lesson record for the question it answ
   const storyOutput = await (await handleLearningChat(post({ lessonId: STORY, questionId: storyArtifact.question.questionId, contentVersion: storyArtifact.contentVersion, artifactId: storyId, requestId: storyTurn.requestId, initialAttempt: storyArtifact.attempts[0].attempt, revisions: [], messages: [], message: storyTurn.user }), storyFixture.env, { fetch: storyFixture.fetcher })).json();
   assert.ok(isLessonChatResponse(storyOutput));
   assert.equal(findArtifact(acceptLessonReply(story, storyOutput), storyId).threads[0].turns[0].status, "complete");
+});
+
+// 화면은 보기를 A~D 글자로 부른다. AI 맥락은 0부터 센 번호만이 아니라 글자와 보기 문장으로 첫 답과 정본 답을 준다.
+test("each of the four options chosen first reaches the AI as its own letter and sentence, never another letter", async () => {
+  const question = storyAt(0);
+  assert.equal(question.options.length, 4);
+  for (const choice of [0, 1, 2, 3]) {
+    const fixture = setup();
+    const input = await chatInput(STORY, 0, { kind: "choose", choice });
+    assert.equal((await handleLearningChat(post(input), fixture.env, { fetch: fixture.fetcher })).status, 200, `choice ${choice}`);
+    const context = providerContext(fixture);
+    const expected = `${"ABCD"[choice]}. ${question.options[choice]}`;
+    assert.equal(context.firstAnswer, expected);
+    assert.equal(context.correctAnswer, `${"ABCD"[question.answer]}. ${question.options[question.answer]}`);
+    assert.deepEqual(context.labeledOptions, question.options.map((option, at) => `${"ABCD"[at]}. ${option}`));
+    assert.ok(providerSystem(fixture).includes(JSON.stringify(expected).slice(1, -1)));
+    // no other letter is attached to the chosen sentence
+    for (const other of [0, 1, 2, 3]) if (other !== choice) assert.notEqual(context.firstAnswer, `${"ABCD"[other]}. ${question.options[choice]}`);
+    assert.match(providerSystem(fixture), /보기는 화면처럼 A~D 글자로 부릅니다/);
+    assert.match(providerSystem(fixture), /번호로 부르지 않고/);
+  }
+});
+
+test("all story questions give the AI the first answer and the canonical answer by letter and sentence, for every option", async () => {
+  let questions = 0;
+  for (const entry of LESSONS) {
+    if (entry.kind !== "story") continue;
+    for (const questionId of entry.questionIds) {
+      const question = getServerLessonQuestion(entry.lessonId, questionId);
+      assert.ok(question.kind === "story");
+      for (const choice of question.question.options.keys()) {
+        const context = lessonContext(question, judge(question, { kind: "choose", choice }));
+        assert.equal(context.firstAnswer, `${optionLetter(choice)}. ${question.question.options[choice]}`, `${questionId} ${choice}`);
+        assert.equal(context.correctAnswer, `${optionLetter(question.question.answer)}. ${question.question.options[question.question.answer]}`, questionId);
+        assert.deepEqual(context.labeledOptions, question.question.options.map((option, at) => `${optionLetter(at)}. ${option}`), questionId);
+      }
+      questions += 1;
+    }
+  }
+  assert.equal(questions, 105);
+});
+
+test("every story question still gives no answer information before a first answer, and the model is not called", async () => {
+  const fixture = setup();
+  for (const entry of LESSONS) {
+    if (entry.kind !== "story") continue;
+    for (const [index, questionId] of entry.questionIds.entries()) {
+      const question = getServerLessonQuestion(entry.lessonId, questionId);
+      assert.ok(question.kind === "story");
+      const input = await chatInput(entry.lessonId, index, null);
+      const text = await (await handleLearningChat(post(input), {}, { fetch: fixture.fetcher })).text();
+      const { options, answer } = question.question;
+      for (const secret of [`${optionLetter(answer)}. ${options[answer]}`, options[answer]]) assert.ok(!text.includes(secret), `${questionId} leaks`);
+    }
+  }
+  assert.equal(fixture.providerRequests.length, 0);
+});
+
+test("the explain request asks for letters, and a card context has no letter fields", async () => {
+  assert.match(storyExplainRequestMessage, /A~D 글자/);
+  const fixture = setup();
+  const question = getServerLessonQuestion(UNIT, entryOf(UNIT).questionIds[0]);
+  assert.ok(question.kind === "cards");
+  await handleLearningChat(post(await chatInput(UNIT, 0, { kind: "fill", inputs: question.card.drill.answers.map(() => "x") })), fixture.env, { fetch: fixture.fetcher });
+  const context = providerContext(fixture);
+  for (const key of ["firstAnswer", "correctAnswer", "labeledOptions"]) assert.ok(!(key in context), key);
+  assert.ok(!/A~D 글자/.test(providerSystem(fixture)));
 });

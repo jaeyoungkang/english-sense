@@ -854,3 +854,10 @@ e2e는 테스트 파일을 한 줄도 바꾸지 않았다. 옛 `/reading/`·`/pr
 **5. sitemap·주소: 통과.** 이야기 15편과 사전 훈련 13개 유닛, 모두 28개 주소가 200이고 canonical(`<link rel="canonical" href="https://english.artificialmind.kr…">`)이 맞으며 `sitemap.xml`(47개 주소)에 있다. `/`, `/reading/`, `/prep/`, `/prep/wonder/`, `/api/health/`(`ok: true, ready: true`)도 200이다.
 
 **확인하지 못한 것:** 카드 수업의 실제 AI(설명 요청, '답 보기' 전 답 누설), 운영의 한도 잔량·한도 소진 동작, 첫 답 전 질문 안내(운영), 운영 서버 번들, 실제 휴대폰·화면 읽기 프로그램, 사람이 판단하는 항목 전부.
+
+### 단계 8 보강: 이야기 AI 맥락의 보기 표기 (2026-10-27)
+
+- 원인: 운영 확인 3의 결함이다. 코드에서 확인했다. 화면은 보기를 A~D 글자로 부르는데 이야기 수업의 AI 맥락(`lessonContext`)은 보기를 글자 없는 문장 배열로 주고, 첫 답과 정본 답은 0부터 센 번호(`serverJudgement.choice`·`answerIndex`, 사용자 메시지의 `initialAttempt.choice`)로만 줬다. 정본 답만 `correctOption`이라는 문장으로 있었다. 그래서 AI가 `choice: 2`(C)를 "2번"으로 읽어 두 번째 보기로 짚은 것으로 본다. AI가 실제로 어떻게 읽었는지는 한 번 호출한 응답으로 추정했을 뿐 따로 재현하지 않았다.
+- 고친 곳: `lib/server/lesson-chat-context.ts`의 이야기 맥락에 `labeledOptions`("A. …"), `correctAnswer`("B. …"), `firstAnswer`("C. …")를 더했다. `firstAnswer`는 브라우저가 보낸 값이 아니라 서버가 다시 판정한 `judgement.choice`에서 만들고, 정본 답과 함께 첫 답이 있을 때만 맥락에 닿는다. 같은 파일의 이야기 시스템 안내에 "보기는 글자로 부르고 `choice`·`answerIndex`는 내부 번호이니 번호로 부르지 않는다"를 더했다. `lib/story-lesson.ts`에 글자 함수 `optionLetter`를 두고 화면(`components/story-workspace.tsx`)이 같은 함수를 쓰게 했다. `storyExplainRequestMessage`에 "보기는 화면에 보이는 A~D 글자로 불러 주세요."를 더했다. 기존 필드(`options`·`correctOption`·`serverJudgement`)와 카드 맥락, have 요청·응답 형식은 바꾸지 않았다.
+- 실행한 검사(로컬, 실제 AI는 호출하지 않았다): `tests/lesson-chat.test.ts`에 단위 넷을 더했다. 보기 네 개를 각각 첫 답으로 했을 때 공급자에 간 맥락과 시스템 안내에 올바른 글자와 보기 문장이 있고 다른 글자가 붙지 않음, 이야기 105문항 모두 각 보기에서 `firstAnswer`·`correctAnswer`·`labeledOptions`가 규칙대로임, 105문항 모두 첫 답 전에는 공급자 호출 0회이고 응답에 정본 답이 없음, 설명 요청 문장에 글자 안내가 있고 카드 맥락에는 새 필드가 없음. 글자를 한 칸 어긋나게 일부러 틀리게 만들자 둘이 실패했고 되돌렸다. `npm run check` 169개 통과(기존 165개는 수정 없이 통과, 새 4개), `npm run cf:build` 성공, `story-lessons.spec.ts` 42개 통과(PC·모바일). `tests/learning-chat.test.ts`는 수정하지 않았다.
+- 운영 재확인은 배포 뒤에 필요하다. 시스템 안내와 맥락을 AI가 실제로 따라 첫 답을 글자로 맞게 말하는지는 모의 공급자로는 볼 수 없고, 아직 확인하지 못했다. 배포·push는 하지 않았다.

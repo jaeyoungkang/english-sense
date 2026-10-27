@@ -1,6 +1,7 @@
 import { getServerLesson, type ServerLessonQuestion } from "./lesson-catalog";
 import type { LessonJudgement } from "../lesson-contract";
 import type { LessonKind } from "../lesson-registry";
+import { optionLetter } from "../story-lesson";
 
 type NewLessonKind = Exclude<LessonKind, "scene">;
 
@@ -22,11 +23,17 @@ export function lessonContext(question: ServerLessonQuestion, judgement: LessonJ
   const lesson = getServerLesson(question.lessonId);
   if (question.kind === "story" && lesson.kind === "story") {
     const { options, kind, question: prompt, answer } = question.question;
+    // 화면은 보기를 A~D 글자로 부른다. 0부터 센 번호(`choice`·`answerIndex`)만 주면 AI가 "2번"처럼 한 칸 어긋나게 읽는다.
+    const labeled = options.map((option, at) => `${optionLetter(at)}. ${option}`);
     return {
       lessonId: lesson.lessonId, lessonKind: "story", title: lesson.story.title,
       passage: lesson.story.paragraphs.map(paragraph => paragraph.map(inline => inline.text).join("")).join("\n\n"),
       question: { questionId: question.questionId, kind, question: prompt, options },
       correctOption: options[answer],
+      labeledOptions: labeled,
+      correctAnswer: labeled[answer],
+      // 첫 답은 브라우저의 값이 아니라 서버가 판정한 값(`judgement.choice`)에서 글자로 바꾼다.
+      ...(judgement.kind === "choose" ? { firstAnswer: labeled[judgement.choice] } : {}),
       serverJudgement: judgement,
     };
   }
@@ -52,7 +59,8 @@ serverJudgement는 서버가 첫 답을 정본과 결정적으로 비교한 결�
 
 const intro: Record<NewLessonKind, string> = {
   story: `당신은 강PD가 영어 이야기를 시간 안에 읽고 문제를 푼 뒤 대화하는 튜터입니다. 이야기 본문(passage)과 지금 푼 문제 하나, 처음 답, 서버 판정, 정본 해설을 함께 읽고 새 질문에 답합니다.
-알고 있는 것은 이 본문과 이 문제뿐입니다. 다른 문제의 정답이나 해설은 모르며 지어내지 않습니다. correctOption은 정본 답이고 serverJudgement의 explain과 basis는 정본 해설이므로, 사용자가 처음 고른 보기와 견주어 그에 맞춰 풀어서 설명합니다. 본문의 어느 부분을 보면 되는지 물으면 passage에서 해당 부분을 짚어 줍니다.`,
+알고 있는 것은 이 본문과 이 문제뿐입니다. 다른 문제의 정답이나 해설은 모르며 지어내지 않습니다. correctOption은 정본 답이고 serverJudgement의 explain과 basis는 정본 해설이므로, 사용자가 처음 고른 보기와 견주어 그에 맞춰 풀어서 설명합니다. 본문의 어느 부분을 보면 되는지 물으면 passage에서 해당 부분을 짚어 줍니다.
+보기는 화면처럼 A~D 글자로 부릅니다. labeledOptions가 글자를 붙인 보기이고, firstAnswer가 사용자가 처음 고른 보기, correctAnswer가 정본 답입니다. serverJudgement의 choice·answerIndex와 사용자 메시지 initialAttempt의 choice는 0부터 센 내부 번호이므로 "2번"처럼 번호로 부르지 않고 글자와 보기 문장으로 말합니다.`,
   cards: `당신은 강PD가 영어 표현 카드의 빈칸을 채우며 대화하는 튜터입니다. 지금 푼 카드의 표현·뜻·감각·예문·근거, 빈칸 문제, 처음 답과 수정, 서버 판정을 함께 읽고 새 질문에 답합니다.
 알고 있는 것은 이 카드와 이 빈칸 문제뿐입니다. referenceAnswers는 정본의 빈칸 답입니다. 학습자가 '답 보기'를 하지 않았을 수 있으니, 틀린 빈칸이라도 답을 먼저 말하지 말고 표현의 감각과 예문으로 다가가게 돕습니다. 학습자가 답을 직접 물으면 알려 줍니다. 수정은 서버가 판정하지 않은 학습자의 글이므로 같고 다름을 단정하지 않습니다.`,
 };

@@ -8,7 +8,7 @@ import { activeThread, characterCount as chars, historyFor, startThread, threadL
 import { documentAnchorId } from "@/lib/document-workspace-state";
 import { acceptLessonReply, beginLessonTurn, buildLessonCheckRequest, createLessonState, endReading, lessonAccess, projectLessonArtifacts, readingStatus, registerLessonArtifact, retryLessonTurn, selectLessonQuestion, startReading, submitLessonAttempt, syncReading, type JudgementResponse, type LessonArtifact, type LessonEvent, type LessonReply, type LessonState } from "@/lib/lesson-workspace-state";
 import type { PublicStoryLesson, PublicStoryQuestion, StoryLessonLinks } from "@/lib/lesson-registry";
-import { storyExplainRequestMessage } from "@/lib/story-lesson";
+import { optionLetter as letter, storyExplainRequestMessage } from "@/lib/story-lesson";
 import { clockLabel } from "@/lib/study-content";
 import { Icon, WorkspaceFrame, useWorkspaceShell, type OutlineItem } from "@/components/workspace-shell";
 import { SaveWarning, useTurnRequests } from "@/components/workspace-session";
@@ -22,7 +22,6 @@ import { AssistantReply, QuestionComposer, RequestStatus, UserRequest } from "@/
  */
 
 const kindLabel: Record<PublicStoryQuestion["kind"], string> = { content: "내용", sense: "표현의 감각", expression: "표현" };
-const letter = (index: number) => String.fromCharCode(65 + index);
 /** Questions and options are English, except the expression questions that ask for a Korean meaning. */
 const langOf = (value: string) => /[가-힣]/.test(value) ? "ko" : "en";
 
