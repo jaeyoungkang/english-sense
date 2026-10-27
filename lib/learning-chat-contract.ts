@@ -51,7 +51,7 @@ function text(value: unknown, max: number): value is string {
   return typeof value === "string" && value.trim().length > 0 && [...value].length <= max;
 }
 
-function validTransport(value: Record<string, unknown>): boolean {
+export function validTransport(value: Record<string, unknown>): boolean {
   if (typeof value.requestId !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(value.requestId)) return false;
   if (!text(value.message, learningChatLimits.message)) return false;
   if (!Array.isArray(value.revisions) || value.revisions.length > learningChatLimits.revisions || !value.revisions.every((revision) => record(revision) && keys(revision, ["text"]) && text(revision.text, learningChatLimits.revision))) return false;
