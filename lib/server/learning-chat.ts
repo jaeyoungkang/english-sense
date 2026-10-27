@@ -4,6 +4,7 @@ import { getServerLearningQuestion } from "./learning-catalog";
 import { getLessonContentVersion, getServerLessonQuestion } from "./lesson-catalog";
 import { lessonContext, lessonGuidance, lessonSystemPrompt } from "./lesson-chat-context";
 import { LessonAttemptError, judge } from "./lesson-judge";
+import { selectSenseHeadwords } from "./sense-entries";
 import { LEARNING_QUESTION_IDS, LEGACY_HAVE_CONTENT_VERSION } from "../learning-catalog";
 import { isLessonChatRequest, type LessonChatRequest, type LessonChatResponse } from "../lesson-chat-contract";
 import { getLessonEntry } from "../lesson-registry";
@@ -156,7 +157,7 @@ async function handleLessonChat(input: LessonChatRequest, request: Request, env:
   const judgement = judge(question, input.initialAttempt);
   if (!env.ANTHROPIC_API_KEY?.trim() || typeof env.QUOTA_LIMITER?.idFromName !== "function" || typeof env.QUOTA_LIMITER?.get !== "function") throw new ChatError(503, "unavailable", unavailable);
   await takeQuota(request, env, dependencies);
-  return json(reply(input, await ask(input, lessonSystemPrompt(entry.kind, lessonContext(question, judgement)), request, env, dependencies), "ai"));
+  return json(reply(input, await ask(input, lessonSystemPrompt(entry.kind, lessonContext(question, judgement), selectSenseHeadwords(question, input.message)), request, env, dependencies), "ai"));
 }
 
 export async function handleLearningChat(request: Request, env: ApiEnv, dependencies: Dependencies = {}): Promise<Response> {
