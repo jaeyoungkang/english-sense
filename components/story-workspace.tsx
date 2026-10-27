@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { LESSON_CHECK_ENDPOINT, isLessonCheckResponse, type LessonCheckRequest } from "@/lib/lesson-contract";
-import { isLessonChatResponse, type LessonChatRequest } from "@/lib/lesson-chat-contract";
+import type { LessonCheckRequest } from "@/lib/lesson-contract";
+import { readLessonChatResponse, type LessonChatRequest } from "@/lib/lesson-chat-contract";
 import { LEARNING_CHAT_ENDPOINT, learningChatLimits } from "@/lib/learning-chat-contract";
 import { activeThread, characterCount as chars, historyFor, startThread, threadLimit, updateArtifact, markTurn, type WorkspaceTurn } from "@/lib/learning-thread";
 import { documentAnchorId } from "@/lib/document-workspace-state";
-import { acceptLessonCheck, acceptLessonReply, beginLessonTurn, buildLessonCheckRequest, createLessonState, endReading, lessonAccess, lessonStorageKeys, loadLessonRecord, projectLessonArtifacts, readingStatus, registerLessonArtifact, retryLessonTurn, selectLessonQuestion, startReading, submitLessonAttempt, syncReading, type JudgementResponse, type LessonArtifact, type LessonEvent, type LessonReply, type LessonState } from "@/lib/lesson-workspace-state";
+import { acceptLessonReply, beginLessonTurn, buildLessonCheckRequest, createLessonState, endReading, lessonAccess, projectLessonArtifacts, readingStatus, registerLessonArtifact, retryLessonTurn, selectLessonQuestion, startReading, submitLessonAttempt, syncReading, type JudgementResponse, type LessonArtifact, type LessonEvent, type LessonReply, type LessonState } from "@/lib/lesson-workspace-state";
 import type { PublicStoryLesson, PublicStoryQuestion, StoryLessonLinks } from "@/lib/lesson-registry";
+import { storyExplainRequestMessage } from "@/lib/story-lesson";
 import { clockLabel } from "@/lib/study-content";
 import { Icon, WorkspaceFrame, useWorkspaceShell, type OutlineItem } from "@/components/workspace-shell";
-import { SaveWarning, useRecordStore, useTurnRequests } from "@/components/workspace-session";
+import { SaveWarning, useTurnRequests } from "@/components/workspace-session";
+import { JudgementItem, JudgementLine, JudgementStatus, LessonListLink, OldVersionNotice, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
 import { AssistantReply, QuestionComposer, RequestStatus, UserRequest } from "@/components/workspace-chat";
 
 /**
@@ -23,27 +25,16 @@ const kindLabel: Record<PublicStoryQuestion["kind"], string> = { content: "내�
 const letter = (index: number) => String.fromCharCode(65 + index);
 /** Questions and options are English, except the expression questions that ask for a Korean meaning. */
 const langOf = (value: string) => /[가-힣]/.test(value) ? "ko" : "en";
-/** The same sentence the scene lesson sends from its submit button. Here the learner sends it with "AI에게 설명 요청". */
-const EXPLAIN_REQUEST = "처음 제출한 답과 이유를 장면에 비추어 설명해 주세요. 제가 떠올린 장면을 함께 살펴보고, 스스로 고쳐 볼 지점을 알려 주세요.";
-const CHECK_TIMEOUT_MS = 20000;
-type CheckFailure = { pending: boolean; message: string };
 
 export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; links: StoryLessonLinks }) {
-  const keys = lessonStorageKeys(lesson.lessonId);
-  const store = useRecordStore<LessonState>({
-    key: keys.record,
-    initial: () => createLessonState(lesson),
-    load: () => { const loaded = loadLessonRecord(key => localStorage.getItem(key), lesson, Date.now()); if (!loaded.ok) throw new Error(loaded.message); return loaded.state; },
-    overwritePrompt: "읽지 못한 이 이야기의 임시 기록을 화면의 내용으로 바꾸어 저장합니까? 읽지 못한 원본은 사라집니다.",
-  });
+  const { keys, store } = useLessonRecord(lesson, "읽지 못한 이 이야기의 임시 기록을 화면의 내용으로 바꾸어 저장합니까? 읽지 못한 원본은 사라집니다.");
   const { record, recordRef, update, hydrated } = store;
   const turns = useTurnRequests(store);
+  const judge = useLessonChecks(store, "이 이야기가 고쳐져 자료 판이 달라졌습니다. 이 기록은 옛 판으로 남아 판정하지 않습니다.");
   const { busy, active } = turns;
   const [now, setNow] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const [announce, setAnnounce] = useState("");
-  const [checks, setChecks] = useState<Record<string, CheckFailure>>({});
-  const checkingNow = useRef(new Set<string>());
   const [askBeforeFor, setAskBeforeFor] = useState<string | null>(null);
   const [peek, setPeek] = useState(false);
   const titleFocus = useRef(false), titleRef = useRef<HTMLHeadingElement>(null);
@@ -98,32 +89,10 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   function startClock() { titleFocus.current = true; setAnnounce(""); announced.current = { marks: new Set(), phase: "" }; update(previous => startReading(previous, lesson, Date.now())); setNow(Date.now()); }
   function finishReading() { titleFocus.current = true; update(previous => endReading(previous, Date.now())); setNow(Date.now()); }
   function startOver() {
-    if (!confirm("이 이야기의 이 브라우저 기록(읽기·첫 답·판정·대화·초안)을 지우고 새 판으로 시작합니다. 되돌릴 수 없습니다. 계속합니까?")) return;
-    turns.cancel(); store.unblock(); checkingNow.current.clear(); setChecks({}); setPeek(false); setAskBeforeFor(null); setNotice("");
+    turns.cancel(); store.unblock(); judge.clear(); setPeek(false); setAskBeforeFor(null); setNotice("");
     update(() => createLessonState(lesson));
   }
 
-  async function sendCheck(request: LessonCheckRequest) {
-    const { artifactId } = request;
-    if (checkingNow.current.has(artifactId)) return;
-    checkingNow.current.add(artifactId);
-    setChecks(previous => ({ ...previous, [artifactId]: { pending: true, message: "" } }));
-    const controller = new AbortController(), timeout = window.setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
-    let failure = "";
-    try {
-      const response = await fetch(LESSON_CHECK_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request), signal: controller.signal });
-      const result: unknown = await response.json().catch(() => null);
-      if (response.status === 409) failure = "이 이야기가 고쳐져 자료 판이 달라졌습니다. 이 기록은 옛 판으로 남아 판정하지 않습니다.";
-      else if (!response.ok || !isLessonCheckResponse(result)) failure = "판정을 받지 못했습니다.";
-      else {
-        const accepted = acceptLessonCheck(recordRef.current, request, result);
-        if (accepted === recordRef.current && !recordRef.current.artifacts.find(item => item.artifactId === artifactId)?.attempts.at(-1)?.check) failure = "요청 대상과 맞는 판정을 읽지 못했습니다.";
-        else update(previous => acceptLessonCheck(previous, request, result));
-      }
-    } catch (cause) { failure = cause instanceof Error && cause.name === "AbortError" ? "판정을 오래 기다려 중단했습니다." : "서버에 연결하지 못했습니다."; }
-    finally { window.clearTimeout(timeout); checkingNow.current.delete(artifactId); }
-    setChecks(previous => { const { [artifactId]: _gone, ...rest } = previous; return failure ? { ...rest, [artifactId]: { pending: false, message: failure } } : rest; });
-  }
   function submitFirst(event: FormEvent<HTMLFormElement>, artifact: LessonArtifact) {
     event.preventDefault();
     if (artifact.attempts.length || artifact.choice === null || accessOf(artifact) !== "open") return;
@@ -131,11 +100,11 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
     let request: LessonCheckRequest;
     try { request = buildLessonCheckRequest(submitLessonAttempt(recordRef.current, lesson, id, attempt), lesson, id, crypto.randomUUID()); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "첫 답을 남기지 못했습니다."); return; }
     update(previous => submitLessonAttempt(previous, lesson, id, attempt)); goToEnd();
-    void sendCheck(request);
+    void judge.send(request);
     requestAnimationFrame(() => moveToChat(true));
   }
   function recheck(artifact: LessonArtifact) {
-    try { void sendCheck(buildLessonCheckRequest(recordRef.current, lesson, artifact.artifactId, crypto.randomUUID())); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "판정을 다시 받지 못했습니다."); }
+    try { void judge.send(buildLessonCheckRequest(recordRef.current, lesson, artifact.artifactId, crypto.randomUUID())); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "판정을 다시 받지 못했습니다."); }
   }
 
   async function sendMessage(artifactId: string, message: string, origin: WorkspaceTurn["origin"] = "question", retry?: { threadId: string; turnId: string }) {
@@ -156,7 +125,7 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
         const next = retry ? retryLessonTurn(touched, lesson, artifactId, thread.id, turnId, requestId) : beginLessonTurn(touched, lesson, artifactId, { id: turnId, requestId, user: content, origin, status: "pending" });
         return origin === "question" && !retry ? updateArtifact(next, artifactId, item => ({ ...item, messageDraft: "" })) : next;
       },
-      read: (result, requestId): LessonReply | null => isLessonChatResponse(result) && result.requestId === requestId && result.lessonId === lesson.lessonId && result.artifactId === artifactId && result.questionId === questionId && result.contentVersion === artifact.contentVersion ? result : null,
+      read: (result, requestId): LessonReply | null => readLessonChatResponse(result, { requestId, lessonId: lesson.lessonId, artifactId, questionId, contentVersion: artifact.contentVersion }),
       accept: (previous, reply) => acceptLessonReply(previous, reply),
     });
   }
@@ -169,7 +138,7 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   const selectedThread = activeThread(selected), selectedAccess = accessOf(selected), limit = threadLimit(selectedThread);
   const unresolved = selectedThread.turns.some(turn => turn.status === "failed");
   const firstAttempt = selected.attempts[0];
-  const judging = checks[selected.artifactId];
+  const judging = judge.checks[selected.artifactId];
   const explained = selectedThread.turns.some(turn => turn.origin === "submission");
   const inputMode = selectedAccess !== "open" ? "closed" : !firstAttempt ? (askBeforeFor === selected.artifactId ? "question" : "initial") : "question";
   const saveWarning = <SaveWarning store={store} />;
@@ -188,22 +157,19 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   function judgement(artifact: LessonArtifact, check: JudgementResponse) {
     if (check.kind !== "choose" || !("options" in artifact.question)) return null;
     const card = artifact.question.card ? links.cards[artifact.question.card] : undefined;
-    return <div className="lw-judgement" role="group" aria-label={`${targetLabel(artifact)} 서버 판정`}>
-      <div className="lw-message-meta"><span className="lw-judgement-mark">판정</span>{targetLabel(artifact)} · 정본과 대조한 결과 · AI 아님</div>
-      <p className={`lw-judgement-line ${check.match ? "lw-judgement-same" : "lw-judgement-differs"}`}>{check.match ? "정본 답과 같습니다." : "정본 답과 다릅니다."}</p>
+    return <JudgementItem ariaLabel={`${targetLabel(artifact)} 서버 판정`} head={`${targetLabel(artifact)} · 정본과 대조한 결과 · AI 아님`} tone={check.match ? "same" : "differs"}>
+      <JudgementLine same={check.match} />
       <p className="lw-judgement-answer">정본 답: <span lang={langOf(artifact.question.options[check.answerIndex])}><b>{letter(check.answerIndex)}.</b> {artifact.question.options[check.answerIndex]}</span></p>
       <h3>정본 해설</h3><p className="lw-preserve">{check.explain}</p>
       {check.basis && <p className="lw-judgement-basis">근거: {check.basis}</p>}
       {card && <p className="lw-judgement-card"><a href={card.href}>카드에서 다시 보기: <span lang="en">{card.expression}</span></a></p>}
       <p className="lw-performance-note">정본 답과 같은지 비교한 결과이며, 정본에 없는 자연스러운 답이 있을 수 있습니다.</p>
-    </div>;
+    </JudgementItem>;
   }
   function judgementState(artifact: LessonArtifact) {
     if (!artifact.attempts[0] || artifact.attempts[0].check) return null;
-    const failure = checks[artifact.artifactId], old = artifact.contentVersion !== lesson.contentVersion;
-    if (failure?.pending) return <div className="lw-judgement-status lw-waiting" role="status"><span className="lw-pulse" />{targetLabel(artifact)}의 판정을 기다리고 있습니다…</div>;
-    if (old) return <div className="lw-judgement-status" role="status"><p>이 기록은 옛 판이라 판정을 받지 않습니다. 첫 답은 남아 있습니다.</p></div>;
-    return <div className="lw-judgement-status lw-judgement-failed" role="status"><p>판정을 받지 못했습니다. 답은 남아 있습니다.</p>{failure?.message && <p className="lw-muted">{failure.message}</p>}<button type="button" onClick={() => recheck(artifact)}>다시 판정</button></div>;
+    const failure = judge.checks[artifact.artifactId], old = artifact.contentVersion !== lesson.contentVersion;
+    return <JudgementStatus state={failure?.pending ? "pending" : old ? "old" : "failed"} label={targetLabel(artifact)} message={failure?.message} onRetry={() => recheck(artifact)} />;
   }
   function turnItems(artifact: LessonArtifact, turn: WorkspaceTurn, threadId: string, requestId: string) {
     return <RequestStatus label={targetLabel(artifact)} turn={turn} requestId={requestId} current={threadId === artifact.activeThreadId} waiting={artifact.attempts.length ? "내 답과 해설을 살펴보고 있습니다…" : "준비 안내를 가져오고 있습니다…"} busy={busy} locked={artifact.contentVersion !== lesson.contentVersion}
@@ -274,13 +240,13 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   </span> : null;
 
   return <WorkspaceFrame shell={shell} lessonWord={<><span className="lw-story-word" lang="en">{lesson.title}</span>{lesson.draft && <span className="tag draft-tag">초안</span>}</>} save={{ text: store.saveText, failed: store.saveState === "failed" }} outline={outline}
-    toolbarActions={<>{timerControls}<span className="lw-sr-only" role="status">{announce}</span><a href="/reading/" aria-label="수업 목록"><Icon kind="book" size={18} /><span>수업 목록</span></a></>}
+    toolbarActions={<>{timerControls}<span className="lw-sr-only" role="status">{announce}</span><LessonListLink href="/reading/" /></>}
     toc={{ title: <>이야기 수업<br />학습 문서</>, lead: "이야기를 읽고, 본문을 가린 뒤 문제를 풉니다.", summary: <><p>이야기 1개 · 문제 {lesson.questions.length}개</p>{answered > 0 && <p>첫 답을 남긴 문제 {answered}개</p>}<p>문서 전체의 목차입니다. 문제는 원하는 순서로 풉니다.</p></> }}
     referenceStack={null}
     documentHeading={<><p>ENGLISH SENSE · TIMED READING</p><h2>읽고, 가리고, 떠올리기</h2><div><span>{lesson.draft ? "초안 · " : ""}{lesson.words}낱말 · 문제 {lesson.questions.length}개</span></div>
       {links.pair && <p className="pair-note"><i>{links.pair.workTitle}</i> 유닛 {links.pair.unit} 표현으로 쓴 이야기입니다. <a href={links.pair.href}>유닛 {links.pair.unit} 카드 보기</a></p>}
       {lesson.draft && <p className="lw-draft-note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>}
-      {oldVersion && <div className="lw-old-version" role="note"><p>이 이야기가 고쳐져 자료 판이 바뀌었습니다. 옛 판으로 남긴 답과 대화는 읽기만 하고, 그 문제의 판정과 AI 전송은 막았습니다.</p><button type="button" onClick={startOver}>이 기록을 지우고 새 판으로 시작</button><p className="lw-form-note">지우면 되돌릴 수 없습니다. 이 이야기의 기록 하나만 지우고 다른 수업은 그대로입니다.</p></div>}</>}
+      {oldVersion && <OldVersionNotice confirmMessage="이 이야기의 이 브라우저 기록(읽기·첫 답·판정·대화·초안)을 지우고 새 판으로 시작합니다. 되돌릴 수 없습니다. 계속합니까?" note="지우면 되돌릴 수 없습니다. 이 이야기의 기록 하나만 지우고 다른 수업은 그대로입니다." onRestart={startOver}>이 이야기가 고쳐져 자료 판이 바뀌었습니다. 옛 판으로 남긴 답과 대화는 읽기만 하고, 그 문제의 판정과 AI 전송은 막았습니다.</OldVersionNotice>}</>}
     document={<>
       <div className="lw-content-artifact lw-story-reading" data-outline-id="reading" data-phase={phase} id={documentAnchorId("reading")} tabIndex={-1}>
         <div className="lw-document-section-label">01 / 이야기 읽기</div>
@@ -307,7 +273,7 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
         {inputMode === "closed" ? <p className="lw-locked-note">{selectedAccess === "old-version" ? "옛 판 기록이라 질문을 보내지 않습니다. 기록은 읽을 수 있습니다." : phase === "reading" ? "읽는 중에는 대화 입력을 닫아 둡니다. 읽기를 마치면 열립니다." : "읽기를 마치면 대화 입력이 열립니다."}</p> : <>
           <div className="lw-composer-tools"><span>{inputMode === "initial" ? "첫 답 전 질문은 AI 대신 무료 준비 안내로 답합니다." : firstAttempt ? `${targetLabel(selected)}에서 이어 가는 대화` : "답 제출 전 · 무료 준비 안내"}</span>
             {!firstAttempt && <button type="button" onClick={() => { setAskBeforeFor(inputMode === "initial" ? selected.artifactId : null); requestAnimationFrame(() => moveToChat(true)); }}>{inputMode === "initial" ? "답하기 전에 질문하기" : "첫 답 이어 쓰기"}</button>}
-            {firstAttempt && !explained && <button type="button" disabled={busy || unresolved || !!limit} onClick={() => void sendMessage(selected.artifactId, EXPLAIN_REQUEST, "submission")}>AI에게 설명 요청</button>}
+            {firstAttempt && !explained && <button type="button" disabled={busy || unresolved || !!limit} onClick={() => void sendMessage(selected.artifactId, storyExplainRequestMessage, "submission")}>AI에게 설명 요청</button>}
             {busy && <button type="button" className="lw-send lw-stop" onClick={turns.cancel}><Icon kind="stop" size={15} /><span>{active.current ? `문제 ${numberOf(artifacts.find(item => item.artifactId === active.current!.artifactId) ?? selected)}` : ""} 응답 중단</span></button>}</div>
           {inputMode === "question" && <QuestionComposer artifactId={selected.artifactId} label="이 문제에 대해 질문하기" value={selected.messageDraft} placeholder={firstAttempt ? `${targetLabel(selected)}에서 막힌 부분을 물어보십시오…` : "풀기 전에 궁금한 점을 물어보십시오…"} hydrated={hydrated} busy={busy} blocked={!!limit || unresolved} onChange={value => update(previous => updateArtifact(touch(previous, selected.question.questionId), selected.artifactId, item => ({ ...item, messageDraft: value })))} onSend={() => void sendMessage(selected.artifactId, selected.messageDraft)} />}
           <p className="lw-ai-note">{firstAttempt ? "AI는 단추를 누르거나 질문을 보낼 때만 부릅니다. AI의 답은 틀릴 수 있고, 서버 판정은 바뀌지 않습니다." : "답 제출 전에는 AI 대신 무료 준비 안내를 제공합니다."}</p></>}

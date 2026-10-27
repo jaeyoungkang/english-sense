@@ -2,6 +2,7 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import readingJson from "../../content/reading.json";
+import { storyExplainRequestMessage } from "../../lib/story-lesson";
 import type { ReadingData } from "../../lib/study-content-types";
 
 const reading = readingJson as ReadingData;
@@ -297,7 +298,9 @@ test("the AI is called only from the explain button or a question, with the mock
   await expect(page.getByText("검사용 모의 응답 1", { exact: true })).toBeVisible();
   expect(chat).toHaveLength(1);
   expect(chat[0]).toMatchObject({ lessonId: story.id, questionId: story.questions[0].id, initialAttempt: { kind: "choose", choice: 0 }, revisions: [], messages: [] });
-  expect(chat[0].message).toContain("처음 제출한 답과 이유를 장면에 비추어 설명해 주세요");
+  // The story has its own sentence (first choice, judgement, which part of the passage); the scene lesson's "이유"·"장면" wording is not sent.
+  expect(chat[0].message).toBe(storyExplainRequestMessage);
+  expect(chat[0].message).not.toMatch(/장면|이유/);
   await expect(page.getByRole("button", { name: "AI에게 설명 요청", exact: true })).toHaveCount(0);
   await expect(page.locator(".lw-judgement")).not.toContainText("검사용 모의 응답");
   // A late reply belongs to the question that was asked, even after another question is chosen.
@@ -462,7 +465,7 @@ for (const [width, height] of [[1440, 900], [1100, 800], [390, 844], [320, 640]]
 
 // Scan the built output and the served pages for the canonical explanations and bases of all 15 stories.
 // A secret is its longest quote-free chunk that the story's own public text does not contain; the two generic bases
-// ("감각 사전 go"/"감각 사전 out") are matched whole, and prep pages (which still carry card bases until stage 7) are out of scope.
+// ("감각 사전 go"/"감각 사전 out") are matched whole. Prep pages are out of scope here: their card bases are public, and `card-lesson.spec.ts` scans them for `drill.answers`.
 const chunks = (value: string) => value.split(/["'\\<>&\n`$]/).map(item => item.trim()).sort((a, b) => b.length - a.length);
 function secretsOf(item: typeof story) {
   const publicText = [item.title, ...item.paragraphs.flat().map(piece => piece.text), ...item.questions.flatMap(question => [question.question, ...question.options])].join("\n");

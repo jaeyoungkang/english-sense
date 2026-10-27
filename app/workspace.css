@@ -66,7 +66,7 @@
 
 @media(min-width:1100px){.lw-app.lw-split-app .lw-toolbar{position:sticky;top:0;z-index:5}.lw-app.lw-split-app .lw-document-shell>.lw-document-toc,.lw-app.lw-split-app .lw-chat-pane,.lw-app.lw-split-app .lw-content-pane .lw-reference-stack{top:70px}.lw-app.lw-split-app .lw-document-shell>.lw-document-toc,.lw-app.lw-split-app .lw-chat-pane{height:calc(100svh - 86px);max-height:calc(100svh - 86px)}}
 
-/* Story lessons: timed reading zone, judgement items, reading clock in the toolbar. Scoped so the scene lesson looks the same. */
+/* Story and cards lessons: timed reading zone, the judgement item and status shared by both, reading clock in the toolbar. Scoped so the scene lesson looks the same. */
 .lw-app.lw-split-app .lw-toolbar-actions .lw-reading-controls{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
 .lw-app.lw-split-app .lw-toolbar-actions .lw-reading-timer{font-size:11px;color:#3e5830;font-variant-numeric:tabular-nums;white-space:nowrap}
 .lw-app.lw-split-app .lw-toolbar-actions .lw-reading-timer b{font-size:16px;font-weight:600;margin-left:3px}
@@ -99,10 +99,16 @@
 .lw-draft-note{font-size:11px;line-height:1.8;color:#6b5a2a;margin-top:6px}
 .lw-old-version{display:grid;gap:8px;margin-top:12px;padding:12px 14px;border:1px solid #d9c9a0;background:#fbf6e6;font-size:12px;line-height:1.8;border-radius:3px}
 .lw-old-version button{justify-self:start;min-height:44px;padding:8px 14px;border:1px solid #b99a4a;background:#fff;color:#6b4d0e;border-radius:3px;font-size:12px;cursor:pointer}
+.lw-old-version p{margin:0}
+.lw-input-context .lw-old-version{margin-top:8px;padding:8px 10px;font-size:11px;line-height:1.7}
 .lw-reading-marker{margin:0;padding-top:8px;border-top:1px dashed #cfd8c3;font-size:11px;line-height:1.8;color:#59684b}
 .lw-judgement{display:grid;gap:8px;padding:14px 16px;border:1px solid #c9d2bd;border-left:4px solid #58724a;border-radius:3px;background:#f4f7ee;min-width:0}
 .lw-judgement .lw-message-meta{margin:0}
-.lw-app.lw-split-app .lw-judgement .lw-message-meta>span.lw-judgement-mark{display:inline-block;padding:1px 7px;border-radius:2px;background:#58724a;color:#fff;font-size:10px;font-weight:600}
+.lw-app.lw-split-app .lw-judgement .lw-message-meta>span.lw-judgement-mark{display:inline-block;margin-right:8px;padding:1px 7px;border-radius:2px;background:#58724a;color:#fff;font-size:10px;font-weight:600}
+.lw-judgement[data-judgement="differs"]{border-left-color:#905035;background:#fbf6f2;border-color:#e3d3c8}
+.lw-judgement[data-judgement="reveal"]{border-left-color:#4a5f78;background:#f3f6f9;border-color:#cdd6e0}
+.lw-app.lw-split-app .lw-judgement[data-judgement="differs"] .lw-message-meta>span.lw-judgement-mark{background:#905035}
+.lw-app.lw-split-app .lw-judgement[data-judgement="reveal"] .lw-message-meta>span.lw-judgement-mark{background:#4a5f78}
 .lw-judgement-line{font-size:14px;font-weight:600}
 .lw-judgement-same{color:#2d5f2f}
 .lw-judgement-differs{color:#8a3d27}

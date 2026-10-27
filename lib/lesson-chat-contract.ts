@@ -45,3 +45,12 @@ export function isLessonChatResponse(value: unknown): value is LessonChatRespons
   return typeof value.artifactId === "string" && LESSON_ID_PATTERN.test(value.artifactId) && typeof value.contentVersion === "string" && VERSION_PATTERN.test(value.contentVersion)
     && isLearningChatResponse({ requestId: value.requestId, reply: value.reply, mode: value.mode });
 }
+
+/**
+ * 응답이 이 요청의 응답이 맞는지 가려 돌려준다. 요청 ID와 수업·문항·카드(artifact)·자료 판이 모두 같아야 하고,
+ * 하나라도 다르면 null이다. 요청 뒤에 다른 문제나 다른 판으로 바뀌어도 응답은 요청 당시 대상에만 붙는다.
+ */
+export function readLessonChatResponse(result: unknown, request: Pick<LessonChatRequest, "requestId" | "lessonId" | "questionId" | "artifactId" | "contentVersion">): LessonChatResponse | null {
+  return isLessonChatResponse(result) && result.requestId === request.requestId && result.lessonId === request.lessonId && result.artifactId === request.artifactId
+    && result.questionId === request.questionId && result.contentVersion === request.contentVersion ? result : null;
+}

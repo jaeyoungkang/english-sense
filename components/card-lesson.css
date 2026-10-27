@@ -31,26 +31,16 @@
 .lw-app .cl-pager .k{font-size:10px;color:#59644f}
 .lw-app .cl-pager .next{text-align:right;grid-column:2}
 
-/* Chat: the judgement is its own kind of item, not an assistant bubble. */
+/* Chat: the judgement item itself is shared (.lw-judgement in workspace.css); the cards lesson only indents it under the attempt. */
 .lw-app .lw-target-hint{font-size:11px;line-height:1.7;margin:2px 0 0;color:#59644f}
 .lw-app .lw-input-context .lw-target-question.en{font-size:14px;line-height:1.9;overflow-wrap:anywhere}
 .lw-app .lw-input-context .cl-gap{min-width:3.2em;font-size:9px}
 .lw-app .cl-attempt-inputs{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13px;line-height:1.7}
 .lw-app .cl-attempt-inputs li>span:first-child{font-size:11px;color:#59644f;margin-right:8px}
 .lw-app .cl-after-reveal{display:inline-block;margin-left:8px;padding:0 7px;border:1px solid #905035;border-radius:10px;color:#905035;font-size:10px}
-.lw-app .cl-judgement{margin:0 0 0 10px;padding:13px 16px;border:1px solid #cdd8c0;border-left:4px solid #637d4b;background:#f6f9f1;border-radius:3px}
-.lw-app .cl-judgement[data-judgement="differ"]{border-left-color:#905035;background:#fbf6f2;border-color:#e3d3c8}
-.lw-app .cl-judgement.cl-reveal{border-left-color:#4a5f78;background:#f3f6f9;border-color:#cdd6e0}
-.lw-app .cl-judge-mark{display:inline-block;padding:0 7px;border:1px solid currentColor;border-radius:2px;font-size:10px;letter-spacing:.04em;color:#3f5730}
-.lw-app .cl-judgement[data-judgement="differ"] .cl-judge-mark{color:#905035}
-.lw-app .cl-reveal .cl-judge-mark{color:#4a5f78}
-.lw-app .cl-judge-line{margin:6px 0 4px;font-size:14px;font-weight:600}
+.lw-app .cl-judgement{margin-left:10px}
 .lw-app .cl-blank-results{list-style:none;margin:0 0 6px;padding:0;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;line-height:1.7}
 .lw-app .cl-blank-results li[data-match="false"]{color:#905035;font-weight:600}
-.lw-app .cl-judge-status{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;font-size:12px;color:#59644f}
-.lw-app .cl-judge-failed{padding:10px 12px;border:1px solid #e3d3c8;background:#fbf6f2;border-radius:3px;color:#7a432b}
-.lw-app .cl-judge-failed p{margin:0;flex:1 1 200px}
-.lw-app .cl-judge-failed button,.lw-app .cl-old-banner button{min-height:44px;padding:8px 14px;border:1px solid #905035;background:#fff;color:#7a432b;border-radius:4px;font:inherit;font-size:12px}
 
 .lw-app .lw-chat-pane .lw-composer-tools>button.cl-explain{border:1px solid #61764b;border-radius:4px;padding:6px 12px;background:#fff;font-size:11px;color:#3f5730;pointer-events:auto}
 .lw-app .lw-chat-pane .lw-composer-tools>button.cl-explain:disabled{border-color:#cdd3c4;color:#8a9281}
@@ -71,13 +61,9 @@
 .lw-app .cl-reveal-button:disabled{opacity:.6}
 .lw-app .lw-form-actions{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
 
-/* Old content version: the record is kept and read only. */
-.lw-app .cl-old-banner{margin-top:8px;padding:8px 10px;border:1px solid #e3d3c8;background:#fbf6f2;border-radius:3px;font-size:11px;line-height:1.7;color:#7a432b}
-.lw-app .cl-old-banner p{margin:0 0 6px}
-
 @media(max-width:640px){
   .lw-app .cl-expression{font-size:21px}
-  .lw-app .cl-judgement{margin-left:0;padding:12px}
+  .lw-app .cl-judgement{margin-left:0}
   .lw-app .cl-drill{padding:12px}
   .lw-app .cl-pager{grid-template-columns:1fr}
   .lw-app .cl-pager .next{grid-column:1;text-align:left}

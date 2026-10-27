@@ -155,7 +155,7 @@ test.describe("card lesson: judging requests that fail", () => {
     await pick(page, TWO);
     await page.route("**/api/lesson-check/**", route => route.abort());
     await submit(page, ["pick", "down"]);
-    const failure = timeline(page).locator(".cl-judge-failed");
+    const failure = timeline(page).locator(".lw-judgement-failed");
     await expect(failure).toContainText("판정을 받지 못했습니다. 답은 남아 있습니다.");
     await expect(timeline(page).locator(".cl-attempt")).toContainText("down");
     expect((await stored(page)).artifacts[0].attempts[0]).toMatchObject({ attempt: { kind: "fill", inputs: ["pick", "down"] }, check: null });
@@ -163,7 +163,7 @@ test.describe("card lesson: judging requests that fail", () => {
 
     await page.reload();
     await ready(page);
-    await expect(timeline(page).locator(".cl-judge-failed")).toBeVisible();
+    await expect(timeline(page).locator(".lw-judgement-failed")).toBeVisible();
     await page.unroute("**/api/lesson-check/**");
     const bodies: string[] = [];
     page.on("request", request => { if (request.url().includes("/api/lesson-check/")) bodies.push(request.postData() || ""); });
@@ -322,7 +322,7 @@ test.describe("card lesson: document, links and records", () => {
     await expect(link).toHaveAttribute("href", "/reading/prep-wonder-3/");
     await expect(page.getByRole("navigation", { name: "다른 유닛" }).getByRole("link", { name: /이전/ })).toHaveAttribute("href", "/prep/wonder/unit-2/");
     await expect(page.getByRole("navigation", { name: "다른 유닛" }).getByRole("link", { name: /다음/ })).toHaveAttribute("href", "/prep/wonder/unit-4/");
-    await expect(page.getByRole("link", { name: "이 작품의 유닛 목록" })).toHaveAttribute("href", "/prep/wonder/");
+    await expect(page.getByRole("link", { name: "수업 목록" })).toHaveAttribute("href", "/prep/wonder/");
   });
 
   test("two lessons keep separate records across reloads and a damaged record blocks only its own lesson", async ({ page }) => {
