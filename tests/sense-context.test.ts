@@ -86,7 +86,8 @@ test("the server picks headwords from the card, the sense question's basis and t
   const out = getServerLessonQuestion("bus-dog", "bus-dog-sense-1");
   const forWord = getServerLessonQuestion("bus-dog", "bus-dog-sense-2");
   assert.deepEqual(selectSenseHeadwords(out), ["out"]);
-  assert.deepEqual(selectSenseHeadwords(forWord), ["for"]);
+  // 기간 for는 사전 밖이라 근거(basis)가 "감각 사전 밖"이라고 밝힌다. 사전의 for 이미지를 끼워 맞추지 않으려고 표제어를 고르지 않는다.
+  assert.deepEqual(selectSenseHeadwords(forWord), []);
   // 표현 문제는 짝 카드의 표현에서: "ended up"의 카드(wonder-0-19)는 end up
   const expression = getServerLessonQuestion("prep-wonder-0", "prep-wonder-0-expression-2");
   assert.deepEqual(selectSenseHeadwords(expression), ["up"]);
@@ -142,7 +143,7 @@ test("the question's own words are found, with forms, and weak words only when n
 });
 
 test("the AI context carries exactly the chosen dictionary lines and says which were chosen", async () => {
-  const cases: [string, string, string][] = [["wonder-unit-0", "wonder-0-12", "up"], ["bus-dog", "bus-dog-sense-1", "out"], ["bus-dog", "bus-dog-sense-2", "for"]];
+  const cases: [string, string, string][] = [["wonder-unit-0", "wonder-0-12", "up"], ["bus-dog", "bus-dog-sense-1", "out"]];
   for (const [lessonId, questionId, headword] of cases) {
     const { response, system } = await ask(lessonId, questionId, wrongAttemptOf(lessonId, questionId));
     assert.equal(response.status, 200);
@@ -153,6 +154,12 @@ test("the AI context carries exactly the chosen dictionary lines and says which 
       if (other !== headword) assert.ok(!section.includes(senseEntry(other)!), `${questionId} has ${other}`);
     }
   }
+  // 사전 밖의 기간 for: 표제어 없음이라고 밝히고 사전의 for 줄을 넣지 않는다
+  const outside = await ask("bus-dog", "bus-dog-sense-2", wrongAttemptOf("bus-dog", "bus-dog-sense-2"));
+  assert.equal(outside.response.status, 200);
+  const outsideSection = outside.system.split(STORY_MARK)[0];
+  assert.ok(outsideSection.includes("고른 표제어: 없음 (이 표현은 감각 사전에 아직 없습니다)"));
+  assert.ok(!outsideSection.includes(senseEntry("for")!));
   // 지금 질문이 부른 표제어도 서버가 사전에서 골라 넣는다
   const { system } = await ask("bus-dog", "bus-dog-sense-1", wrongAttemptOf("bus-dog", "bus-dog-sense-1"), "왜 off가 아니라 out인가요?");
   const section = system.split(STORY_MARK)[0];
