@@ -15,7 +15,7 @@
 | `components/workspace-session.tsx` | 수업 기록의 브라우저 저장(`useRecordStore`: 읽기·저장·저장 실패 표시)과 대화 요청 수명주기(`useTurnRequests`: 한 번에 하나, 취소·70초 중단·실패 표시·늦은 응답 거절) | 기록의 모양과 요청 본문·응답 검사는 종류가 넘긴다. `learning-thread.ts`의 일반 reducer만 쓴다 | (검사: `npm run test:e2e`) |
 | `components/workspace-chat.tsx` | 질문·응답·요청 상태·작성 칸의 공통 표시 | 대상 이름(`label`)을 받을 뿐 수업을 모른다 | (검사: `npm test`, `npm run test:e2e`) |
 | `components/story-workspace.tsx`, `lib/story-lesson.ts` | 이야기 수업(`/reading/<id>/`)의 작업 공간: 읽기 구역(시작·벽시계 마감·끝 사건·본문 가림), 고르기 첫 답 폼, 설명 요청(문장은 `storyExplainRequestMessage`)·질문(대화 요청 `LessonChatRequest`). 기록·판정·옛 판 안내는 아래 `lesson-common.tsx`를 쓰고, 공유 셸의 칸을 채운다 | 브라우저에는 공개 투영만 받고(`PublicStoryLesson`) 정답·해설·근거는 판정 응답으로 첫 답 뒤에 받는다. 서버 모듈과 정본 JSON을 import하지 않는다. 판정 호출은 대화 턴 훅 밖에서 `acceptLessonCheck`로 요청 당시 대상과 맞을 때만 채택한다 | (검사: `npm test`의 `tests/story-lesson-page.test.ts`·`tests/import-direction.test.ts`, `npm run test:e2e`의 `tests/e2e/story-lessons.spec.ts`) |
-| `components/card-lesson.tsx`, `components/card-lesson.css`, `lib/card-lesson.ts`, `lib/server/card-lesson-view.ts` | 카드 수업(`/prep/<작품>/unit-<n>/`)의 작업 공간: 카드마다 한 절의 문서(옛 `#<카드 id>` 해시 이동), 빈칸 입력·첫 답·수정(6회)·답 보기(첫 답 뒤에만), 설명 요청(`explainRequestMessage`)·질문. 서버가 넘기는 뷰(`CardLessonView`)는 공개 투영과 이웃 유닛·짝 이야기뿐이다. 공유 셸의 칸을 채운다 | `drill.answers`는 브라우저로 가지 않고 판정 응답(빈칸별 같음/다름)과 `reveal` 응답으로만 온다. 수정은 새 시도이고 첫 시도를 덮지 않는다 | (검사: `npm test`의 `tests/card-lesson.test.ts`, `npm run test:e2e`의 `tests/e2e/card-lesson.spec.ts`) |
+| `components/card-lesson.tsx`, `components/card-lesson.css`, `lib/card-lesson.ts`, `lib/server/card-lesson-view.ts` | 카드 수업(`/prep/<작품>/unit-<n>/`)의 작업 공간: 카드마다 한 절의 문서(옛 `#<카드 id>` 해시 이동), 빈칸 입력·첫 답·수정(6회)·답 보기(첫 답 뒤에만), 설명 요청(`explainRequestMessage`)·질문. 서버가 넘기는 뷰(`CardLessonView`)는 첫 답 전에 보이는 공개 투영(뜻·빈칸 문장·힌트·출처 자리·빈칸 수)과 이웃 유닛·짝 이야기뿐이다. 카드의 표현·횟수·감각·예문·근거는 브라우저로 먼저 가지 않고 첫 판정 응답의 `card`(`OpenedCard`)로 와서 기록 `check`에 저장된다. 카드가 열린 뒤에만 `openedCardOf(artifact)`가 그 글을 준다. 공유 셸의 칸을 채운다 | `drill.answers`는 브라우저로 가지 않고 판정 응답(빈칸별 같음/다름)과 `reveal` 응답으로만 온다. 표현·횟수·감각·예문·근거는 공개 투영·첫 HTML·RSC·클라이언트 JS·선생성 산출물에 없고 판정 응답의 `card`로만 온다(공개 시점 규칙이지 보안 경계가 아니다). 옛 기록은 닫힌 채 복원되고 "카드 내용 열기"가 같은 첫 답으로 다시 판정해 `card`만 받는다. 수정은 새 시도이고 첫 시도를 덮지 않는다 | (검사: `npm test`의 `tests/card-lesson.test.ts`, `npm run test:e2e`의 `tests/e2e/card-lesson.spec.ts`) |
 | `components/lesson-common.tsx` | 이야기·카드 수업이 같게 만드는 것: 수업 기록 열기(`useLessonRecord`), 판정 요청의 전송·실패·다시 판정(`postLessonCheck`·`useLessonChecks`), "판정" 항목과 상태(`JudgementItem`·`JudgementLine`·`JudgementStatus`), 옛 판 기록 안내와 새 판 시작(`OldVersionNotice`), 도구 막대의 "수업 목록" 링크(`LessonListLink`) | 언제 보일지와 판정이 무엇을 말하는지는 종류가 정한다. 판정 요청은 20초에 중단하고, 응답은 요청 당시 대상과 맞을 때만 기록에 붙인다. 대화 응답의 대상 대조는 `lib/lesson-chat-contract.ts`의 `readLessonChatResponse`가 한 곳에서 한다 | (검사: `npm test`의 `tests/lesson-common.test.ts`, `npm run test:e2e`) |
 | `lib/lesson-list.ts`, `components/lesson-list-dialog.tsx` | 홈 도구 막대 "수업 목록" 창의 이야기 15편·유닛 13개 제목과 기존 주소 | 서버가 목록용 공개 요약에서 만들어 props로 넘긴다. 문항 ID(약 350개)·카드·정답은 홈의 props와 번들에 없다. 창은 열 때만 그려진다 | (검사: `npm test`의 `tests/lesson-list.test.ts`, `npm run test:e2e`의 `tests/e2e/lesson-list.spec.ts`) |
 | `lib/notes.ts`, `lib/note-blocks.ts`, `components/pen-notes.tsx`, `components/pen-notes.css` | 펜 노트(밑줄·형광펜·여백 메모): 노트의 모양·한도·검증·글에서 다시 찾기(`lib/notes.ts`, 순수), 수업마다 노트를 달 수 있는 글 블록의 키와 글(`lib/note-blocks.ts`, 공개 글만), 저장·선택 도구·메모·목록(`components/pen-notes.tsx`). 세 수업 화면이 글 요소를 `NoteBlock`으로 그리고 공유 셸의 `layer` 칸에 도구를 놓는다 | 수업마다 키 하나(`english-sense-notes-v1:<lessonId>`)에 저장하고 수업 기록(v3·v4)·문서 UI·레이아웃 키는 읽거나 쓰지 않는다. 노트는 요청·사건을 만들지 않고 AI 요청 본문에 들어가지 않는다. 저장 파일이 한 군데라도 어긋나면 그 수업의 노트만 버리고 안내한다. 블록 글은 React가 그린다(글 DOM을 직접 바꾸지 않는다) | (검사: `npm test`의 `tests/notes.test.ts`, `npm run test:e2e`의 `tests/e2e/notes.spec.ts`) |
@@ -93,7 +93,7 @@ IP는 날짜별 해시만 저장하며 한도 상태는 약 48시간 뒤 지운�
 
 - 수업·문항은 레지스트리에서 풀고, 첫 답은 판정 계약의 시도와 같은 정의다. 이야기는 `{ kind: "choose", choice }`(보기 0~3, 이유 없음, 수정 없음), 카드는 `{ kind: "fill", inputs }`(빈칸 1~3개)다. 키는 정확히 맞아야 하므로 브라우저가 판정 값을 실어 보내면 거절한다.
 - 처리 순서는 계약 형식 → 자료 판 대조(409) → 첫 답이 없으면 종류별 준비 안내 → 서버가 `judge`로 재판정(종류·보기 수·빈칸 수가 맞지 않으면 400) → 키·한도 바인딩 → 사용량 → 공급자다. 거절은 모두 사용량 앞이다.
-- AI 맥락은 수업 종류별 서버 정본이다. 이야기는 본문 전체와 이 문항 하나, 서버 판정, 정본 해설이고, 카드는 이 카드의 표현·뜻·감각·예문·근거, 빈칸 문제, 서버 판정, 빈칸 정본 답이다. 정답·해설·빈칸 답은 첫 답이 있어 AI가 불리는 요청에만 닿고, 첫 답 전에는 안내만 간다. 시스템 안내가 서버 판정을 최종으로 두며 AI가 다른 말을 해도 판정은 바뀌지 않는다.
+- AI 맥락은 수업 종류별 서버 정본이다. 이야기는 본문 전체와 이 문항 하나, 서버 판정, 정본 해설이고, 카드는 이 카드의 표현·뜻·감각·예문·근거, 빈칸 문제, 서버 판정(판정 응답의 `card`는 맥락에서 한 번만 두려 뺀다), 빈칸 정본 답이다. 정답·해설·빈칸 답은 첫 답이 있어 AI가 불리는 요청에만 닿고, 첫 답 전에는 안내만 간다. 시스템 안내가 서버 판정을 최종으로 두며 AI가 다른 말을 해도 판정은 바뀌지 않는다.
 - "AI에게 설명 요청" 단추의 문장은 종류별이다. 이야기는 처음 고른 보기·서버 판정·정본 해설을 바탕으로 왜 그 보기가 정본 답이고 다른 보기는 왜 아닌지, 본문의 어느 부분을 보면 되는지 묻는다(`lib/story-lesson.ts`). 카드는 처음 채운 빈칸을 표현과 예문에 비추어 묻는다(`lib/card-lesson.ts`). 둘 다 맥락에 이미 있는 것(본문·문항·`correctOption`·`serverJudgement`, 또는 카드·`referenceAnswers`)만 근거로 하고 서버 판정을 바꾸게 하지 않는다. 요청의 짝은 `isLessonChatRequest`가 받고, 응답은 `readLessonChatResponse`가 요청 당시 대상과 같을 때만 읽는다.
 - 응답은 `lessonId`를 더해 되돌린다(`LessonChatResponse`). 장면 수업의 응답에는 `lessonId`를 더하지 않는다. 브라우저의 `isArtifactLearningChatResponse`가 정확한 키를 검사하기 때문이다.
 - 사용량은 장면 수업과 같은 일일 전역·IP 한도를 쓴다. 판정 경로(`/api/lesson-check/`)는 이를 쓰지 않는다.
@@ -114,7 +114,7 @@ IP는 날짜별 해시만 저장하며 한도 상태는 약 48시간 뒤 지운�
 2. 본문 형식(JSON)과 크기(4KB)를 확인하고, 정확한 키·ID 형식·시도 형식(`choose`는 보기 번호 0~3, `fill`은 빈칸 1~3개·빈칸당 100자)을 검사한다. `reveal`은 첫 답으로 쓸 입력이 함께 온 카드 요청만 받는다.
 3. 수업과 문항이 레지스트리에 있는지 본다. 장면 수업(`titanic-have`)은 `unsupported_lesson`으로 거절하고 기존 대화 경로에 둔다.
 4. 요청의 자료 판을 서버의 수업별 판과 대조한다. 다르면 409 `content_changed`이고 판정하지 않는다.
-5. 시도가 문항과 맞는지(종류, 실제 보기 수, 실제 빈칸 수) 확인한 뒤 `judge`가 정본과 비교한다. 이야기는 이 응답에서 처음으로 정답 보기와 `explain`·`basis`를 낸다. 카드는 빈칸별 같음/다름만 내고, 정답 문자열은 `reveal` 응답에만 있다. 빈칸 비교는 `lib/fill-blank.ts`의 정규화를 쓴다.
+5. 시도가 문항과 맞는지(종류, 실제 보기 수, 실제 빈칸 수) 확인한 뒤 `judge`가 정본과 비교한다. 이야기는 이 응답에서 처음으로 정답 보기와 `explain`·`basis`를 낸다. 카드는 빈칸별 같음/다름과 정오와 무관한 카드의 글(`card`: 표현·횟수·감각·예문·근거)을 내고, 정답 문자열은 `reveal` 응답에만 있다. `card`는 선택 필드라 없는 응답(옛 기록의 판정)도 유효하다. 빈칸 비교는 `lib/fill-blank.ts`의 정규화를 쓴다.
 6. 응답에 `requestId`·`lessonId`·`artifactId`·`questionId`·`contentVersion`을 되돌린다. 판정은 멱등이고 저장하지 않는다.
 
 AI와 사용량 한도를 쓰지 않으므로 한도가 찬 날에도 판정은 응답한다. "정답입니다"가 아니라 "정본 답과 같습니다/다릅니다"를 뜻하는 필드(`match`, `matches`, `allMatch`)를 낸다.
@@ -126,8 +126,8 @@ AI와 사용량 한도를 쓰지 않으므로 한도가 찬 날에도 판정은 
 
 1. 서버가 수업의 공개 투영과 짝 링크·이웃 유닛만 props로 넘긴다. 정답·해설·근거·`drill.answers`는 브라우저로 가지 않는다.
 2. 브라우저가 수업 키 하나(`english-sense-lesson-v4:<lessonId>`)에서 기록을 읽는다. 읽지 못하면 원본을 보존하고 그 수업만 막는다. 복원은 요청을 만들지 않는다.
-3. 이야기는 읽기를 시작해 벽시계로 마감하고(끝 사건은 읽기마다 한 번), 끝난 뒤 문제가 열린다. 카드는 처음부터 열려 있다. 문제·카드를 고르는 것은 사건이 아니다.
-4. 첫 답은 기록에 시도로 먼저 쌓인 뒤 `/api/lesson-check/`로 간다(20초 제한). 응답이 요청 당시의 수업·문항·카드·판과 맞을 때만 그 시도의 판정으로 붙는다. 실패하면 첫 답을 두고 "판정을 받지 못했습니다. 답은 남아 있습니다."와 "다시 판정"을 보인다. 같은 요청을 다시 보내도 결과가 같다.
+3. 이야기는 읽기를 시작해 벽시계로 마감하고(끝 사건은 읽기마다 한 번), 끝난 뒤 문제가 열린다. 카드는 문서에 처음부터 있지만 첫 답을 내기 전에는 닫혀 있다(뜻·힌트·빈칸 문장·출처만). 문제·카드를 고르는 것은 사건이 아니다.
+4. 첫 답은 기록에 시도로 먼저 쌓인 뒤 `/api/lesson-check/`로 간다(20초 제한). 응답이 요청 당시의 수업·문항·카드·판과 맞을 때만 그 시도의 판정으로 붙고, 카드는 그 판정의 `card`로 열린다(첫 판정의 `card`만 기록에 남는다). 실패하면 첫 답을 두고 "판정을 받지 못했습니다. 답은 남아 있습니다."와 "다시 판정"을 보인다. 같은 요청을 다시 보내도 결과가 같다.
 5. 카드의 수정은 직전 판정을 받은 뒤의 새 시도이고(6회), '답 보기'는 첫 답 뒤에만 열려 `reveal` 사건으로 남는다.
 6. AI는 사용자가 "AI에게 설명 요청"이나 질문을 보낼 때만 `/api/learn-chat/`을 부른다. 판정·문서·기록은 한도와 AI 실패에 상관없이 계속 동작한다.
 7. 기록이 옛 자료 판이면 읽기 전용이다. 판정·AI 전송이 막히고, 확인 한 번을 거친 "이 기록을 지우고 새 판으로 시작"이 그 수업의 기록 하나만 새 기록으로 바꾼다.
