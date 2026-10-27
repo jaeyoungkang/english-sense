@@ -7,12 +7,14 @@ import { Ask } from "@/components/ask";
 import { StudyPartView } from "@/components/study-pages";
 import LearningWorkspace from "@/components/learning-workspace";
 import { StoryWorkspace } from "@/components/story-workspace";
-import { site, type ContentPage, type ContentPart } from "@/lib/content";
+import { site, type ContentPage, type ContentPart, type StudyPart } from "@/lib/content";
 import { getPage, pages } from "@/lib/server/site-pages";
 import { getLegacyStudySource } from "@/lib/server/study-source";
 import { getPublicLearningCatalog } from "@/lib/server/learning-catalog";
 import { getPublicLesson, getStoryLessonLinks } from "@/lib/server/lesson-catalog";
 import { getPublicReferenceMaterials } from "@/lib/server/reference-materials";
+import { getCardLessonView } from "@/lib/server/card-lesson-view";
+import CardLesson from "@/components/card-lesson";
 
 type Props = { params: Promise<{ slug?: string[] }> };
 export const dynamicParams = false;
@@ -50,6 +52,13 @@ export default async function ContentRoute({ params }: Props) {
     const lesson = await getPublicLesson(story.id);
     if (lesson.kind !== "story") notFound();
     return <>{structured}<StoryWorkspace lesson={lesson} links={getStoryLessonLinks(story.id)} /></>;
+  }
+  const unit = page.parts.find((part): part is Extract<StudyPart, { kind: "prep-unit" }> => part.kind === "prep-unit");
+  if (unit) {
+    // 카드 수업은 작업 공간이 화면 전체를 쓴다. 정답(`drill.answers`)이 없는 공개 투영만 브라우저로 간다.
+    const view = await getCardLessonView(unit.id, unit.unit);
+    if (!view) notFound();
+    return <>{structured}<CardLesson view={view} /></>;
   }
   return <>
     {structured}

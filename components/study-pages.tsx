@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import type { StudyPart } from "@/lib/content";
 import { cardCount, getWork, minutesLabel, pairStories, sourceLabel, unitPath, workLabel } from "@/lib/study-content";
 import type { PrepData, ReadingSummary, ReadingSummaryStory } from "@/lib/study-content-types";
-import { FillDrill } from "@/components/fill-drill";
 
 /**
  * 서버가 읽어 넘긴다. 컴포넌트는 정본 JSON을 import하지 않는다.
@@ -99,59 +98,11 @@ function PrepWorkPage({ id, prep }: Pick<StudySource, "prep"> & { id: string }) 
   </>;
 }
 
-function PrepUnitPage({ id, n, reading, prep }: StudySource & { id: string; n: number }) {
-  const work = getWork(prep, id);
-  const index = work?.units.findIndex(unit => unit.n === n) ?? -1;
-  if (!work || index < 0) notFound();
-  const unit = work.units[index];
-  const prev = work.units[index - 1];
-  const next = work.units[index + 1];
-  const countLabel = work.kind === "book" ? "책 전체" : "영화 전체";
-  const stories = pairStories(reading, work.id, unit.n);
-  return <>
-    <header className="hero">
-      <span className="eyebrow"><i>{work.title}</i> · 유닛 {unit.n} · {unit.when}</span>
-      <h1>{unit.when}에 익힐 표현 {unit.cards.length}개</h1>
-      <p className="lede">카드마다 뜻과 감각을 읽고 작품 예문으로 확인한 뒤, 다른 작품 문장의 빈칸을 채웁니다. 대소문자와 앞뒤 공백은 따지지 않습니다.</p>
-    </header>
-    <section aria-label="표현 카드" className="prep-cards">
-      {unit.cards.map((card, i) => <article className="card prep-card" key={card.id} id={card.id} aria-labelledby={`${card.id}-h`}>
-        <div className="prep-card-head">
-          <h2 id={`${card.id}-h`} className="en prep-expression"><span className="prep-num">{i + 1}</span>{card.expression}</h2>
-          <span className="count">{countLabel} {card.count}번{card.countInPart !== undefined ? ` · ${unit.n}부 ${card.countInPart}번` : ""}</span>
-        </div>
-        <dl className="kv">
-          <dt>뜻</dt><dd>{card.meaning}</dd>
-          <dt>감각</dt><dd>{card.sense}</dd>
-        </dl>
-        <figure className="quote prep-example">
-          <blockquote className="en">{card.example.text}</blockquote>
-          <figcaption className="note">{sourceLabel(work, card.example)}</figcaption>
-        </figure>
-        <FillDrill cardId={card.id} sentence={card.drill.sentence} answers={card.drill.answers} hint={card.drill.hint} source={sourceLabel(work, card.drill)} />
-        <p className="note basis">근거: {card.basis}</p>
-      </article>)}
-    </section>
-    {stories.length > 0 && <section aria-labelledby="pair-read-h">
-      <h2 id="pair-read-h">이 표현으로 읽기</h2>
-      <div className="links">{stories.map(story =>
-        <a className="link-card" key={story.id} href={`/reading/${story.id}/`}>
-          <span className="t">이 표현으로 읽기: <span className="en">{story.title}</span> ({minutesLabel(story.limitSeconds)}) {story.draft && <DraftTag />}</span>
-          <span className="s">카드 표현으로 쓴 새 이야기 · {story.words}낱말 · 문제 {story.questionCount}개</span>
-        </a>)}
-      </div>
-    </section>}
-    <nav className="pager" aria-label="다른 유닛">
-      {prev ? <a href={unitPath(work, prev.n)}><span className="k">이전</span>유닛 {prev.n} · {prev.when}</a> : <a href={`/prep/${work.id}/`}><span className="k">목록</span>{work.title} 유닛</a>}
-      {next ? <a className="next" href={unitPath(work, next.n)}><span className="k">다음</span>유닛 {next.n} · {next.when}</a> : <a className="next" href="/prep/"><span className="k">목록</span>다른 작품</a>}
-    </nav>
-  </>;
-}
-
 /** 이야기 수업(`reading`)은 작업 공간이 따로 그린다. */
 export function StudyPartView({ part, source }: { part: Exclude<StudyPart, { kind: "reading" }>; source: StudySource }) {
   if (part.kind === "reading-list") return <ReadingList {...source} />;
   if (part.kind === "prep-list") return <PrepList prep={source.prep} />;
   if (part.kind === "prep-work") return <PrepWorkPage id={part.id} prep={source.prep} />;
-  return <PrepUnitPage id={part.id} n={part.unit} {...source} />;
+  // 카드 수업(prep-unit)은 라우트가 작업 공간으로 렌더링한다(components/card-lesson.tsx).
+  notFound();
 }

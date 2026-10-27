@@ -1,0 +1,84 @@
+/* Cards lesson (/prep/<work>/unit-<n>/). Document sections, blank inputs and the judgement items in the shared workspace shell. */
+.lw-app .cl-unit-word{font-size:.62em;color:#59644f;margin-left:4px;white-space:nowrap}
+.lw-app .cl-card{padding:0 0 30px;margin-bottom:30px;border-bottom:1px solid #dce2d2;scroll-margin-top:70px;min-width:0}
+.lw-app .cl-card-selected{border-left:0}
+.lw-app .cl-expression{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 14px;margin:0 0 14px;font-size:24px;line-height:1.4;font-weight:600;scroll-margin-top:90px}
+.lw-app .cl-expression>.en{overflow-wrap:anywhere;min-width:0}
+.lw-app .cl-count{font:400 11px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#59644f;white-space:nowrap}
+.lw-app .cl-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;margin:0 0 16px;font-size:14px;line-height:1.85}
+.lw-app .cl-kv dt{color:#59644f;font-size:12px;font-weight:500}
+.lw-app .cl-kv dd{margin:0;overflow-wrap:anywhere}
+.lw-app .cl-example{margin:0 0 18px;padding:12px 0 12px 16px;border-left:3px solid #c9d3bb}
+.lw-app .cl-example blockquote{margin:0;font-size:17px;line-height:1.7;overflow-wrap:anywhere}
+.lw-app .cl-example figcaption,.lw-app .cl-source{margin-top:4px;font-size:11px;color:#62675d;line-height:1.7}
+.lw-app .cl-drill{padding:14px 16px;margin:0 0 12px;background:#f7f8f4;border:1px solid #e0e3d9;border-radius:6px}
+.lw-app .cl-drill-label{font-size:11px;color:#59644f;margin:0 0 6px}
+.lw-app .cl-drill-sentence{font-size:17px;line-height:2.1;margin:0;overflow-wrap:anywhere}
+.lw-app .cl-gap{display:inline-flex;align-items:flex-end;justify-content:center;min-width:5.2em;height:1.35em;margin:0 3px;padding:0 4px;border-bottom:2px solid #637d4b;font:600 10px/1 -apple-system,BlinkMacSystemFont,sans-serif;color:#59644f;vertical-align:baseline}
+.lw-app .cl-basis{font-size:11px;color:#62675d;line-height:1.8;margin:0 0 12px;overflow-wrap:anywhere}
+.lw-app .cl-card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.lw-app .cl-card-foot>button{min-height:44px;padding:8px 14px;border:1px solid #ced5c4;background:#fff;color:#3f5730;border-radius:4px;font:inherit;font-size:12px}
+.lw-app .cl-card-foot>button[aria-pressed="true"]{border-color:#637d4b;background:#eef3e6}
+.lw-app .cl-card-fact{font-size:11px;color:#59644f}
+.lw-app .cl-pairs{margin-top:8px}
+.lw-app .cl-pairs>h2{font-size:15px;margin:0 0 10px}
+.lw-app .cl-pairs .links{display:grid;gap:10px}
+.lw-app .cl-pairs .link-card{display:grid;gap:2px;padding:12px 14px;border:1px solid #d6dccb;border-radius:8px;background:#fbfcf6;color:#30352f;text-decoration:none;font-size:13px;min-height:44px}
+.lw-app .cl-pairs .link-card .s{font-size:11px;color:#59644f}
+.lw-app .cl-pairs .link-card:hover{border-color:#637d4b}
+.lw-app .cl-pager{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0 4px}
+.lw-app .cl-pager a{display:grid;padding:10px 14px;min-height:44px;border:1px solid #d6dccb;border-radius:8px;background:#fff;color:#30352f;text-decoration:none;font-size:12px;overflow-wrap:anywhere}
+.lw-app .cl-pager .k{font-size:10px;color:#59644f}
+.lw-app .cl-pager .next{text-align:right;grid-column:2}
+
+/* Chat: the judgement is its own kind of item, not an assistant bubble. */
+.lw-app .lw-target-hint{font-size:11px;line-height:1.7;margin:2px 0 0;color:#59644f}
+.lw-app .lw-input-context .lw-target-question.en{font-size:14px;line-height:1.9;overflow-wrap:anywhere}
+.lw-app .lw-input-context .cl-gap{min-width:3.2em;font-size:9px}
+.lw-app .cl-attempt-inputs{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13px;line-height:1.7}
+.lw-app .cl-attempt-inputs li>span:first-child{font-size:11px;color:#59644f;margin-right:8px}
+.lw-app .cl-after-reveal{display:inline-block;margin-left:8px;padding:0 7px;border:1px solid #905035;border-radius:10px;color:#905035;font-size:10px}
+.lw-app .cl-judgement{margin:0 0 0 10px;padding:13px 16px;border:1px solid #cdd8c0;border-left:4px solid #637d4b;background:#f6f9f1;border-radius:3px}
+.lw-app .cl-judgement[data-judgement="differ"]{border-left-color:#905035;background:#fbf6f2;border-color:#e3d3c8}
+.lw-app .cl-judgement.cl-reveal{border-left-color:#4a5f78;background:#f3f6f9;border-color:#cdd6e0}
+.lw-app .cl-judge-mark{display:inline-block;padding:0 7px;border:1px solid currentColor;border-radius:2px;font-size:10px;letter-spacing:.04em;color:#3f5730}
+.lw-app .cl-judgement[data-judgement="differ"] .cl-judge-mark{color:#905035}
+.lw-app .cl-reveal .cl-judge-mark{color:#4a5f78}
+.lw-app .cl-judge-line{margin:6px 0 4px;font-size:14px;font-weight:600}
+.lw-app .cl-blank-results{list-style:none;margin:0 0 6px;padding:0;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;line-height:1.7}
+.lw-app .cl-blank-results li[data-match="false"]{color:#905035;font-weight:600}
+.lw-app .cl-judge-status{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;font-size:12px;color:#59644f}
+.lw-app .cl-judge-failed{padding:10px 12px;border:1px solid #e3d3c8;background:#fbf6f2;border-radius:3px;color:#7a432b}
+.lw-app .cl-judge-failed p{margin:0;flex:1 1 200px}
+.lw-app .cl-judge-failed button,.lw-app .cl-old-banner button{min-height:44px;padding:8px 14px;border:1px solid #905035;background:#fff;color:#7a432b;border-radius:4px;font:inherit;font-size:12px}
+
+.lw-app .lw-chat-pane .lw-composer-tools>button.cl-explain{border:1px solid #61764b;border-radius:4px;padding:6px 12px;background:#fff;font-size:11px;color:#3f5730;pointer-events:auto}
+.lw-app .lw-chat-pane .lw-composer-tools>button.cl-explain:disabled{border-color:#cdd3c4;color:#8a9281}
+
+/* Chat: blank inputs. */
+.lw-app.lw-split-app .lw-chat-pane .cl-fill-form{margin-top:18px}
+.lw-app .cl-blanks{border:0;margin:0 0 6px;padding:0;min-width:0}
+.lw-app .cl-blanks legend{font-size:12px;font-weight:500;margin-bottom:10px;padding:0}
+.lw-app .cl-blank-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 10px;margin-bottom:10px}
+.lw-app .cl-blank-name{font-size:11px;color:#59644f;white-space:nowrap}
+.lw-app .cl-blank-row input{min-width:0;width:100%;min-height:44px;padding:8px 10px;border:1px solid #c8d2bb;border-bottom:2px solid #637d4b;border-radius:4px;background:#fff;color:#30352f;font:inherit;font-size:15px}
+.lw-app .cl-blank-row input:focus-visible{outline:2px solid #905035;outline-offset:2px}
+.lw-app .cl-prev-result{grid-column:2;font-size:10px;color:#59644f}
+.lw-app .cl-prev-result[data-match="false"]{color:#905035}
+.lw-app .cl-form-note{padding:14px 16px;font-size:12px;line-height:1.8;color:#46503f}
+.lw-app .cl-form-note p{margin:0 0 8px}
+.lw-app .cl-reveal-note{font-size:10px;color:#59644f;align-self:center}
+.lw-app .cl-reveal-button:disabled{opacity:.6}
+.lw-app .lw-form-actions{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+
+/* Old content version: the record is kept and read only. */
+.lw-app .cl-old-banner{margin-top:8px;padding:8px 10px;border:1px solid #e3d3c8;background:#fbf6f2;border-radius:3px;font-size:11px;line-height:1.7;color:#7a432b}
+.lw-app .cl-old-banner p{margin:0 0 6px}
+
+@media(max-width:640px){
+  .lw-app .cl-expression{font-size:21px}
+  .lw-app .cl-judgement{margin-left:0;padding:12px}
+  .lw-app .cl-drill{padding:12px}
+  .lw-app .cl-pager{grid-template-columns:1fr}
+  .lw-app .cl-pager .next{grid-column:1;text-align:left}
+}

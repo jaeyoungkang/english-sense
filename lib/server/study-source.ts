@@ -12,13 +12,13 @@ const prep = prepData as PrepData;
 export const getStudySource = () => ({ reading, prep });
 
 /**
- * 임시 어댑터(계약 단계 1). 카드 부분은 단계 7까지 `/prep/*`의 기존 컴포넌트가 `drill.answers`를 props로 받는다.
- * 이야기는 단계 6에서 정본(`answer`·`explain`·`basis`)을 떼고 목록·짝 링크에 필요한 요약만 낸다.
+ * 임시 어댑터(계약 단계 1). 이야기는 목록·짝 링크에 필요한 요약만 내고(정답·해설은 단계 6에서 뗐다),
+ * 카드의 `drill.answers`는 단계 7에서 걷었다: 목록·작품 페이지와 이야기의 짝 링크는 카드 정답이 필요 없다.
  */
 export function getLegacyStudySource(): { reading: ReadingSummary; prep: PrepData } {
   return {
     reading: { stories: reading.stories.map(({ id, title, words, limitSeconds, draft, pair, questions }) => ({ id, title, words, limitSeconds, draft, ...(pair ? { pair: { ...pair } } : {}), questionCount: questions.length })) },
-    prep,
+    prep: { works: prep.works.map(work => ({ ...work, units: work.units.map(unit => ({ ...unit, cards: unit.cards.map(card => ({ ...card, drill: { ...card.drill, answers: [] as string[] } })) })) })) } satisfies PrepData,
   };
 }
 
