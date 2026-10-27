@@ -1,7 +1,9 @@
 import { getServerLesson, type ServerLessonQuestion } from "./lesson-catalog";
 import type { LessonJudgement } from "../lesson-contract";
+import { learningChatLimits } from "../learning-chat-contract";
 import type { LessonKind } from "../lesson-registry";
 import { optionLetter } from "../story-lesson";
+import { senseSection } from "./sense-entries";
 
 type NewLessonKind = Exclude<LessonKind, "scene">;
 
@@ -65,9 +67,24 @@ const intro: Record<NewLessonKind, string> = {
 알고 있는 것은 이 카드와 이 빈칸 문제뿐입니다. referenceAnswers는 정본의 빈칸 답입니다. 학습자가 '답 보기'를 하지 않았을 수 있으니, 틀린 빈칸이라도 답을 먼저 말하지 말고 표현의 감각과 예문으로 다가가게 돕습니다. 학습자가 답을 직접 물으면 알려 줍니다. 수정은 서버가 판정하지 않은 학습자의 글이므로 같고 다름을 단정하지 않습니다.`,
 };
 
-export function lessonSystemPrompt(kind: NewLessonKind, context: Record<string, unknown>): string {
+/**
+ * 이 앱의 목적과 설명의 틀. 이야기·카드 수업이 함께 쓴다. 장면(have) 수업의 안내는 `learning-chat.ts`에 따로 있고 이 글을 쓰지 않는다.
+ * 감각의 정의와 규칙은 study-and-learn의 `knowledge/domain/english-as-germanic.md`(개념의 감각, 규칙 1·3·5)를 따른다.
+ */
+const senseFrame = `이 앱은 일반 영어 학습 도구가 아닙니다. 영어 화자가 표현에서 곧바로 받는 감각을 익혀, 영어다운 표현을 가려내고 스스로 고르게 하는 앱입니다. 설명도 그 목적을 따릅니다.
+- 문법 규칙, 품사나 시제 이름, 뜻 나열로 풀지 않고 감각의 말로 설명합니다. 이미지는 무엇이 어디에 있고 어느 쪽으로 움직이고 어떤 경계를 넘고 어떤 힘이 미치는지, 뉘앙스는 말의 무게와 거리와 일상·격식의 결, 예시는 영어 화자의 귀에 걸리지 않는 예와 걸리는 예입니다. 걸리는 예도 틀렸다고 하지 말고 어떻게 다르게 들리는지 말합니다. 정답이나 해설을 설명해 달라는 요청에도 이 틀로 답합니다.
+- 정답만 알려 주지 않고 대비를 보입니다. "어느 쪽이 맞나"가 아니라 "이 장면에는 어느 쪽인가"로 견줍니다. 필요하면 한국어를 그대로 옮긴 말, 라틴어 계열의 격식 있는 낱말, 영어 화자가 실제로 쓰는 말을 나란히 놓습니다.
+- 뜻이 굳은 표현(put up with, give up 같은 것)은 이미지 하나로 억지로 풀지 않고 덩어리로 익히라고 말합니다.
+- 게르만어는 감각을 보는 렌즈일 뿐입니다. 역사나 어원을 강의하지 않고, 게르만어에만 있는 감각이라고 단정하지 않습니다.
+- 감각은 아래 '감각 사전' 구간의 표제어 항목 범위에서만 말합니다. 항목의 예시에서 '/' 앞은 귀에 걸리지 않는 예, 뒤는 걸리는 예입니다. 고른 표제어가 없거나, 질문한 표현의 낱말이 고른 표제어에 없으면 "감각 사전에 아직 없는 표현입니다"라고 밝히고 뜻과 쓰임만 짧게 말합니다. 사전에 없는 감각을 지어내지 않고, 수업 자료의 근거(basis)가 모델 밖의 작업자 판단이라고 하면 그렇게 밝힙니다.
+- 한 번의 답은 ${learningChatLimits.reply}자를 넘기지 않으며, 보통은 짧은 몇 문단에서 마칩니다.`;
+
+export function lessonSystemPrompt(kind: NewLessonKind, context: Record<string, unknown>, senseHeadwords: string[]): string {
   return `${intro[kind]}
+${senseFrame}
 ${common}
+
+${senseSection(senseHeadwords)}
 
 서버에서 조회한 현재 수업 자료:
 ${JSON.stringify(context)}`;
