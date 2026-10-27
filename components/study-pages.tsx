@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { StudyPart } from "@/lib/content";
-import { cardCount, getStory, getWork, minutesLabel, prep, reading, sourceLabel, unitPath, workLabel } from "@/lib/study-content";
+import { cardCount, cardPath, getStory, getWork, minutesLabel, pairStories, prep, reading, sourceLabel, storyPair, unitPath, workLabel } from "@/lib/study-content";
+import type { ReadingStory } from "@/lib/study-content-types";
 import { TimedReading } from "@/components/timed-reading";
 import { FillDrill } from "@/components/fill-drill";
 
@@ -8,7 +9,16 @@ function DraftTag() {
   return <span className="tag draft-tag">초안</span>;
 }
 
+function StoryLink({ story, label }: { story: ReadingStory; label?: string }) {
+  return <a className="link-card" href={`/reading/${story.id}/`}>
+    <span className="t"><span className="en">{story.title}</span> {story.draft && <DraftTag />}</span>
+    <span className="s">{label ? `${label} · ` : ""}{story.words}낱말 · 제한 시간 {minutesLabel(story.limitSeconds)} · 문제 {story.questions.length}개</span>
+  </a>;
+}
+
 function ReadingList() {
+  const plain = reading.stories.filter(story => !story.pair);
+  const paired = prep.works.map(work => ({ work, stories: reading.stories.filter(story => story.pair?.work === work.id) })).filter(group => group.stories.length);
   return <>
     <header className="hero">
       <span className="eyebrow">시간 제한 읽기</span>
@@ -17,27 +27,36 @@ function ReadingList() {
     </header>
     <section aria-labelledby="stories-h">
       <h2 id="stories-h">이야기</h2>
-      <div className="links">{reading.stories.map(story =>
-        <a className="link-card" key={story.id} href={`/reading/${story.id}/`}>
-          <span className="t"><span className="en">{story.title}</span> {story.draft && <DraftTag />}</span>
-          <span className="s">{story.words}낱말 · 제한 시간 {minutesLabel(story.limitSeconds)} · 문제 {story.questions.length}개</span>
-        </a>)}
-      </div>
-      <p className="note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>
+      <div className="links">{plain.map(story => <StoryLink key={story.id} story={story} />)}</div>
     </section>
+    {paired.length > 0 && <section aria-labelledby="paired-h">
+      <h2 id="paired-h">사전 훈련 짝 이야기</h2>
+      <p className="muted">사전 훈련 유닛의 카드 표현으로 쓴 새 이야기입니다. 카드로 익힌 표현을 이야기 속에서 다시 만납니다. 원작의 줄거리나 인물은 쓰지 않았습니다.</p>
+      {paired.map(({ work, stories }) => <section key={work.id} aria-labelledby={`paired-${work.id}-h`}>
+        <h3 id={`paired-${work.id}-h`}><i>{work.title}</i> <span className="note">{workLabel(work)}</span></h3>
+        <div className="links">{stories.map(story => {
+          const unit = work.units.find(u => u.n === story.pair!.unit);
+          return <StoryLink key={story.id} story={story} label={`유닛 ${story.pair!.unit}${unit ? ` · ${unit.when}` : ""} 짝`} />;
+        })}</div>
+      </section>)}
+    </section>}
+    <p className="note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>
   </>;
 }
 
 function ReadingStoryPage({ id }: { id: string }) {
   const story = getStory(id);
   if (!story) notFound();
+  const pair = storyPair(story);
+  const cards = pair ? Object.fromEntries(pair.unit.cards.map(card => [card.id, { href: cardPath(pair.work, pair.unit.n, card.id), expression: card.expression }])) : {};
   return <>
     <header className="hero">
       <span className="eyebrow">시간 제한 읽기 {story.draft && <DraftTag />}</span>
       <h1 className="en-title">{story.title}</h1>
       <p className="lede">{story.words}낱말을 {minutesLabel(story.limitSeconds)} 안에 읽습니다. 시작하면 본문과 남은 시간이 보입니다. 시간이 끝나거나 다 읽었다고 누르면 본문을 가리고 {story.questions.length}문제를 풉니다.</p>
+      {pair && <p className="pair-note"><i>{pair.work.title}</i> 유닛 {pair.unit.n} 표현으로 쓴 이야기입니다. <a href={unitPath(pair.work, pair.unit.n)}>유닛 {pair.unit.n} 카드 보기</a></p>}
     </header>
-    <TimedReading story={story} />
+    <TimedReading story={story} cards={cards} />
   </>;
 }
 
@@ -99,6 +118,7 @@ function PrepUnitPage({ id, n }: { id: string; n: number }) {
   const prev = work.units[index - 1];
   const next = work.units[index + 1];
   const countLabel = work.kind === "book" ? "책 전체" : "영화 전체";
+  const stories = pairStories(work.id, unit.n);
   return <>
     <header className="hero">
       <span className="eyebrow"><i>{work.title}</i> · 유닛 {unit.n} · {unit.when}</span>
@@ -106,7 +126,7 @@ function PrepUnitPage({ id, n }: { id: string; n: number }) {
       <p className="lede">카드마다 뜻과 감각을 읽고 작품 예문으로 확인한 뒤, 다른 작품 문장의 빈칸을 채웁니다. 대소문자와 앞뒤 공백은 따지지 않습니다.</p>
     </header>
     <section aria-label="표현 카드" className="prep-cards">
-      {unit.cards.map((card, i) => <article className="card prep-card" key={card.id} aria-labelledby={`${card.id}-h`}>
+      {unit.cards.map((card, i) => <article className="card prep-card" key={card.id} id={card.id} aria-labelledby={`${card.id}-h`}>
         <div className="prep-card-head">
           <h2 id={`${card.id}-h`} className="en prep-expression"><span className="prep-num">{i + 1}</span>{card.expression}</h2>
           <span className="count">{countLabel} {card.count}번{card.countInPart !== undefined ? ` · ${unit.n}부 ${card.countInPart}번` : ""}</span>
@@ -123,6 +143,15 @@ function PrepUnitPage({ id, n }: { id: string; n: number }) {
         <p className="note basis">근거: {card.basis}</p>
       </article>)}
     </section>
+    {stories.length > 0 && <section aria-labelledby="pair-read-h">
+      <h2 id="pair-read-h">이 표현으로 읽기</h2>
+      <div className="links">{stories.map(story =>
+        <a className="link-card" key={story.id} href={`/reading/${story.id}/`}>
+          <span className="t">이 표현으로 읽기: <span className="en">{story.title}</span> ({minutesLabel(story.limitSeconds)}) {story.draft && <DraftTag />}</span>
+          <span className="s">카드 표현으로 쓴 새 이야기 · {story.words}낱말 · 문제 {story.questions.length}개</span>
+        </a>)}
+      </div>
+    </section>}
     <nav className="pager" aria-label="다른 유닛">
       {prev ? <a href={unitPath(work, prev.n)}><span className="k">이전</span>유닛 {prev.n} · {prev.when}</a> : <a href={`/prep/${work.id}/`}><span className="k">목록</span>{work.title} 유닛</a>}
       {next ? <a className="next" href={unitPath(work, next.n)}><span className="k">다음</span>유닛 {next.n} · {next.when}</a> : <a className="next" href="/prep/"><span className="k">목록</span>다른 작품</a>}

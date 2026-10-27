@@ -87,3 +87,55 @@ test("fill-in drills accept lenient right answers, flag wrong ones and reveal an
   await expect(page.locator("article").first().locator("figcaption")).toHaveText(/^Zootopia \(2016\) · \d\d:\d\d:\d\d$/);
   await expect(page.locator("article").first().locator(".count")).toContainText("영화 전체");
 });
+
+test("the reading list separates paired stories by work and marks every story as a draft", async ({ page }) => {
+  await page.goto("/reading/");
+  const plain = page.locator("section", { has: page.locator("#stories-h") });
+  await expect(plain.locator(".link-card")).toHaveCount(reading.stories.filter(s => !s.pair).length);
+  const paired = page.locator("section", { has: page.locator("#paired-h") }).first();
+  await expect(paired.locator(".link-card")).toHaveCount(reading.stories.filter(s => s.pair).length);
+  await expect(paired.locator("#paired-wonder-h")).toContainText("Wonder");
+  await expect(paired.getByRole("link", { name: /Leaving in June/ })).toContainText("유닛 3");
+  const drafts = reading.stories.filter(s => s.draft).length;
+  await expect(page.locator(".link-card .draft-tag")).toHaveCount(drafts);
+});
+
+test("a paired story links to its unit, labels expression questions and links each to its card", async ({ page }) => {
+  const story = reading.stories.find(s => s.id === "prep-wonder-3")!;
+  await page.goto(`/reading/${story.id}/`);
+  await expect(page.locator(".pair-note")).toContainText("Wonder 유닛 3 표현으로 쓴 이야기");
+  await expect(page.locator(".pair-note a")).toHaveAttribute("href", "/prep/wonder/unit-3/");
+  await page.getByRole("button", { name: "읽기 시작" }).click();
+  await page.getByRole("button", { name: "다 읽었습니다" }).click();
+  const first = story.questions.findIndex(q => q.kind === "expression");
+  for (const q of story.questions.slice(0, first)) {
+    await expect(page.locator(".card .meta")).toHaveText("내용");
+    await page.locator(".opt").nth(q.answer).click();
+    await expect(page.locator(".card-link")).toHaveCount(0);
+    await page.getByRole("button", { name: "다음 문제" }).click();
+  }
+  const q = story.questions[first];
+  await expect(page.locator(".card .meta")).toHaveText("표현");
+  await page.locator(".opt").nth(q.answer).click();
+  await expect(page.locator(".feel")).toHaveText(q.explain);
+  const link = page.locator(".card-link a");
+  await expect(link).toHaveAttribute("href", `/prep/wonder/unit-3/#${q.card}`);
+  await link.click();
+  await expect(page).toHaveURL(new RegExp(`/prep/wonder/unit-3/#${q.card}$`));
+  await expect(page.locator(`article#${q.card}`)).toBeInViewport();
+});
+
+test("a prep unit links to the story written with its expressions", async ({ page }) => {
+  await page.goto("/prep/wonder/unit-3/");
+  const link = page.getByRole("link", { name: /이 표현으로 읽기: Leaving in June \(4분\)/ });
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page).toHaveURL(/\/reading\/prep-wonder-3\/$/);
+  await expect(page.locator("main h1")).toHaveText("Leaving in June");
+  for (const work of prep.works) for (const unit of work.units) {
+    const paired = reading.stories.filter(s => s.pair?.work === work.id && s.pair.unit === unit.n);
+    if (!paired.length) continue;
+    await page.goto(`/prep/${work.id}/unit-${unit.n}/`);
+    await expect(page.locator("#pair-read-h + .links .link-card")).toHaveCount(paired.length);
+  }
+});

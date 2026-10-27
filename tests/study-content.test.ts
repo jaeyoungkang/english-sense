@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { checkBlanks, normalizeAnswer, splitBlanks } from "../lib/fill-blank";
-import { convertCard, importPrep, importReading, parseInline, parseStory, parseWorkLine, tableRows } from "../scripts/import-study-content";
+import { checkPairs, convertCard, convertQuestion, importPrep, importReading, parseInline, parsePair, parseStory, parseWorkLine, tableRecords, tableRows } from "../scripts/import-study-content";
 import readingJson from "../content/reading.json";
 import prepJson from "../content/prep.json";
 import type { PrepData, ReadingData } from "../lib/study-content-types";
@@ -86,11 +86,49 @@ test("import reads only the reading and prep folders and keeps draft state and o
   assert.throws(() => importReading(root), /표에 없는 이야기 'c'/);
 });
 
+test("story tables are read across the whole README and pair units are parsed", () => {
+  const md = "| 이야기 | 제목 | 낱말 | 제한 시간 | 감각 | 상태 |\n| --- | --- | --- | --- | --- | --- |\n| `a` | A | 300 | 2분 | go | 초안 |\n\n글\n\n| 이야기 | 제목 | 낱말 | 제한 시간 | 짝 유닛 | 상태 |\n| --- | --- | --- | --- | --- | --- |\n| `p` | P | 450 | 3분 | `bk/unit-1` | 통과 |\n";
+  const rows = tableRecords(md, ["이야기", "제한 시간", "상태"]);
+  assert.deepEqual(rows.map(r => [r["이야기"], r["짝 유닛"], r["상태"]]), [["`a`", undefined, "초안"], ["`p`", "`bk/unit-1`", "통과"]]);
+  assert.deepEqual(parsePair("`the-intern/unit-0`", "t"), { work: "the-intern", unit: 0 });
+  assert.equal(parsePair(undefined, "t"), undefined);
+  assert.equal(parsePair("-", "t"), undefined);
+  assert.throws(() => parsePair("wonder unit 3", "t"), /짝 유닛/);
+  const raw = { id: "p-expression-1", story: "p", kind: "expression", question: "Q?", options: ["x", "y"], answer: 0, explain: "e", card: "w-1-01" };
+  assert.equal(convertQuestion(raw, "t").card, "w-1-01");
+  assert.throws(() => convertQuestion({ ...raw, card: undefined }, "t"), /card/);
+  assert.throws(() => convertQuestion({ ...raw, kind: "vocab" }, "t"), /kind/);
+});
+
+test("paired stories keep their unit, and expression cards must exist in that unit", () => {
+  const root = fixture();
+  const readme = "content/reading/README.md";
+  writeFileSync(join(root, readme), `${readFileSync(join(root, readme), "utf8")}\n짝 이야기\n\n| 이야기 | 제목 | 낱말 | 제한 시간 | 짝 유닛 | 상태 |\n| --- | --- | --- | --- | --- | --- |\n| \`prep-bk-1\` | P | 450 | 3분 | \`bk/unit-1\` | 초안 |\n`);
+  writeFileSync(join(root, "content/reading/stories/prep-bk-1.md"), "# P\n\nHe picked me up.\n");
+  const q = (kind: string, card?: string) => JSON.stringify({ id: `prep-bk-1-${kind}-1`, story: "prep-bk-1", kind, question: "Q?", options: ["x", "y"], answer: 0, explain: "e", ...(card ? { card } : {}) });
+  const quizzes = join(root, "content/reading/quizzes.jsonl");
+  writeFileSync(quizzes, `${readFileSync(quizzes, "utf8")}${q("content")}\n${q("expression", "w-1-01")}\n`);
+  const reading = importReading(root);
+  const prep = importPrep(root);
+  const story = reading.stories.find(s => s.id === "prep-bk-1")!;
+  assert.deepEqual([story.pair, story.draft, story.limitSeconds, story.questions.map(x => [x.kind, x.card])], [{ work: "bk", unit: 1 }, true, 180, [["content", undefined], ["expression", "w-1-01"]]]);
+  assert.equal(reading.stories.filter(s => !s.pair).length, 2);
+  checkPairs(reading, prep);
+  story.questions[1].card = "w-0-12";
+  assert.throws(() => checkPairs(reading, prep), /카드 'w-0-12'가 bk\/unit-1에 없습니다/);
+  story.pair = { work: "bk", unit: 9 };
+  assert.throws(() => checkPairs(reading, prep), /짝 유닛 'bk\/unit-9'/);
+  writeFileSync(quizzes, `${readFileSync(quizzes, "utf8")}${JSON.stringify({ id: "a-expression-1", story: "a", kind: "expression", question: "Q", options: ["x", "y"], answer: 0, explain: "e", card: "w-0-12" })}\n`);
+  assert.throws(() => importReading(root), /짝 유닛이 없는 이야기에 expression/);
+});
+
 test("committed JSON is well formed: every blank has an answer and every card cites its place", () => {
   const reading = readingJson as ReadingData;
   const prep = prepJson as PrepData;
   assert.ok(reading.stories.length >= 2 && reading.stories.every(s => s.limitSeconds > 0));
   for (const story of reading.stories) for (const q of story.questions) assert.ok(q.answer >= 0 && q.answer < q.options.length, q.id);
+  checkPairs(reading, prep);
+  for (const story of reading.stories) if (story.questions.some(q => q.kind === "expression")) assert.ok(story.pair, story.id);
   for (const work of prep.works) for (const unit of work.units) for (const card of unit.cards) {
     assert.equal(splitBlanks(card.drill.sentence).length - 1, card.drill.answers.length, card.id);
     for (const place of [card.example, card.drill]) assert.ok(work.kind === "book" ? "part" in place : "time" in place, card.id);

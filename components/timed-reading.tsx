@@ -10,7 +10,11 @@ export function clock(seconds: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export function TimedReading({ story }: { story: ReadingStory }) {
+export type CardLinks = Record<string, { href: string; expression: string }>;
+
+const kindLabel = { content: "내용", sense: "표현의 감각", expression: "표현" } as const;
+
+export function TimedReading({ story, cards = {} }: { story: ReadingStory; cards?: CardLinks }) {
   const [phase, setPhase] = useState<Phase>("ready");
   const [startedAt, setStartedAt] = useState(0);
   const [now, setNow] = useState(0);
@@ -101,7 +105,7 @@ export function TimedReading({ story }: { story: ReadingStory }) {
           <a className="btn ghost" href="/reading/">다른 이야기</a>
         </div>
       </div> : <>
-        <p className="meta">{question.kind === "sense" ? "표현의 감각" : "내용"}</p>
+        <p className="meta">{kindLabel[question.kind]}</p>
         <p className="ask en" id="question-prompt">{question.question}</p>
         <div className="opts" role="group" aria-labelledby="question-prompt">{question.options.map((option, index) =>
           <button key={index} type="button" disabled={picked !== null} onClick={() => choose(index)}
@@ -114,6 +118,7 @@ export function TimedReading({ story }: { story: ReadingStory }) {
             <p className={`verdict ${picked === question.answer ? "ok" : "no"}`}>{picked === question.answer ? "맞습니다." : "정답은 초록색 보기입니다."}</p>
             <p className="feel">{question.explain}</p>
             {question.basis && <p className="note">근거: {question.basis}</p>}
+            {question.card && cards[question.card] && <p className="card-link"><a href={cards[question.card].href}>카드에서 다시 보기: <span className="en">{cards[question.card].expression}</span></a></p>}
           </div>
           <div className="actions"><button className="btn" type="button" onClick={advance}>{current + 1 < story.questions.length ? "다음 문제" : "결과 보기"}</button></div>
         </div>}

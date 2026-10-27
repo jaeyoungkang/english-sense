@@ -4,19 +4,24 @@
 export type Inline = { text: string; em?: true };
 export type ReadingQuestion = {
   id: string;
-  kind: "content" | "sense";
+  kind: "content" | "sense" | "expression";
   question: string;
   options: string[];
   answer: number;
   explain: string;
   basis?: string;
+  /** expression 문제가 묻는 사전 훈련 카드의 id */
+  card?: string;
 };
+/** 사전 훈련 유닛과 짝을 이루는 이야기의 그 유닛. */
+export type ReadingPair = { work: string; unit: number };
 export type ReadingStory = {
   id: string;
   title: string;
   words: number;
   limitSeconds: number;
   draft: boolean;
+  pair?: ReadingPair;
   paragraphs: Inline[][];
   questions: ReadingQuestion[];
 };

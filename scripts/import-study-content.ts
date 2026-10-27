@@ -4,7 +4,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { BLANK } from "../lib/fill-blank";
-import type { Inline, Place, PrepCard, PrepData, PrepUnit, PrepWork, ReadingData, ReadingQuestion, ReadingStory } from "../lib/study-content-types";
+import type { Inline, Place, PrepCard, PrepData, PrepUnit, PrepWork, ReadingData, ReadingPair, ReadingQuestion, ReadingStory } from "../lib/study-content-types";
 
 type Json = Record<string, unknown>;
 
@@ -32,6 +32,32 @@ export function tableRows(markdown: string, header: string[]) {
     rows.push(cells(line));
   }
   return rows;
+}
+
+/** 머리 행에 required 이름이 모두 있는 표를 문서 전체에서 찾아, 행마다 머리 이름을 열쇠로 한 칸들을 돌려준다. */
+export function tableRecords(markdown: string, required: string[]) {
+  const lines = markdown.split("\n");
+  const cells = (line: string) => line.trim().replace(/^\||\|$/g, "").split("|").map(cell => cell.trim());
+  const isRow = (line: string | undefined) => !!line && line.trim().startsWith("|");
+  const records: Record<string, string>[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!isRow(lines[i]) || isRow(lines[i - 1])) continue;
+    const header = cells(lines[i]);
+    if (!required.every(name => header.includes(name))) continue;
+    for (let j = i + 2; isRow(lines[j]); j++) {
+      const row = cells(lines[j]);
+      records.push(Object.fromEntries(header.map((name, k) => [name, row[k] ?? ""])));
+    }
+  }
+  return records;
+}
+
+/** "`wonder/unit-3`"을 { work: "wonder", unit: 3 }으로 읽는다. 빈칸이나 "-"면 짝이 없다. */
+export function parsePair(value: string | undefined, where: string): ReadingPair | undefined {
+  const text = (value ?? "").replace(/`/g, "").trim();
+  if (!text || text === "-") return undefined;
+  const m = text.match(/^([a-z0-9-]+)\/unit-(\d+)$/) || fail(where, `짝 유닛 '${text}'을 읽지 못했습니다`);
+  return { work: m[1], unit: Number(m[2]) };
 }
 
 export function readJsonl(text: string, where: string): Json[] {
@@ -66,7 +92,8 @@ function minutes(value: string, where: string) {
 
 export function convertQuestion(raw: Json, where: string): ReadingQuestion {
   const kind = raw.kind;
-  if (kind !== "content" && kind !== "sense") fail(where, "kind는 content나 sense여야 합니다");
+  if (kind !== "content" && kind !== "sense" && kind !== "expression") fail(where, "kind는 content, sense, expression 가운데 하나여야 합니다");
+  if (kind === "expression" && raw.card === undefined) fail(where, "expression 문제에는 card가 있어야 합니다");
   if (!Array.isArray(raw.options) || raw.options.length < 2) fail(where, "선택지가 둘 이상이어야 합니다");
   const options = raw.options.map((option, i) => str(option, `${where} options[${i}]`));
   const answer = int(raw.answer, `${where} answer`);
@@ -75,30 +102,48 @@ export function convertQuestion(raw: Json, where: string): ReadingQuestion {
     id: str(raw.id, `${where} id`), kind, question: str(raw.question, `${where} question`), options, answer,
     explain: str(raw.explain, `${where} explain`),
     ...(raw.basis !== undefined ? { basis: str(raw.basis, `${where} basis`) } : {}),
+    ...(raw.card !== undefined ? { card: str(raw.card, `${where} card`) } : {}),
   };
 }
 
 export function importReading(root: string): ReadingData {
   const dir = join(root, "content", "reading");
   const readme = readFileSync(join(dir, "README.md"), "utf8");
-  const rows = tableRows(readme, ["이야기", "제목", "낱말", "제한 시간"]);
+  const rows = tableRecords(readme, ["이야기", "제목", "낱말", "제한 시간", "상태"]);
   if (!rows.length) fail("reading/README.md", "이야기 표를 찾지 못했습니다");
   const questions = readJsonl(readFileSync(join(dir, "quizzes.jsonl"), "utf8"), "reading/quizzes.jsonl");
   const stories: ReadingStory[] = rows.map(row => {
-    const id = row[0].replace(/`/g, "");
+    const id = row["이야기"].replace(/`/g, "");
     const where = `reading/stories/${id}.md`;
     const { title, paragraphs } = parseStory(readFileSync(join(dir, "stories", `${id}.md`), "utf8"), where);
+    const pair = parsePair(row["짝 유닛"], `reading/README.md ${id}`);
     const own = questions.filter(q => q.story === id).map((q, i) => convertQuestion(q, `reading/quizzes.jsonl ${id}#${i + 1}`));
     if (!own.length) fail(where, "퀴즈가 없습니다");
+    if (!pair && own.some(q => q.kind === "expression")) fail(where, "짝 유닛이 없는 이야기에 expression 문제가 있습니다");
     return {
-      id, title, words: int(Number(row[2].replace(/,/g, "")), `${where} 낱말`), limitSeconds: minutes(row[3], where),
-      draft: row[row.length - 1] !== "통과", paragraphs, questions: own,
+      id, title, words: int(Number(row["낱말"].replace(/,/g, "")), `${where} 낱말`), limitSeconds: minutes(row["제한 시간"], where),
+      draft: row["상태"] !== "통과", ...(pair ? { pair } : {}), paragraphs, questions: own,
     };
   });
+  const ids = stories.map(story => story.id);
+  if (new Set(ids).size !== ids.length) fail("reading/README.md", "이야기 id가 겹칩니다");
   const known = new Set(stories.map(story => story.id));
   const orphan = questions.find(q => !known.has(String(q.story)));
   if (orphan) fail("reading/quizzes.jsonl", `표에 없는 이야기 '${String(orphan.story)}'의 문제가 있습니다`);
   return { stories };
+}
+
+/** 짝 이야기의 유닛이 사전 훈련에 있고, expression 문제의 카드가 그 유닛에 있는지 본다. */
+export function checkPairs(reading: ReadingData, prep: PrepData) {
+  for (const story of reading.stories) {
+    if (!story.pair) continue;
+    const { work: workId, unit: n } = story.pair;
+    const work = prep.works.find(w => w.id === workId) || fail(`reading ${story.id}`, `짝 작품 '${workId}'이 사전 훈련에 없습니다`);
+    const unit = work.units.find(u => u.n === n) || fail(`reading ${story.id}`, `짝 유닛 '${workId}/unit-${n}'이 사전 훈련에 없습니다`);
+    for (const q of story.questions) {
+      if (q.card && !unit.cards.some(card => card.id === q.card)) fail(`reading ${q.id}`, `카드 '${q.card}'가 ${workId}/unit-${n}에 없습니다`);
+    }
+  }
 }
 
 function place(raw: Json, where: string): Place {
@@ -179,10 +224,12 @@ function main() {
   const out = resolve(import.meta.dirname, "..", "content");
   const reading = importReading(root);
   const prep = importPrep(root);
+  checkPairs(reading, prep);
   writeFileSync(join(out, "reading.json"), `${JSON.stringify(reading, null, 2)}\n`);
   writeFileSync(join(out, "prep.json"), `${JSON.stringify(prep, null, 2)}\n`);
   const cards = prep.works.reduce((sum, work) => sum + work.units.reduce((s, unit) => s + unit.cards.length, 0), 0);
-  console.log(`이야기 ${reading.stories.length}편, 작품 ${prep.works.length}개, 카드 ${cards}장을 옮겼습니다.`);
+  const paired = reading.stories.filter(story => story.pair).length;
+  console.log(`이야기 ${reading.stories.length}편(짝 이야기 ${paired}편), 작품 ${prep.works.length}개, 카드 ${cards}장을 옮겼습니다.`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) main();

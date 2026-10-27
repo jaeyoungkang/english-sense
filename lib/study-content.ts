@@ -1,7 +1,7 @@
 import readingData from "@/content/reading.json";
 import prepData from "@/content/prep.json";
 import type { ContentPage } from "@/lib/content";
-import type { Place, PrepData, PrepWork, ReadingData } from "@/lib/study-content-types";
+import type { Place, PrepData, PrepWork, ReadingData, ReadingStory } from "@/lib/study-content-types";
 
 export const reading = readingData as ReadingData;
 export const prep = prepData as PrepData;
@@ -10,6 +10,16 @@ export const getStory = (id: string) => reading.stories.find(story => story.id =
 export const getWork = (id: string) => prep.works.find(work => work.id === id);
 export const unitPath = (work: PrepWork, n: number) => `/prep/${work.id}/unit-${n}/`;
 export const workLabel = (work: PrepWork) => work.kind === "book" ? "책" : "영화";
+export const cardPath = (work: PrepWork, n: number, cardId: string) => `${unitPath(work, n)}#${cardId}`;
+/** 사전 훈련 유닛과 짝을 이루는 이야기들 */
+export const pairStories = (workId: string, n: number) => reading.stories.filter(story => story.pair?.work === workId && story.pair.unit === n);
+/** 짝 이야기의 작품과 유닛. 짝이 없거나 사전 훈련에 없으면 undefined */
+export function storyPair(story: ReadingStory) {
+  if (!story.pair) return undefined;
+  const work = getWork(story.pair.work);
+  const unit = work?.units.find(u => u.n === story.pair!.unit);
+  return work && unit ? { work, unit } : undefined;
+}
 export const cardCount = (work: PrepWork) => work.units.reduce((sum, unit) => sum + unit.cards.length, 0);
 
 /** 카드 문장의 출처. 예: "Wonder (R. J. Palacio, 2012) · 8부", "Zootopia (2016) · 01:21:09" */

@@ -238,4 +238,8 @@ span.en { line-height: 1; }
 .blank.done { border-color: var(--good); background: var(--good-soft); }
 .drill-result:empty { display: none; }
 .basis { font-size: .8rem; }
+.prep-card { scroll-margin-top: 16px; }
+.prep-card:target { border-color: var(--accent); }
+.pair-note { font-size: .95rem; }
+.card-link { font-size: .9rem; overflow-wrap: anywhere; }
 .blank.shown { background: var(--accent-soft); }
