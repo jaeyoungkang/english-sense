@@ -1,8 +1,9 @@
 import { getLessonEntry, type LessonEntry, type PublicCard, type PublicCardsLesson, type PublicStoryLesson, type StoryLessonLinks } from "../lesson-registry";
 import { splitBlanks } from "../fill-blank";
 import type { PublicLearningCatalog } from "../learning-catalog";
+import type { OpenedCard } from "../lesson-contract";
 import type { PrepCard, PrepUnit, PrepWork, ReadingQuestion, ReadingStory } from "../study-content-types";
-import { cardPath, storyPair, unitPath } from "../study-content";
+import { cardPath, namelessSummary, storyPair, unitPath } from "../study-content";
 import { getStudySource } from "./study-source";
 import { getPublicLearningCatalog } from "./learning-catalog";
 
@@ -75,15 +76,26 @@ export async function getLessonContentVersion(lessonId: unknown): Promise<string
   return sha256(lesson.kind === "story" ? lesson.story : { work: lesson.work.id, unit: lesson.unit });
 }
 
+/** 첫 답 전에 보이는 것만: 뜻·빈칸 문장·힌트·출처 자리·빈칸 수. 표현·횟수·감각·예문·근거는 `openedCard`로만 나간다. */
 function publicCard(card: PrepCard): PublicCard {
   return {
-    questionId: card.id, expression: card.expression, count: card.count, ...(card.countInPart !== undefined ? { countInPart: card.countInPart } : {}),
-    meaning: card.meaning, sense: card.sense, basis: card.basis, example: { ...card.example },
+    questionId: card.id, meaning: card.meaning,
     drill: { ..."part" in card.drill ? { part: card.drill.part } : { time: card.drill.time }, sentence: card.drill.sentence, hint: card.drill.hint, blanks: splitBlanks(card.drill.sentence).length - 1 },
   };
 }
 
-/** 브라우저로 나가는 유일한 투영. 이야기의 `answer`·`explain`·`basis`와 카드의 `drill.answers`는 여기서 뺀다. */
+/** 첫 답을 낸 뒤 판정 응답이 싣는 카드의 글. `drill.answers`는 싣지 않는다. */
+export function openedCard(card: PrepCard): OpenedCard {
+  return {
+    expression: card.expression, count: card.count, ...(card.countInPart !== undefined ? { countInPart: card.countInPart } : {}),
+    sense: card.sense, basis: card.basis, example: { ...card.example },
+  };
+}
+
+/**
+ * 브라우저로 나가는 유일한 투영. 이야기의 `answer`·`explain`·`basis`와 카드의 `drill.answers`는 여기서 뺀다.
+ * 카드는 첫 답 전에 쓰이지 않는 표현·횟수·감각·예문·근거도 뺀다(유닛 요약의 표현 이름도 지운다).
+ */
 export async function getPublicLesson(lessonId: unknown): Promise<PublicLesson> {
   const entry = getLessonEntry(lessonId);
   if (!entry) throw new Error("lesson_unavailable");
@@ -106,7 +118,7 @@ export async function getPublicLesson(lessonId: unknown): Promise<PublicLesson> 
   return {
     kind: "cards", lessonId: lesson.lessonId, contentVersion,
     work: { id: work.id, kind: work.kind, title: work.title, ...(work.creator ? { creator: work.creator } : {}), year: work.year },
-    unit: { n: unit.n, when: unit.when, summary: unit.summary },
+    unit: { n: unit.n, when: unit.when, summary: namelessSummary(unit.summary) },
     cards: unit.cards.map(publicCard),
   };
 }

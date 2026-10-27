@@ -28,6 +28,8 @@ export type PenNotes = {
   notesIn: (block: string) => Note[];
   blockText: (block: string) => string | undefined;
   isHidden: (block: string) => boolean;
+  /** How the list names a note whose text is not shown now: a label after the kind, and why it cannot be visited. */
+  hiddenWords: { tag: string; why: string };
   /** The text of a note's block can be found in the current document. */
   isFound: (note: Note) => boolean;
   rank: (note: Note) => number;
@@ -70,7 +72,13 @@ const newId = () => typeof crypto !== "undefined" && typeof crypto.randomUUID ==
 
 /* ---------- state ---------- */
 
-export function usePenNotes(options: { lessonId: string; blocks: NoteBlocks; /** Blocks whose text must not show now (the covered story). Their notes show a kind and the memo only. */ hidden?: (block: string) => boolean }): PenNotes {
+export function usePenNotes(options: {
+  lessonId: string; blocks: NoteBlocks;
+  /** Blocks whose text must not show now (the covered story, a card not yet opened). Their notes show a kind and the memo only. */
+  hidden?: (block: string) => boolean;
+  /** Replaces the wording for hidden blocks, which says "본문" (the story body) by default. */
+  hiddenWords?: { tag: string; why: string };
+}): PenNotes {
   const { lessonId, blocks } = options, key = noteStorageKey(lessonId);
   const texts = useMemo(() => blockTexts(blocks), [blocks]);
   const order = useMemo(() => new Map(Object.keys(blocks).map((block, index) => [block, index])), [blocks]);
@@ -196,11 +204,12 @@ export function usePenNotes(options: { lessonId: string; blocks: NoteBlocks; /**
   }
 
   const rank = (note: Note) => order.get(note.block) ?? 1e6;
-  const isFound = (note: Note) => { const text = texts[note.block]; return text !== undefined && locateNote(text, note) !== null; };
+  // A hidden block whose text the page does not hold (a closed card) is not lost: the note waits for the text to open.
+  const isFound = (note: Note) => { const text = texts[note.block]; return text === undefined ? !!options.hidden?.(note.block) : locateNote(text, note) !== null; };
   const notesIn = (block: string) => { const own = notes.filter(note => note.block === block); return draft && draft.block === block ? [...own, draft] : own; };
 
   return {
-    lessonId, ready, notes, notesIn, blockText: block => texts[block], isHidden: block => options.hidden?.(block) ?? false, isFound, rank, draft, editing,
+    lessonId, ready, notes, notesIn, blockText: block => texts[block], isHidden: block => options.hidden?.(block) ?? false, hiddenWords: options.hiddenWords ?? { tag: " · 본문 노트", why: "본문을 가린 동안은 이동하지 않습니다." }, isFound, rank, draft, editing,
     loadNotice, dismissLoadNotice: () => setLoadNotice(""), notice, live, say, saveState, saveError,
     retry: () => write(notesRef.current), createMark, startMemo, editMemo, setEditingText, saveEditing, cancelEditing, dropMark, removeMemo, deleteNote,
     panelOpen, setPanelOpen, triggerRef, jump, flash, hold, selection,
@@ -618,13 +627,13 @@ function NotesPanel({ notes }: { notes: PenNotes }) {
   function item(note: Note, isLost: boolean) {
     const line = noteLine(notes, note), onScreen = !isLost && !line.hidden && !!document.querySelector(`[data-note-head~="${note.id}"]`);
     return <li className="np-item" key={note.id} data-note-id={note.id} data-found={!isLost}>
-      <p className="np-item-kind"><b>{line.kind}</b>{line.hidden && <span> · 본문 노트</span>}</p>
+      <p className="np-item-kind"><b>{line.kind}</b>{line.hidden && <span>{notes.hiddenWords.tag}</span>}</p>
       {line.quote && <p className="np-item-quote" lang="en">{line.quote}</p>}
       {note.memo && <p className="np-item-memo">{note.memo}</p>}
       <p className="np-item-actions">
         {!isLost && <button type="button" disabled={!onScreen} onClick={() => go(note)}>이동</button>}
         {onScreen && <button type="button" onClick={() => edit(note)}>{note.memo ? "메모 고치기" : "메모 달기"}</button>}
-        {!isLost && !onScreen && <span className="lw-muted">{line.hidden ? "본문을 가린 동안은 이동하지 않습니다." : "지금 문서에 보이지 않는 글입니다."}</span>}
+        {!isLost && !onScreen && <span className="lw-muted">{line.hidden ? notes.hiddenWords.why : "지금 문서에 보이지 않는 글입니다."}</span>}
         <button type="button" onClick={() => remove(note)}>지우기</button>
       </p>
     </li>;

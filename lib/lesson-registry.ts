@@ -68,16 +68,13 @@ export type StoryLessonLinks = {
   cards: Record<string, { href: string; expression: string }>;
 };
 
-/** 카드 수업의 공개 카드. 빈칸 정답(`drill.answers`)은 빈칸 수로만 남긴다. */
+/**
+ * 카드 수업의 공개 카드: 첫 답 전에 보이는 것만 담는다(뜻·빈칸 문장·한국어 힌트·출처 자리·빈칸 수).
+ * 표현·횟수·감각·예문·근거는 서버에만 두고 첫 판정 응답의 `card`(`OpenedCard`)로 열린다. 빈칸 정답(`drill.answers`)은 응답에도 없다.
+ */
 export type PublicCard = {
   questionId: string;
-  expression: string;
-  count: number;
-  countInPart?: number;
   meaning: string;
-  sense: string;
-  basis: string;
-  example: Place & { text: string };
   drill: Place & { sentence: string; hint: string; blanks: number };
 };
 export type PublicCardsLesson = {

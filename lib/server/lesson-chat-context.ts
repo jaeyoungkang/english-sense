@@ -9,7 +9,7 @@ type NewLessonKind = Exclude<LessonKind, "scene">;
 
 const preparing = "지금은 AI 답변 대신 준비 안내를 보여 줍니다.";
 const storyGuidance = `${preparing} 이야기를 읽은 뒤 문제의 보기를 골라 답해 주세요. 읽기가 끝나기 전과 첫 답 전의 안내에는 정답이나 해설을 넣지 않았습니다. 답을 낸 뒤에는 이 문제의 정본 해설과 내 답을 바탕으로 AI와 질문을 이어 갈 수 있습니다.`;
-const cardsGuidance = `${preparing} 카드의 표현과 예문을 읽고 빈칸을 채워 답해 주세요. 첫 답 전의 안내에는 빈칸의 답이나 힌트를 넣지 않았습니다. 답을 낸 뒤에는 이 카드와 내 답을 바탕으로 AI와 질문을 이어 갈 수 있습니다.`;
+const cardsGuidance = `${preparing} 카드의 뜻과 한국어 힌트를 보고 빈칸을 채워 답해 주세요. 첫 답 전의 안내에는 빈칸의 답이나 표현을 넣지 않았습니다. 답을 낸 뒤에는 카드의 표현·감각·예문이 열리고, 이 카드와 내 답을 바탕으로 AI와 질문을 이어 갈 수 있습니다.`;
 
 /** 첫 답 전의 질문에 주는 무료 안내. 정답·해설·빈칸 답을 담지 않는다. */
 export function lessonGuidance(kind: NewLessonKind): string {
@@ -42,13 +42,15 @@ export function lessonContext(question: ServerLessonQuestion, judgement: LessonJ
   if (question.kind === "cards" && lesson.kind === "cards") {
     const { card } = question;
     const { answers, ...drill } = card.drill;
+    // 판정 응답이 싣는 `card`(표현·감각·예문)는 아래 `card`와 같은 글이라 맥락에서 한 번만 둔다.
+    const { card: _opened, ...fillJudgement } = judgement as LessonJudgement & { card?: unknown };
     return {
       lessonId: lesson.lessonId, lessonKind: "cards",
       work: { title: lesson.work.title, kind: lesson.work.kind, ...(lesson.work.creator ? { creator: lesson.work.creator } : {}), year: lesson.work.year },
       card: { questionId: card.id, expression: card.expression, count: card.count, meaning: card.meaning, sense: card.sense, basis: card.basis, example: { ...card.example } },
       drill: { ...drill, blanks: answers.length },
       referenceAnswers: [...answers],
-      serverJudgement: judgement,
+      serverJudgement: fillJudgement,
     };
   }
   throw new Error("lesson_question_unavailable");

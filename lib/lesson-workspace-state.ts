@@ -3,7 +3,7 @@ import { learningChatLimits } from "./learning-chat-contract";
 import { DOCUMENT_UI_STORAGE_KEY } from "./document-workspace-state";
 import { WORKSPACE_STORAGE_KEYS } from "./learning-workspace-state";
 import { acceptReply, beginTurn, findArtifact, identity, newId, object, publicKeys, restoredTurns, retryTurn, text, updateArtifact, validTurn, type ThreadEvent, type ThreadReply, type WorkspaceThread, type WorkspaceTurn } from "./learning-thread";
-import { isLessonAttempt, isLessonCheckResponse, lessonCheckLimits, type LessonAttempt, type LessonCheckRequest, type LessonCheckResponse } from "./lesson-contract";
+import { isLessonAttempt, isLessonCheckResponse, lessonCheckLimits, type LessonAttempt, type LessonCheckRequest, type LessonCheckResponse, type OpenedCard } from "./lesson-contract";
 import { getLessonEntry, type LessonEntry, type PublicCard, type PublicCardsLesson, type PublicStoryLesson, type PublicStoryQuestion } from "./lesson-registry";
 import { LESSON_STORAGE_PREFIX } from "./lesson-record-key";
 import { isReadingLevel, levelLimitSeconds, type ReadingLevel } from "./reading-level";
@@ -55,6 +55,8 @@ const exact = (value: Record<string, unknown>, keys: string[]) => Object.keys(va
 const validTime = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) >= 0;
 const canonical = (value: unknown) => JSON.stringify(value, (_key, item) => object(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a < b ? -1 : 1)) : item);
 const lessonQuestions = (lesson: LessonDocument): LessonQuestion[] => lesson.kind === "story" ? lesson.questions : lesson.cards;
+/** The part of a stored question that the learner saw before answering (a card's meaning and blank sentence; a story question as it is). */
+const closedSnapshot = (question: LessonQuestion): unknown => "drill" in question ? { questionId: question.questionId, meaning: question.meaning, drill: question.drill } : question;
 const blanksOf = (question: LessonQuestion) => "drill" in question ? question.drill.blanks : 0;
 
 /** Record, document UI and layout keys per lesson. `titanic-have` keeps its existing keys (the record is still v3). */
@@ -212,8 +214,42 @@ export function acceptLessonCheck(state: LessonState, request: LessonCheckReques
   const artifact = request.action === "check" && response.kind !== "reveal" ? targetArtifact(state, request, response) : null;
   const index = artifact ? artifact.attempts.length - 1 : -1, last = artifact?.attempts[index];
   if (!artifact || !last || last.check || response.kind === "reveal" || !sameAttempt(last.attempt, request.attempt) || !fitsJudgement(last.attempt, response, artifact.question)) return state;
-  const next = updateArtifact(state, artifact.artifactId, item => ({ ...item, attempts: item.attempts.map((entry, at) => at === index ? { ...entry, check: structuredClone(response) } : entry) }));
+  // The card's text is kept once, on the first judgement that carried it. Later judgements of the same card repeat it and drop the copy.
+  const stored = response.kind === "fill" && response.card && artifact.attempts.some(entry => entry.check?.kind === "fill" && entry.check.card) ? withoutCard(response) : response;
+  const next = updateArtifact(state, artifact.artifactId, item => ({ ...item, attempts: item.attempts.map((entry, at) => at === index ? { ...entry, check: structuredClone(stored) } : entry) }));
   return { ...next, events: [...next.events, { id: newId(), kind: "check", artifactId: artifact.artifactId, index, requestId: request.requestId }] };
+}
+function withoutCard(response: Extract<JudgementResponse, { kind: "fill" }>): JudgementResponse {
+  const { card: _card, ...rest } = response;
+  return rest;
+}
+/** The text a card opened with its first answer: the first judgement of the card that carried one. Null while the card is closed. */
+export function openedCardOf(artifact: Pick<LessonArtifact, "attempts">): OpenedCard | null {
+  for (const entry of artifact.attempts) if (entry.check?.kind === "fill" && entry.check.card) return entry.check.card;
+  return null;
+}
+/**
+ * The request behind "카드 내용 열기": the same first answer again, for a record written before cards opened with the first answer.
+ * The server judges it again (free and idempotent) and its response carries the card.
+ */
+export function buildLessonCardRequest(state: LessonState, lesson: LessonDocument, artifactId: string, requestId: string): LessonCheckRequest {
+  const artifact = liveArtifact(state, lesson, artifactId), first = artifact.attempts[0];
+  requestIdentity(requestId);
+  if (!first?.check || "options" in artifact.question) throw new Error("판정을 받은 첫 답이 있는 카드만 열 수 있습니다.");
+  if (openedCardOf(artifact)) throw new Error("이미 열린 카드입니다.");
+  return { action: "check", lessonId: lesson.lessonId, questionId: artifact.question.questionId, contentVersion: artifact.contentVersion, artifactId, requestId, attempt: structuredClone(first.attempt) };
+}
+/**
+ * The card is adopted only for the request that asked for it, for the first answer that was judged without a card, and only when the
+ * new judgement agrees with the stored one. Nothing else in the record changes, and no event is written.
+ */
+export function acceptLessonCard(state: LessonState, request: LessonCheckRequest, response: LessonCheckResponse): LessonState {
+  const artifact = request.action === "check" && response.kind === "fill" && response.card ? targetArtifact(state, request, response) : null;
+  const first = artifact?.attempts[0];
+  if (!artifact || !first?.check || first.check.kind !== "fill" || response.kind !== "fill" || !response.card || openedCardOf(artifact) || !sameAttempt(first.attempt, request.attempt)) return state;
+  if (first.check.matches.length !== response.matches.length || first.check.matches.some((match, at) => match !== response.matches[at])) return state;
+  const check = { ...first.check, card: structuredClone(response.card) };
+  return updateArtifact(state, artifact.artifactId, item => ({ ...item, attempts: item.attempts.map((entry, at) => at === 0 ? { ...entry, check } : entry) }));
 }
 /** The answers are adopted only after a first answer exists, and only once. */
 export function acceptLessonReveal(state: LessonState, request: LessonCheckRequest, response: LessonCheckResponse): LessonState {
@@ -245,10 +281,16 @@ function validQuestion(value: unknown, entry: LessonEntryWithQuestions): value i
       && Array.isArray(value.options) && value.options.length === lessonCheckLimits.choices && value.options.every(option => text(option, 5000, true)) && (value.card === undefined || identity(value.card));
   }
   const place = (item: unknown, keys: string[]) => object(item) && (Object.hasOwn(item, "part") ? Number.isInteger(item.part) && Number(item.part) >= 0 && exact(item, ["part", ...keys]) : text(item.time, 50, true) && exact(item, ["time", ...keys]));
-  if (!publicKeys(value, ["questionId", "expression", "count", "countInPart", "meaning", "sense", "basis", "example", "drill"]) || !["expression", "count", "meaning", "sense", "basis", "example", "drill"].every(key => Object.hasOwn(value, key))) return false;
-  return text(value.expression, 500, true) && Number.isInteger(value.count) && Number(value.count) >= 0 && (value.countInPart === undefined || (Number.isInteger(value.countInPart) && Number(value.countInPart) >= 0)) && text(value.meaning, 5000, true) && text(value.sense, 5000, true) && text(value.basis, 5000, true)
-    && place(value.example, ["text"]) && text((value.example as Record<string, unknown>).text, 5000, true)
-    && place(value.drill, ["sentence", "hint", "blanks"]) && text((value.drill as Record<string, unknown>).sentence, 5000, true) && text((value.drill as Record<string, unknown>).hint, 1000) && Number.isInteger((value.drill as Record<string, unknown>).blanks) && Number((value.drill as Record<string, unknown>).blanks) >= 1 && Number((value.drill as Record<string, unknown>).blanks) <= lessonCheckLimits.blanks;
+  // A card is stored as the learner saw it before answering: meaning and blank sentence. A record written when cards showed everything
+  // from the start also holds the expression group; it is accepted as it is and never shown (a card opens only through a judgement's `card`).
+  const closedKeys = ["questionId", "meaning", "drill"], legacyKeys = ["expression", "count", "countInPart", "sense", "basis", "example"];
+  if (!publicKeys(value, [...closedKeys, ...legacyKeys]) || !closedKeys.every(key => Object.hasOwn(value, key))) return false;
+  const legacy = ["expression", "count", "sense", "basis", "example"];
+  if (legacy.some(key => Object.hasOwn(value, key)) && !legacy.every(key => Object.hasOwn(value, key))) return false;
+  if (!text(value.meaning, 5000, true) || !place(value.drill, ["sentence", "hint", "blanks"]) || !text((value.drill as Record<string, unknown>).sentence, 5000, true) || !text((value.drill as Record<string, unknown>).hint, 1000) || !Number.isInteger((value.drill as Record<string, unknown>).blanks) || Number((value.drill as Record<string, unknown>).blanks) < 1 || Number((value.drill as Record<string, unknown>).blanks) > lessonCheckLimits.blanks) return false;
+  if (!Object.hasOwn(value, "expression")) return !Object.hasOwn(value, "countInPart");
+  return text(value.expression, 500, true) && Number.isInteger(value.count) && Number(value.count) >= 0 && (value.countInPart === undefined || (Number.isInteger(value.countInPart) && Number(value.countInPart) >= 0)) && text(value.sense, 5000, true) && text(value.basis, 5000, true)
+    && place(value.example, ["text"]) && text((value.example as Record<string, unknown>).text, 5000, true);
 }
 function validArtifact(value: unknown, entry: LessonEntryWithQuestions): value is LessonArtifact {
   if (!object(value) || !exact(value, ["artifactId", "lessonId", "contentVersion", "question", "choice", "inputs", "messageDraft", "attempts", "reveal", "threads", "activeThreadId"]) || !identity(value.artifactId) || value.lessonId !== entry.lessonId || typeof value.contentVersion !== "string" || !/^[a-f0-9]{64}$/.test(value.contentVersion) || !validQuestion(value.question, entry)) return false;
@@ -360,7 +402,8 @@ export function restoreLessonState(raw: string | null, lesson: LessonDocument, n
   for (const artifact of value.artifacts) {
     if (artifact.contentVersion !== lesson.contentVersion) continue;
     const question = lessonQuestions(lesson).find(item => item.questionId === artifact.question.questionId);
-    if (!question || canonical(question) !== canonical(artifact.question)) throw new Error("기록의 자료 판과 문항 내용이 맞지 않습니다. 원본을 보존하고 연결하지 않았습니다.");
+    // Only what the learner saw before answering is compared. A snapshot from the time cards showed everything carries more, which is ignored.
+    if (!question || canonical(question) !== canonical(closedSnapshot(artifact.question))) throw new Error("기록의 자료 판과 문항 내용이 맞지 않습니다. 원본을 보존하고 연결하지 않았습니다.");
   }
   const restored: LessonState = { ...value, artifacts: value.artifacts.map(artifact => ({ ...artifact, threads: artifact.threads.map(thread => ({ ...thread, turns: restoredTurns(thread.turns) })) })) };
   return syncReading(restored, now);

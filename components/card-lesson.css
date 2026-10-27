@@ -27,6 +27,12 @@
 .lw-app .cl-card-foot>button{min-height:44px;padding:8px 14px;border:1px solid #ced5c4;background:#fff;color:#3f5730;border-radius:4px;font:inherit;font-size:12px}
 .lw-app .cl-card-foot>button[aria-pressed="true"]{border-color:#637d4b;background:#eef3e6}
 .lw-app .cl-card-fact{font-size:11px;color:#59644f}
+/* A closed card holds a short note (and, for an old record, one button); an opened card shows its sense, example and basis below the answer. */
+.lw-app .cl-closed{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 14px}
+.lw-app .cl-closed-note{margin:0;font-size:11px;line-height:1.7;color:#59644f;overflow-wrap:anywhere}
+.lw-app .cl-open-button{min-height:44px;padding:8px 14px;border:1px solid #ced5c4;background:#fff;color:#3f5730;border-radius:4px;font:inherit;font-size:12px}
+.lw-app .cl-open-button:disabled{opacity:.6}
+.lw-app .cl-opened{margin:0 0 6px}
 .lw-app .cl-pairs{margin-top:8px}
 .lw-app .cl-pairs>h2{font-size:15px;margin:0 0 10px}
 .lw-app .cl-pairs .links{display:grid;gap:10px}

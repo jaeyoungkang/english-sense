@@ -68,13 +68,16 @@ test.describe("card lesson: judging, revising and the answer happen inside the c
     await expect(chat(page).locator("form.lw-attempt-form, input")).toHaveCount(0);
     await expect(page.locator(".lw-reading-context")).toContainText("입력 대상: 아직 없음");
     await blank(page, TWO, 1).fill("pick");
-    // Working in a card makes it the chat's target without any event.
-    await expect(context(page)).toContainText("입력 대상: 카드 12 · pick up");
+    // Working in a card makes it the chat's target without any event. The card is still closed, so it is named by its number only.
+    await expect(context(page)).toContainText("입력 대상: 카드 12");
+    await expect(context(page)).not.toContainText("pick up");
     await blank(page, TWO, 2).fill("down");
     expect(await stored(page).catch(() => null)).not.toBeNull();
     const checked = page.waitForResponse(response => response.url().includes("/api/lesson-check/"));
     await section(page, TWO).getByRole("button", { name: "첫 답 남기기" }).click();
     const body = await (await checked).text();
+    // The response opens the card (its expression, sense, example and basis) but never carries the canonical answers.
+    expect(JSON.parse(body)).toMatchObject({ kind: "fill", matches: [true, false], card: { expression: "pick up" } });
     expect(body).not.toContain('"up"');
     expect(body).not.toContain("answers");
     const judgement = section(page, TWO).locator(".cl-judgement").first();
@@ -282,13 +285,13 @@ test.describe("card lesson: the AI is called only when the learner sends", () =>
     await expect(timeline(page).locator(".lw-waiting")).toContainText("카드 12 · pick up");
     // While the request is pending the learner works in another card: it becomes the target, the request keeps its own.
     await blank(page, ONE, 1).fill("kind");
-    await expect(context(page)).toContainText("카드 1 · kind of");
+    await expect(context(page)).toContainText(/입력 대상: 카드 1(?!\d)/);
     await section(page, ONE).scrollIntoViewIfNeeded();
     const scrollBefore = await page.evaluate(() => scrollY);
     release();
     await expect(timeline(page).locator(".lw-assistant-message")).toContainText("검사용 늦은 응답");
     await expect(timeline(page).locator(".lw-assistant-message .lw-message-meta")).toContainText("카드 12 · pick up");
-    await expect(context(page)).toContainText("카드 1 · kind of");
+    await expect(context(page)).toContainText(/입력 대상: 카드 1(?!\d)/);
     expect(Math.abs((await page.evaluate(() => scrollY)) - scrollBefore)).toBeLessThanOrEqual(2);
     const record = await stored(page);
     const original = record.artifacts.find(artifact => artifact.question.questionId === TWO)!;
@@ -321,7 +324,8 @@ test.describe("card lesson: document, links and records", () => {
     await expect((await outline(page)).getByRole("link")).toHaveCount(wonder0.unit.cards.length);
     await open(page, wonder0, `#${TWO}`);
     await expect(section(page, TWO)).toBeInViewport();
-    await expect(context(page)).toContainText("입력 대상: 카드 12 · pick up");
+    await expect(context(page)).toContainText("입력 대상: 카드 12");
+    await expect(context(page)).not.toContainText("pick up");
     const record = await stored(page);
     expect(record.events).toEqual([]);
     expect(record.artifacts).toEqual([]);
@@ -462,19 +466,20 @@ for (const [width, height] of [[1440, 900], [1100, 800], [390, 844], [320, 640]]
     expect(headingTop).toBeGreaterThanOrEqual(Math.min(toolbarBottom, 0) - 1);
     await heading.scrollIntoViewIfNeeded();
     expect(await unobscured(heading)).toBe(true);
-    await expect(heading).toContainText(cards[21].expression);
+    await expect(heading).toHaveText("카드 22");
     await expect(page.locator("section.cl-card form")).toHaveCount(22);
     const input = blank(page, cards[20].id, 1);
     await input.scrollIntoViewIfNeeded();
     expect(await unobscured(input)).toBe(true);
     await input.fill("x");
     await expect(input).toHaveValue("x");
-    await expect(context(page)).toContainText(`카드 21 · ${cards[20].expression}`);
+    await expect(context(page)).toContainText(/입력 대상: 카드 21(?!\d)/);
     const submitButton = section(page, cards[20].id).getByRole("button", { name: "첫 답 남기기" });
     await submitButton.scrollIntoViewIfNeeded();
     expect(await unobscured(submitButton)).toBe(true);
     const askButton = section(page, cards[20].id).getByRole("button", { name: /질문하기$/ });
-    await askButton.scrollIntoViewIfNeeded();
+    // Centered, not aligned to the edge: an edge-aligned button can end a fraction of a pixel past the viewport with the card's note lines.
+    await askButton.evaluate(element => element.scrollIntoView({ block: "center" }));
     expect(await unobscured(askButton)).toBe(true);
     const question = page.getByLabel("이 카드에 대해 질문하기");
     await question.scrollIntoViewIfNeeded();
@@ -520,7 +525,8 @@ test("no answer string of any card reaches the first HTML, the RSC payload, clie
       expect(response.status(), `${path} ${label}`).toBe(200);
       const text = await response.text();
       expect(leaks(text, unit.cards), `${path} ${label}`).toEqual([]);
-      expect(unit.cards.every(card => text.includes(card.expression)), `${path} ${label} shows its cards`).toBe(true);
+      // The page still shows each card as the learner sees it before answering: its meaning (the expression is the recall's job, see card-recall.spec.ts).
+      expect(unit.cards.every(card => escapes(card.meaning).some(value => text.includes(value))), `${path} ${label} shows its cards`).toBe(true);
       expect(text.includes('"answers"'), `${path} ${label} has no answers key`).toBe(false);
     }
   }

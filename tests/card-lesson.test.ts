@@ -59,9 +59,13 @@ test("neighbouring units, the count label and the stories written with the expre
   assert.equal(movie.listHref, "/prep/zootopia/");
 });
 
-test("the source line of an example matches the old page", async () => {
+test("the source line of an example (from the judgement's card) and of the blank sentence matches the old page", async () => {
   const { lesson } = await view();
-  assert.match(placeLabel(lesson.work, lesson.cards[0].example), /^Wonder \(R\. J\. Palacio, 2012\) · \d부$/);
+  const request: LessonCheckRequest = { action: "check", lessonId: lesson.lessonId, questionId: lesson.cards[0].questionId, contentVersion: lesson.contentVersion, artifactId: "a-1", requestId: "r-1", attempt: { kind: "fill", inputs: ["x"] } };
+  const response = await respond(request);
+  assert.equal(response.kind, "fill");
+  const example = response.kind === "fill" ? response.card!.example : null;
+  assert.match(placeLabel(lesson.work, example!), /^Wonder \(R\. J\. Palacio, 2012\) · \d부$/);
   const movie = await view("zootopia", 0);
   assert.match(placeLabel(movie.lesson.work, movie.lesson.cards[0].drill), /^Zootopia \(2016\) · \d\d:\d\d:\d\d$/);
 });

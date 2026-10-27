@@ -14,6 +14,14 @@ export function storyPair(prep: PrepData, story: ReadingStory) {
   const unit = work?.units.find(u => u.n === story.pair!.unit);
   return work && unit ? { work, unit } : undefined;
 }
+/**
+ * 유닛 요약("표현 21개(kind of 136회 …)")에서 표현 이름이 든 괄호를 걷어 낸다. 카드 표현은 첫 답을 낸 뒤에야 이름을 붙이므로,
+ * 첫 답 전에 보이는 글(수업 화면, 목록, 페이지 설명)에는 이름 없는 요약을 쓴다.
+ */
+export function namelessSummary(summary: string) {
+  const head = summary.replace(/\s*[(（].*$/s, "").trim();
+  return /^\d+개$/.test(head) ? `표현 ${head}` : head;
+}
 export const cardCount = (work: Pick<PrepWork, "units">) => work.units.reduce((sum, unit) => sum + unit.cards.length, 0);
 
 function minutesLabel(seconds: number) {

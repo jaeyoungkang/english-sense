@@ -1,7 +1,7 @@
 import readingData from "../../content/reading.json";
 import prepData from "../../content/prep.json";
 import type { ContentPage } from "../content";
-import { cardCount, minutesLabel, unitPath, workLabel } from "../study-content";
+import { cardCount, minutesLabel, namelessSummary, unitPath, workLabel } from "../study-content";
 import { lessonListing, type LessonListing } from "../lesson-list";
 import type { PrepData, PrepSummary, ReadingData, ReadingSummary } from "../study-content-types";
 
@@ -16,11 +16,12 @@ export const getStudySource = () => ({ reading, prep });
  * 목록용 공개 요약: `/reading/`·`/prep/`·`/prep/<작품>/` 목록 페이지와 홈의 수업 목록 창이 쓴다.
  * 이야기는 문항 없이 제목·낱말·제한 시간·짝·문제 수만, 사전 훈련은 카드 없이 작품·유닛·카드 수만 낸다.
  * 이야기의 `answer`·`explain`·`basis`와 카드의 `drill.answers`가 담길 자리가 없는 모양이라 브라우저로 나가도 된다.
+ * 유닛 요약은 표현 이름을 지운 글이다. 카드 표현은 첫 답을 낸 뒤에야 이름을 붙이므로 목록도 이름을 나열하지 않는다.
  */
 export function getStudyListing(): { reading: ReadingSummary; prep: PrepSummary } {
   return {
     reading: { stories: reading.stories.map(({ id, title, words, limitSeconds, draft, pair, questions }) => ({ id, title, words, limitSeconds, draft, ...(pair ? { pair: { ...pair } } : {}), questionCount: questions.length })) },
-    prep: { works: prep.works.map(({ units, ...work }) => ({ ...work, cardCount: cardCount({ units }), units: units.map(({ n, when, summary, cards }) => ({ n, when, summary, cardCount: cards.length })) })) },
+    prep: { works: prep.works.map(({ units, ...work }) => ({ ...work, cardCount: cardCount({ units }), units: units.map(({ n, when, summary, cards }) => ({ n, when, summary: namelessSummary(summary), cardCount: cards.length })) })) },
   };
 }
 
@@ -58,7 +59,8 @@ export function studyPages(): ContentPage[] {
       path: unitPath(work, unit.n).slice(1), menu: "prep",
       crumbs: [["사전 훈련", "/prep/"], [work.title, `/prep/${work.id}/`], [`유닛 ${unit.n}`, null]],
       title: `${work.title} 사전 훈련 유닛 ${unit.n}(${unit.when}) | 영어 감각`,
-      description: `${work.title}를 ${unit.when === "보기 전" || unit.when === "읽기 전" ? unit.when : `${unit.when}에`} 익힐 표현 ${unit.cards.length}개: ${unit.cards.slice(0, 4).map(card => card.expression).join(", ")} …`,
+      // 표현 이름은 쓰지 않는다. 카드는 첫 답을 낸 뒤에야 표현을 보이므로 페이지 설명도 이름을 붙이지 않는다.
+      description: `${work.title}를 ${unit.when === "보기 전" || unit.when === "읽기 전" ? unit.when : `${unit.when}에`} 익힐 표현 ${unit.cards.length}개를 뜻과 힌트로 떠올려 빈칸에 채우는 카드 수업입니다.`,
       parts: [{ kind: "prep-unit", id: work.id, unit: unit.n }],
     });
   }

@@ -11,8 +11,8 @@ import type { Place } from "./study-content-types";
  * and never derive completion, mastery or progress.
  */
 
-/** A story written with the unit's expressions. Public fields only. */
-export type PairedStory = { id: string; title: string; words: number; limitSeconds: number; draft: boolean; questions: number };
+/** A story written with the unit's expressions. Public fields only. `title` is null when it would name one of the unit's expressions. */
+export type PairedStory = { id: string; title: string | null; words: number; limitSeconds: number; draft: boolean; questions: number };
 export type UnitLink = { n: number; when: string; href: string };
 /** Everything the unit page shows besides the lesson record: public data prepared by the server. */
 export type CardLessonView = {
@@ -24,6 +24,25 @@ export type CardLessonView = {
   next: UnitLink | null;
   pairs: PairedStory[];
 };
+
+const words = (text: string) => ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+/**
+ * The ways a card's expression is written: "hang out (with)" is "hang out", "look at / look up" is two forms, "be known for" is also "known for"
+ * (the Korean notes and the parts in parentheses are dropped).
+ */
+function expressionForms(expression: string): string[] {
+  const runs = expression.split("/").map(part => words(part.replace(/\([^)]*\)/g, " ").replace(/[^\x00-\x7F]+/g, " ")).trim()).filter(Boolean);
+  return [...new Set(runs.flatMap(run => { const bare = run.replace(/^be /, ""); return bare !== run && bare ? [run, bare] : [run]; }))];
+}
+/**
+ * Whether a text names one of the expressions (any form of it as a run of words, allowing a plural or -ed/-ing ending). A card names its
+ * expression only after the first answer, so the unit page keeps such a text out of what it shows before: "Ask Dude" would give away
+ * the card for "Dude".
+ */
+export function namesExpression(text: string, expressions: string[]) {
+  const normalized = words(text);
+  return expressions.some(expression => expressionForms(expression).some(run => new RegExp(` ${run}(?:s|es|ed|ing)? `).test(normalized)));
+}
 
 /** Source line of an example or a blank sentence. Example: "Wonder (R. J. Palacio, 2012) · 8부", "Zootopia (2016) · 01:21:09". */
 export function placeLabel(work: PublicCardsLesson["work"], place: Place) {

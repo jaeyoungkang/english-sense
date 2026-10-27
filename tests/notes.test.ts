@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cardBlocks, cardSentenceRuns, haveBlocks, haveSourceRuns, isStoryBodyKey, storyBlocks } from "../lib/note-blocks";
+import { cardBlocks, cardSentenceRuns, haveBlocks, haveSourceRuns, isClosedCardBlock, isStoryBodyKey, storyBlocks } from "../lib/note-blocks";
 import {
   GAP_CHAR, addNote, clearMark, cleanMemo, locateNote, makeNote, noteFileText, noteLimits, noteStorageKey, placeNotes, readNotes, readable, removeNote, runsText, segmentsOf, setMemo, trimSpan, type Note,
 } from "../lib/notes";
@@ -159,8 +159,18 @@ test("the blocks of every lesson are public text only", async () => {
   const cards = await getPublicLesson("wonder-unit-0");
   assert.equal(cards.kind, "cards");
   if (cards.kind === "cards") {
-    const blocks = cardBlocks(cards);
+    // Closed cards (nothing answered yet): only the meaning and the blank sentence are blocks. Sense, example and basis are not known to the page.
+    const closed = cardBlocks(cards, () => null);
+    assert.equal(Object.keys(closed).length, cards.cards.length * 2);
+    assert.ok(Object.keys(closed).every(key => /-(meaning|sentence)$/.test(key)), Object.keys(closed).join());
+    assert.ok(cards.cards.every(card => ["sense", "example", "basis"].every(field => isClosedCardBlock(cards, `card-${card.questionId}-${field}`, () => null))));
+    assert.equal(isClosedCardBlock(cards, "card-removed-card-basis", () => null), false, "a block of a card the lesson does not have is not a closed card's block");
+    // With the card's text from a judgement response, its five blocks exist in the old order.
+    const opened = (questionId: string) => ({ expression: "kind of", count: 3, sense: "sense text", basis: "basis text", example: { part: 1, text: `example of ${questionId}` } });
+    const blocks = cardBlocks(cards, opened);
     assert.equal(Object.keys(blocks).length, cards.cards.length * 5);
+    assert.deepEqual(Object.keys(blocks).slice(0, 5).map(key => key.replace(/^card-.+-/, "")), ["meaning", "sense", "example", "sentence", "basis"]);
+    assert.ok(!isClosedCardBlock(cards, `card-${cards.cards[0].questionId}-sense`, opened));
     for (const card of cards.cards) {
       assert.equal(runsText(blocks[`card-${card.questionId}-sentence`]).split(GAP_CHAR).length - 1, card.drill.blanks);
       assert.ok(!Object.values(blocks).some(runs => runsText(runs).includes("answers")));

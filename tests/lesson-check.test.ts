@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { isLessonCheckRequest, isLessonCheckResponse, lessonCheckLimits, type LessonCheckRequest, type LessonCheckResponse } from "../lib/lesson-contract";
 import { LESSONS } from "../lib/lesson-registry";
-import { getLessonContentVersion } from "../lib/server/lesson-catalog";
+import { getLessonContentVersion, openedCard } from "../lib/server/lesson-catalog";
 import { handleLessonCheck } from "../lib/server/lesson-check";
 import { LessonAttemptError, judge } from "../lib/server/lesson-judge";
 import { getServerLessonQuestion } from "../lib/server/lesson-catalog";
@@ -96,8 +96,13 @@ test("a wrong fill response never contains a canonical answer, by key or by text
     cards += 1;
     const { status, body } = await call(await cardRequest({ attempt: { kind: "fill", inputs: target.drill.answers.map(() => "zzz") } }, target));
     assert.equal(status, 200, target.id);
-    assert.deepEqual(Object.keys(body).sort(), ["allMatch", "artifactId", "contentVersion", "kind", "lessonId", "matches", "questionId", "requestId"], target.id);
-    assert.deepEqual(skeleton(body), { kind: "fill", matches: target.drill.answers.map(() => false), allMatch: false }, target.id);
+    // 응답은 이제 정오와 무관하게 카드의 글(`card`)을 싣는다. 그 밖의 키와 값은 전과 같고, 정답 배열·`drill`은 어디에도 없다.
+    assert.deepEqual(Object.keys(body).sort(), ["allMatch", "artifactId", "card", "contentVersion", "kind", "lessonId", "matches", "questionId", "requestId"], target.id);
+    const { card: opened, ...rest } = skeleton(body);
+    assert.deepEqual(rest, { kind: "fill", matches: target.drill.answers.map(() => false), allMatch: false }, target.id);
+    assert.deepEqual(opened, openedCard(target), target.id);
+    assert.ok(!JSON.stringify(body).includes('"answers"') && !JSON.stringify(body).includes('"drill"'), `${target.id}: no answers array or drill in the response`);
+    assert.ok(!JSON.stringify(body).includes(JSON.stringify(target.drill.answers)), `${target.id}: the answers array is not in the response`);
   }
   assert.equal(cards, prep.works.reduce((sum, work) => sum + work.units.reduce((s, item) => s + item.cards.length, 0), 0));
   // 응답 전체 문자열에도 답이 없다. 되돌리는 ID에 우연히 들어가지 않도록 요청 ID를 고정 문자열로 둔다.

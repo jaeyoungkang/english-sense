@@ -479,7 +479,7 @@ test("an older content version is kept read-only: it can be read but never judge
   assert.equal(acceptLessonCheck(restored, lateRequest, { ...(await respond(request)), contentVersion: changed.contentVersion } as LessonCheckResponse), restored);
   // a record of the current version must still match the current question text
   const tampered = copy(state);
-  (tampered.artifacts[0].question as { sense: string }).sense = "changed";
+  (tampered.artifacts[0].question as { meaning: string }).meaning = "changed";
   assert.throws(() => restoreLessonState(JSON.stringify(tampered), doc, T0), /맞지 않습니다/);
 });
 

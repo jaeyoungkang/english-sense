@@ -1,5 +1,6 @@
 import { splitBlanks } from "./fill-blank";
 import type { PublicLearningCatalog } from "./learning-catalog";
+import type { OpenedCard } from "./lesson-contract";
 import type { PublicCardsLesson, PublicStoryLesson } from "./lesson-registry";
 import { runsText, type NoteRun } from "./notes";
 import type { ReferenceMaterial } from "./reference-materials";
@@ -47,14 +48,27 @@ export function cardSentenceRuns(sentence: string): NoteRun[] {
 }
 export const cardBasisRuns = (basis: string): NoteRun[] => plain(`근거: ${basis}`);
 
-export function cardBlocks(lesson: PublicCardsLesson): NoteBlocks {
+/** The fields a card shows only after its first answer. Their text comes from the judgement's `card`, never from the public lesson. */
+const OPENED_FIELD = /^card-(.+)-(sense|example|basis)$/;
+/**
+ * True for a block of a card of this lesson that is still closed: its text is not known to the page yet, so a note cannot be made on it
+ * and a note kept from before waits for the card to open. A block of a card the lesson no longer has is not one of these.
+ */
+export const isClosedCardBlock = (lesson: Pick<PublicCardsLesson, "cards">, key: string, opened: (questionId: string) => OpenedCard | null) => {
+  const match = OPENED_FIELD.exec(key);
+  return !!match && lesson.cards.some(card => card.questionId === match[1]) && !opened(match[1]);
+};
+
+/** A closed card offers its meaning and blank sentence. Sense, example and basis are blocks only once the card is open. */
+export function cardBlocks(lesson: PublicCardsLesson, opened: (questionId: string) => OpenedCard | null): NoteBlocks {
   const blocks: NoteBlocks = {};
   for (const card of lesson.cards) {
+    const open = opened(card.questionId);
     blocks[cardKey(card.questionId, "meaning")] = plain(card.meaning);
-    blocks[cardKey(card.questionId, "sense")] = plain(card.sense);
-    blocks[cardKey(card.questionId, "example")] = plain(card.example.text);
+    if (open) blocks[cardKey(card.questionId, "sense")] = plain(open.sense);
+    if (open) blocks[cardKey(card.questionId, "example")] = plain(open.example.text);
     blocks[cardKey(card.questionId, "sentence")] = cardSentenceRuns(card.drill.sentence);
-    blocks[cardKey(card.questionId, "basis")] = cardBasisRuns(card.basis);
+    if (open) blocks[cardKey(card.questionId, "basis")] = cardBasisRuns(open.basis);
   }
   return blocks;
 }

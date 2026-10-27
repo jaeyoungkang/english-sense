@@ -59,14 +59,23 @@ test("when time runs out the story closes and the questions open", async ({ page
   await expect(page.getByRole("form", { name: "문제 1 첫 답" }).getByRole("radio")).toHaveCount(story.questions[0].options.length);
 });
 
-test("unit cards show their source line and whether the count is for the whole work", async ({ page }) => {
+test("unit cards show their source line, and once opened by a first answer whether the count is for the whole work", async ({ page }) => {
   await page.goto("/prep/wonder/unit-0/");
   const card = page.locator("section.cl-card", { has: page.locator("#wonder-0-12") });
+  // Before a first answer the card holds the blank sentence and its source line; the count and the example open with the first answer.
+  await expect(card.locator(".cl-source")).toHaveText(/^Wonder \(R\. J\. Palacio, 2012\) · \d부$/);
+  await expect(card.locator(".cl-count, .cl-example")).toHaveCount(0);
+  await card.getByLabel("빈칸 1", { exact: true }).fill("pick");
+  await card.getByRole("button", { name: "첫 답 남기기" }).click();
   await expect(card.locator(".cl-count")).toContainText("책 전체");
   await expect(card.locator(".cl-example figcaption")).toHaveText(/^Wonder \(R\. J\. Palacio, 2012\) · \d부$/);
   await page.goto("/prep/zootopia/unit-0/");
-  await expect(page.locator("section.cl-card").first().locator(".cl-example figcaption")).toHaveText(/^Zootopia \(2016\) · \d\d:\d\d:\d\d$/);
-  await expect(page.locator("section.cl-card").first().locator(".cl-count")).toContainText("영화 전체");
+  const first = page.locator("section.cl-card").first();
+  await expect(first.locator(".cl-source")).toHaveText(/^Zootopia \(2016\) · \d\d:\d\d:\d\d$/);
+  await first.getByLabel("빈칸 1", { exact: true }).fill("x");
+  await first.getByRole("button", { name: "첫 답 남기기" }).click();
+  await expect(first.locator(".cl-example figcaption")).toHaveText(/^Zootopia \(2016\) · \d\d:\d\d:\d\d$/);
+  await expect(first.locator(".cl-count")).toContainText("영화 전체");
 });
 
 test("the reading list separates paired stories by work and marks every story as a draft", async ({ page }) => {

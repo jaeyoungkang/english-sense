@@ -434,7 +434,7 @@ test.describe("pointer and document", () => {
     await page.keyboard.press("Control+Enter");
     const toggle = page.getByRole("button", { name: /^목차 (접기|펼치기)$/ });
     if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
-    await page.getByRole("navigation", { name: "학습 문서 목차" }).getByRole("link", { name: /I mean/ }).click();
+    await page.getByRole("navigation", { name: "학습 문서 목차" }).getByRole("link", { name: /카드 13 / }).click();
     const topOf = (id: string) => section(id).evaluate(element => Math.round(element.getBoundingClientRect().top));
     await expect.poll(() => topOf("wonder-0-13")).toBeLessThan(260);
     expect(await topOf("wonder-0-13")).toBeGreaterThan(-10);
@@ -462,15 +462,16 @@ test.describe("pointer and document", () => {
 });
 
 test.describe("cards", () => {
-  test("notes on the meaning, sense, example, basis and the blank sentence; the sentence note survives typing in a blank and a reload", async ({ page }) => {
+  test("notes on the meaning and the blank sentence; the sense, example and basis take notes only once the first answer opened the card", async ({ page }) => {
     await openCard(page);
     const card = (field: string) => `card-${TWO}-${field}`;
-    for (const [field, start, length] of [["meaning", 0, 4], ["sense", 0, 6], ["example", 0, 10], ["basis", 4, 6]] as const) {
-      await select(page, card(field), start, length);
-      await bar(page, "밑줄 긋기").click();
-      await expect(segs(page, card(field)).first()).toHaveClass(/np-u/);
-      await page.keyboard.press("Escape");
-    }
+    const closed = page.locator(`section.cl-card[data-question-id="${TWO}"]`);
+    // A closed card has no sense, example or basis on the page, so there is nothing to put a note on.
+    for (const field of ["sense", "example", "basis"]) await expect(page.locator(`[data-note-block="${card(field)}"]`)).toHaveCount(0);
+    await select(page, card("meaning"), 0, 4);
+    await bar(page, "밑줄 긋기").click();
+    await expect(segs(page, card("meaning")).first()).toHaveClass(/np-u/);
+    await page.keyboard.press("Escape");
     // The blank sentence: a selection across the first blank.
     const sentenceQuote = await page.evaluate(id => {
       const element = document.querySelector(`[data-note-block="${id}"]`)!;
@@ -484,12 +485,22 @@ test.describe("cards", () => {
     const marks = page.locator(`[data-note-block="${card("sentence")}"] mark.np-yellow`);
     expect(await marks.count()).toBeGreaterThanOrEqual(2);
     // The blanks are still inputs inside the sentence; typing in one changes neither the note nor the record of notes.
-    const input = page.locator(`section.cl-card[data-question-id="${TWO}"]`).getByLabel("빈칸 1", { exact: true });
+    const input = closed.getByLabel("빈칸 1", { exact: true });
     const before = await stored(page, CARD_LESSON);
     await input.fill("pick");
     await expect(input).toHaveValue("pick");
     expect(await stored(page, CARD_LESSON)).toBe(before);
-    expect((await storedNotes(page, CARD_LESSON)).map(note => note.block)).toEqual([card("meaning"), card("sense"), card("example"), card("basis"), card("sentence")]);
+    // The first answer (wrong or right) opens the card; only then its sense, example and basis are text a note can sit on.
+    await closed.getByLabel("빈칸 2", { exact: true }).fill("down");
+    await closed.getByRole("button", { name: "첫 답 남기기" }).click();
+    await expect(closed).toHaveAttribute("data-card-open", "true");
+    for (const [field, start, length] of [["sense", 0, 6], ["example", 0, 10], ["basis", 4, 6]] as const) {
+      await select(page, card(field), start, length);
+      await bar(page, "밑줄 긋기").click();
+      await expect(segs(page, card(field)).first()).toHaveClass(/np-u/);
+      await page.keyboard.press("Escape");
+    }
+    expect((await storedNotes(page, CARD_LESSON)).map(note => note.block)).toEqual([card("meaning"), card("sentence"), card("sense"), card("example"), card("basis")]);
     await page.reload(); await ready(page);
     for (const field of ["meaning", "sense", "example", "basis"]) await expect(segs(page, card(field)).first()).toHaveClass(/np-u/);
     expect(await page.locator(`[data-note-block="${card("sentence")}"] mark.np-yellow`).count()).toBeGreaterThanOrEqual(2);

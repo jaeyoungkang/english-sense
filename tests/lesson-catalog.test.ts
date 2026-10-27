@@ -143,6 +143,6 @@ test("mutating a public projection cannot change later projections or the canoni
   assert.equal(fresh.kind === "story" && fresh.questions[0].options[0], firstOption);
   assert.equal(reading.stories[0].questions[0].options[0], firstOption);
   const cards = await getPublicLesson("wonder-unit-0");
-  if (cards.kind === "cards") cards.cards[0].example.text = "client mutation";
-  assert.notEqual(prep.works[0].units[0].cards[0].example.text, "client mutation");
+  if (cards.kind === "cards") cards.cards[0].drill.sentence = "client mutation";
+  assert.notEqual(prep.works[0].units[0].cards[0].drill.sentence, "client mutation");
 });
