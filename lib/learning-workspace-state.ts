@@ -1,9 +1,12 @@
 import { ARTIFACT_LESSON_ID, LEARNING_QUESTION_IDS, LEGACY_HAVE_CONTENT_VERSION, type PublicLearningCatalog, type PublicLearningQuestion } from "./learning-catalog";
-import { LEARNING_LESSON_ID, learningChatLimits, type ArtifactInitialAttempt, type ArtifactLearningChatResponse, type LearningChatMessage } from "./learning-chat-contract";
+import { LEARNING_LESSON_ID, learningChatLimits, type ArtifactInitialAttempt } from "./learning-chat-contract";
+import { characterCount, findArtifact, identity, newId, object, publicKeys, restoredTurns, text, updateArtifact, validTurn, type WorkspaceThread, type WorkspaceTurn } from "./learning-thread";
+
+// The conversation lifecycle is shared with lesson v4 (learning-thread.ts); these names stay available from here.
+export { acceptReply, activeThread, beginTurn, characterCount, findArtifact, historyFor, markTurn, retryTurn, startThread, threadLimit, updateArtifact } from "./learning-thread";
+export type { WorkspaceThread, WorkspaceTurn } from "./learning-thread";
 
 export const WORKSPACE_STORAGE_KEYS = { v3: "english-sense-learning-workspace-v3", v2: "english-sense-learning-workspace-v2", v1: "english-sense-learning-workspace-v1" } as const;
-export type WorkspaceTurn = { id: string; requestId: string; user: string; origin: "question" | "submission"; status: "pending" | "complete" | "failed" | "cancelled"; reply?: string; mode?: "guidance" | "ai"; error?: string };
-export type WorkspaceThread = { id: string; turns: WorkspaceTurn[]; draft?: string };
 export type QuizArtifact = { artifactId: string; lessonId: typeof ARTIFACT_LESSON_ID; contentVersion: string; question: PublicLearningQuestion; source: PublicLearningCatalog["source"]; choice: string; answerDraft: string; reason: string; initialAttempt: ArtifactInitialAttempt | null; revisions: { text: string }[]; revisionDraft: string; revisionOpen: boolean; messageDraft: string; threads: WorkspaceThread[]; activeThreadId: string; legacyImport?: { version: 1 | 2; record: LegacyBase & { events?: LegacyEvent[] } } };
 export type WorkspaceEvent = { id: string; artifactId: string } & (
   | { kind: "card" | "initial" | "legacy" }
@@ -12,12 +15,7 @@ export type WorkspaceEvent = { id: string; artifactId: string } & (
   | { kind: "request" | "retry" | "reply"; threadId: string; turnId: string; requestId: string }
 );
 export type WorkspaceState = { version: 3; lessonId: typeof ARTIFACT_LESSON_ID; artifacts: QuizArtifact[]; selectedArtifactId: string; events: WorkspaceEvent[] };
-export const characterCount = (text: string) => [...text].length;
 const chars = characterCount;
-const newId = () => crypto.randomUUID();
-const identity = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(value);
-const text = (value: unknown, max: number, required = false): value is string => typeof value === "string" && chars(value) <= max && (!required || !!value.trim());
-const publicKeys = (value: Record<string, unknown>, allowed: string[]) => Object.keys(value).every(key => allowed.includes(key));
 
 function validQuestion(value: unknown): value is PublicLearningQuestion {
   if (!object(value) || !publicKeys(value, ["questionId", "type", "ch", "who", "scene", "ask", "opts"]) || !LEARNING_QUESTION_IDS.includes(value.questionId as PublicLearningQuestion["questionId"]) || !Number.isInteger(value.ch) || !text(value.who, 1000, true) || !text(value.scene, 10000, true) || !text(value.ask, 10000, true)) return false;
@@ -39,13 +37,6 @@ export function createWorkspace(catalog: PublicLearningCatalog): WorkspaceState 
   const artifact = artifactFrom(catalog, catalog.questions[0]);
   return { version: 3, lessonId: catalog.lessonId, artifacts: [artifact], selectedArtifactId: artifact.artifactId, events: [{ id: `${artifact.artifactId}-opened`, kind: "card", artifactId: artifact.artifactId }] };
 }
-export function findArtifact(state: WorkspaceState, artifactId: string): QuizArtifact {
-  const artifact = state.artifacts.find(item => item.artifactId === artifactId);
-  if (!artifact) throw new Error("질문할 퀴즈를 찾지 못했습니다.");
-  return artifact;
-}
-export function activeThread(artifact: QuizArtifact): WorkspaceThread { const thread = artifact.threads.find(item => item.id === artifact.activeThreadId); if (!thread) throw new Error("대화를 찾지 못했습니다."); return thread; }
-export function updateArtifact(state: WorkspaceState, artifactId: string, update: (artifact: QuizArtifact) => QuizArtifact): WorkspaceState { return { ...state, artifacts: state.artifacts.map(item => item.artifactId === artifactId ? update(item) : item) }; }
 export function selectArtifact(state: WorkspaceState, artifactId: string): WorkspaceState { findArtifact(state, artifactId); return { ...state, selectedArtifactId: artifactId }; }
 /** Reading the complete catalog never registers a selection, submission or request. */
 export function projectDocumentArtifacts(state: WorkspaceState, catalog: PublicLearningCatalog): QuizArtifact[] {
@@ -86,41 +77,6 @@ export function addRevision(state: WorkspaceState, artifactId: string, value: st
   const next = updateArtifact(state, artifactId, item => ({ ...item, revisions: [...item.revisions, { text: content }], revisionDraft: "", revisionOpen: false }));
   return { ...next, events: [...next.events, { id: newId(), artifactId, kind: "revision", index: artifact.revisions.length }] };
 }
-export function historyFor(thread: WorkspaceThread): LearningChatMessage[] { return thread.turns.filter(turn => turn.status === "complete").flatMap(turn => [{ role: "user" as const, content: turn.user }, { role: "assistant" as const, content: turn.reply! }]); }
-export function threadLimit(thread: WorkspaceThread): string | null {
-  const messages = historyFor(thread);
-  return messages.length > learningChatLimits.historyMessages || messages.some(item => chars(item.content) > learningChatLimits.historyMessage) || messages.reduce((sum, item) => sum + chars(item.content), 0) > learningChatLimits.historyCharacters ? "이 퀴즈의 대화 길이 한도에 도달했습니다. 내용을 자르지 않고 보존합니다. 이 퀴즈의 새 대화를 열 수 있습니다." : null;
-}
-function updateThread(state: WorkspaceState, artifactId: string, threadId: string, update: (thread: WorkspaceThread) => WorkspaceThread): WorkspaceState { return updateArtifact(state, artifactId, item => ({ ...item, threads: item.threads.map(thread => thread.id === threadId ? update(thread) : thread) })); }
-export function beginTurn(state: WorkspaceState, artifactId: string, turn: WorkspaceTurn): WorkspaceState {
-  const artifact = findArtifact(state, artifactId), thread = activeThread(artifact);
-  if (threadLimit(thread) || thread.turns.some(item => item.status === "pending" || item.status === "failed") || !validTurn(turn) || turn.status !== "pending" || !identity(turn.id) || !identity(turn.requestId) || !turn.user.trim() || thread.turns.some(item => item.id === turn.id)) throw new Error("이 대화의 처리 중이거나 실패한 요청을 먼저 확인합니다.");
-  const next = updateThread(state, artifactId, thread.id, item => ({ ...item, turns: [...item.turns, turn] }));
-  return { ...next, events: [...next.events, { id: newId(), kind: "request", artifactId, threadId: thread.id, turnId: turn.id, requestId: turn.requestId }] };
-}
-export function retryTurn(state: WorkspaceState, artifactId: string, threadId: string, turnId: string, requestId: string): WorkspaceState {
-  const artifact = findArtifact(state, artifactId), thread = artifact.threads.find(item => item.id === threadId), turn = thread?.turns.find(item => item.id === turnId);
-  if (!thread || !turn || turn.status !== "failed" || threadId !== artifact.activeThreadId || threadLimit(thread)) throw new Error("현재 대화에서 실패한 요청만 다시 보낼 수 있습니다.");
-  const next = updateThread(state, artifactId, threadId, item => ({ ...item, turns: item.turns.map(item => item.id === turnId ? { ...item, requestId, status: "pending", error: undefined } : item) }));
-  return { ...next, events: [...next.events, { id: newId(), kind: "retry", artifactId, threadId, turnId, requestId }] };
-}
-export function markTurn(state: WorkspaceState, artifactId: string, threadId: string, turnId: string, requestId: string, status: "failed" | "cancelled", error: string): WorkspaceState {
-  return updateThread(state, artifactId, threadId, thread => ({ ...thread, turns: thread.turns.map(turn => turn.id === turnId && turn.requestId === requestId && turn.status !== "complete" ? { ...turn, status, error } : turn) }));
-}
-export function acceptReply(state: WorkspaceState, response: ArtifactLearningChatResponse): WorkspaceState {
-  const artifact = state.artifacts.find(item => item.artifactId === response.artifactId);
-  if (!artifact || artifact.question.questionId !== response.questionId || artifact.contentVersion !== response.contentVersion) return state;
-  const thread = artifact.threads.find(item => item.turns.some(turn => turn.requestId === response.requestId && turn.status === "pending"));
-  const turn = thread?.turns.find(item => item.requestId === response.requestId && item.status === "pending");
-  if (!thread || !turn) return state;
-  const next = updateThread(state, artifact.artifactId, thread.id, item => ({ ...item, turns: item.turns.map(item => item.id === turn.id ? { ...item, status: "complete", reply: response.reply, mode: response.mode } : item) }));
-  return { ...next, events: [...next.events, { id: newId(), kind: "reply", artifactId: artifact.artifactId, threadId: thread.id, turnId: turn.id, requestId: response.requestId }] };
-}
-export function startThread(state: WorkspaceState, artifactId: string): WorkspaceState {
-  const artifact = findArtifact(state, artifactId), thread = activeThread(artifact), threadId = newId();
-  const next = updateArtifact(state, artifactId, item => ({ ...item, threads: [...item.threads.map(item => item.id === thread.id ? { ...item, draft: artifact.messageDraft, turns: item.turns.map(turn => turn.status === "pending" ? { ...turn, status: "cancelled" as const, error: "이 퀴즈의 새 대화를 열어 기다리기를 중단했습니다." } : turn) } : item), { id: threadId, turns: [] }], activeThreadId: threadId, messageDraft: "" }));
-  return { ...next, events: [...next.events, { id: newId(), kind: "thread", artifactId, threadId }] };
-}
 
 // Exact legacy shape and validation stay separate from the v3 artifact contract.
 type LegacyAttempt = { choice: number; reason: string };
@@ -133,10 +89,6 @@ type LegacyEvent =
 type LegacyArchive = { id: string; turns: LegacyTurn[]; draft: string; events?: LegacyEvent[] };
 type LegacyBase = { lessonId: string; choice: string; reason: string; initialAttempt: LegacyAttempt | null; revisionDraft: string; revisions: { text: string }[]; messageDraft: string; turns: LegacyTurn[]; archives: LegacyArchive[] };
 type LegacyV2 = LegacyBase & { version: 2; events: LegacyEvent[]; revisionOpen: boolean };
-function object(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === "object" && !Array.isArray(value); }
-function validTurn(turn: unknown): turn is LegacyTurn {
-  return object(turn) && typeof turn.id === "string" && typeof turn.requestId === "string" && typeof turn.user === "string" && chars(turn.user) <= learningChatLimits.message && ["question", "submission"].includes(turn.origin as string) && ["pending", "complete", "failed", "cancelled"].includes(turn.status as string) && (turn.reply === undefined || (typeof turn.reply === "string" && chars(turn.reply) <= learningChatLimits.reply)) && (turn.mode === undefined || ["guidance", "ai"].includes(turn.mode as string)) && (turn.error === undefined || typeof turn.error === "string") && (turn.status !== "complete" || (typeof turn.reply === "string" && ["guidance", "ai"].includes(turn.mode as string)));
-}
 function validBase(value: unknown): value is LegacyBase {
   if (!object(value) || value.lessonId !== LEARNING_LESSON_ID || !["", "0", "1", "2"].includes(value.choice as string) || typeof value.reason !== "string" || chars(value.reason) > learningChatLimits.reason || typeof value.revisionDraft !== "string" || chars(value.revisionDraft) > learningChatLimits.revision || typeof value.messageDraft !== "string" || chars(value.messageDraft) > learningChatLimits.message) return false;
   if (value.initialAttempt !== null && (!object(value.initialAttempt) || ![0, 1, 2].includes(value.initialAttempt.choice as number) || typeof value.initialAttempt.reason !== "string" || !value.initialAttempt.reason.trim() || chars(value.initialAttempt.reason) > learningChatLimits.reason)) return false;
@@ -230,7 +182,6 @@ export function isWorkspaceState(value: unknown): value is WorkspaceState {
     });
   });
 }
-function restoredTurns(turns: WorkspaceTurn[]): WorkspaceTurn[] { return turns.map(turn => turn.status === "pending" ? { ...turn, status: "cancelled", error: "화면을 닫아 응답 기다리기를 중단했습니다. 자동으로 다시 전송하지 않습니다." } : turn); }
 function migrate(value: unknown, version: 1 | 2, catalog: PublicLearningCatalog): WorkspaceState {
   if (catalog.contentVersion !== LEGACY_HAVE_CONTENT_VERSION) throw new Error("이전 기록의 자료 판과 현재 자료가 다릅니다. 원본을 보존하고 자동으로 연결하지 않았습니다.");
   if (!(version === 2 ? validLegacyV2(value) : validBase(value) && (value as LegacyBase & { version?: number; pane?: string }).version === 1 && ["scene", "attempt", "chat"].includes((value as LegacyBase & { pane: string }).pane))) throw new Error("이전 임시 기록을 읽지 못했습니다. 원본을 보존합니다.");

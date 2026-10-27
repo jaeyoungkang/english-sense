@@ -430,3 +430,58 @@
 - `reveal`의 "첫 답 뒤에만" 정책은 요청에 첫 답 입력이 있는지까지만 서버가 본다. 실제 판정을 받았는지는 브라우저 기록(단계 3·7)이 지킨다.
 - 이야기 문항의 보기 수는 모두 4개임을 정본에서 확인했고 계약 검사도 0~3으로 고정했다. 보기 수가 다른 문항이 생기면 계약 상수를 고쳐야 한다(서버는 실제 보기 수로 한 번 더 거른다).
 - 읽기·사전 훈련 페이지의 선생성 산출물에는 단계 1이 적은 대로 정답·해설이 여전히 있다(단계 6·7에서 닫는다). 이 단계는 그 산출물을 바꾸지 않았다.
+
+### 단계 3 — 수업 기록 v4와 수업별 키 (2026-10-27)
+
+만든 것:
+
+- `lib/learning-thread.ts`: 대화 사건 수명주기 reducer(`beginTurn`·`retryTurn`·`markTurn`·`acceptReply`·`startThread`)와 턴 검증, 복원 시 대기 중
+  요청을 취소하는 `restoredTurns`, 공유하는 작은 검사 도우미를 `learning-workspace-state.ts`에서 옮겼다. 코드는 그대로이고 상태 타입만 일반화했다
+  (`ThreadedState`). `learning-workspace-state.ts`는 같은 이름을 다시 내보내므로 `components/`의 import는 바뀌지 않았다.
+  v3 검증(`validQuestion`·`validAttempt`·`validArtifact`·`isWorkspaceState`·`migrate`·`restoreWorkspace`)과 옛 판(`validBase`·`validLegacyV2`)은 한 줄도
+  바꾸지 않았다.
+- `lib/lesson-workspace-state.ts`: 이야기·카드 수업의 기록 v4. 수업마다 `LessonState` 하나.
+  - 키: `lessonStorageKeys(lessonId)`가 기록(`english-sense-lesson-v4:<lessonId>`)·문서 UI(`english-sense-document-ui-v1:<lessonId>`)·레이아웃
+    (`english-sense-workspace-layout-v1:<lessonId>`) 키를 돌려준다. `titanic-have`는 기존 v3 키와 전역 두 키를 그대로 돌려준다.
+  - 문항: 선택(`selectLessonQuestion`)은 `selectedQuestionId`만 바꾸고 사건·요청을 만들지 않는다. 문항 기록은 `registerLessonArtifact`가 사건 없이 만든다.
+  - 시도: `attempts`에 첫 답과 수정이 차례로 쌓이고(`initial`·`revision` 사건) 각 시도는 `check`(`LessonCheckResponse`, 응답이 `contentVersion`을 가진다)를 따로 가진다.
+    이야기는 첫 답 한 번, 카드는 첫 답 + 수정 6회이며 수정은 직전 시도의 판정을 받은 뒤에 한다.
+  - 판정·답 보기: `buildLessonCheckRequest`·`buildLessonRevealRequest`가 요청을 만들고 `acceptLessonCheck`·`acceptLessonReveal`이 요청 당시 대상
+    (requestId·lessonId·artifactId·questionId·contentVersion, 시도 내용)과 다르면 기록을 그대로 돌려준다. `reveal`은 첫 답이 있고 아직 안 봤을 때만 받으며 `afterAttempts`로
+    "답을 본 뒤"의 시도를 가른다.
+  - 읽기: `reading-start`(시작 시각·제한 초)와 `reading-end`(끝 시각·`time`|`user`). 마감은 벽시계(`startedAt + limit`)이고 `readingStatus`는 사건이 없어도 마감이 지났으면
+    끝으로 읽는다. `syncReading`·`endReading`은 읽기당 끝 사건을 한 번만 쓰고, 마감이 지난 뒤의 끝은 마감 시각의 `time`으로 쓴다. 복원(`restoreLessonState(raw, lesson, now)`)이 같은 동기화를 한다.
+    이야기의 문제·질문은 읽기 끝 사건 뒤에만 열린다(reducer와 검증 모두).
+  - 판: 다른 `contentVersion`의 문항 기록은 지우지 않고 보존하며 `lessonAccess`가 `old-version`을 돌려준다. 이때 시도·판정 요청 만들기·AI 전송 reducer는 던진다.
+    같은 판인데 문항 스냅샷이 다르면 복원이 던진다.
+  - 검증: `isLessonState`가 정확한 키, 시도·판정·답 보기의 서로 맞음, 사건과 기록의 서로 맞음(사건 순서 포함), 읽기 사건 규칙을 본다. `loadLessonRecord`는 수업 키 하나만 읽고 손상은 `ok: false`로 돌려주며 저장소를 쓰지 않는다.
+- `lib/lesson-contract.ts`: 시도 검사 함수를 `isLessonAttempt`로 내보냈다(이름만 바꾸고 동작은 같다). 기록과 요청이 같은 정의를 쓴다.
+
+계약과 다르거나 계약이 정하지 않아 고른 것:
+
+- 상수 치환: 수명주기 reducer에는 수업 상수(`LEARNING_LESSON_ID`, 7개 한도, `choice ∈ {0,1,2}`)가 들어 있지 않았다. 그 상수는 v3 검증, 옛 판 검증, 대화 요청 계약(`lib/learning-chat-contract.ts`)에 있다.
+  앞의 둘은 "v3 검증을 바꾸지 않는다"에 따라, 마지막은 단계 4(대화 API 일반화)의 범위라 이 단계에서 바꾸지 않았다. 그러므로 `tests/learning-catalog.test.ts`·`tests/learning-chat.test.ts`는 한 줄도 바꾸지 않았다.
+  v4는 상수 없이 레지스트리 항목(`entry.questionIds`)과 문항 스냅샷(보기 수, 빈칸 수)에서 한도를 푼다. 카드 22장과 4지 문항은 레지스트리의 28개 수업 전체로 검사했다.
+- v4 문항 기록은 v3처럼 문항의 공개 스냅샷을 담는다(이야기는 발문·보기, 카드는 표현·뜻·감각·예문·빈칸 문장). 판이 바뀐 뒤에도 무엇에 답했는지 보이기 위해서다.
+- 선택을 사건으로 만들지 않아 v3의 `card` 사건이 v4에 없다.
+- 대화 응답에 `lessonId`가 아직 없어 v4는 `LessonReply = ThreadReply & { lessonId }`를 받는다. 단계 4가 응답 계약에 `lessonId`를 더하거나 호출부가 요청 대상에서 채운다.
+- 같은 질문에 새 판으로 다시 답하는 길이 없다. 옛 판 기록이 그 문항 자리를 차지한다(아래 남은 한계).
+
+실행한 검사와 결과:
+
+| 검사 | 결과 |
+| --- | --- |
+| `npm run check`(`tsc --noEmit` + `tests/*.test.ts`) | 통과. 단위 128개 통과, 실패 0. 기존 108개는 수정 없이 통과하고 새 20개가 `tests/lesson-workspace-state.test.ts`다 |
+| have 동작 불변: 리팩터 전 `learning-workspace-state.ts`로 v3 흐름(생성·첫 답·수정·턴 시작·중복 거절·응답 채택·대상 불일치 거절 셋·실패 표시·재시도·새 대화·문항 선택·투영·복원 v3/v1·손상 거절)을 차례로 실행해 만든 결과 JSON(49,027바이트, 사건 ID는 고정)과 리팩터 뒤 결과를 비교 | 바이트 단위로 같음(`cmp`) |
+| 새 단위 20개: 키 분리(29개 수업 × 기록·문서·레이아웃 + v1·v2·v3 키가 모두 다름, have는 기존 키), 읽기 한 번·벽시계·마감 지난 복원(복원을 두 번 해도 끝 사건 1개), 읽기 사건 검증 11종, 읽기 전 답·질문 거절, 선택·읽기만으로 기록 불변, 첫 답 판정 보존, 수정이 첫 시도를 덮지 않음과 수정 6회 한도, 판정 대상 불일치 열 가지 거절과 한 번만 채택, 첫 답 전 `reveal` 거절과 "답을 본 뒤" 표시, 형식·불일치 거절 29종, 손상 격리와 원본 보존, 다른 판 기록의 읽기 전용, 복원이 요청을 만들지 않음, 응답 대상 불일치(lessonId 포함), 공유 수명주기, 진행률 필드 없음. 판정은 실제 `handleLessonCheck` 응답을 썼다 | 통과 |
+| 검사가 실제로 실패하는지: 여섯 곳을 일부러 깨 봄(`syncReading`이 기존 끝 사건을 무시, 수정이 첫 시도를 덮음, 첫 답 없는 `reveal` 채택, 복원이 마감 동기화를 건너뜀, 응답의 `lessonId` 무시, 판정의 `questionId` 대조 제거) | 각각 1~2개 검사가 실패함을 확인하고 되돌렸다 |
+| `tests/import-direction.test.ts` | 통과(새 모듈은 `lib/server`를 import하지 않는다) |
+
+남은 한계:
+
+- 화면은 연결하지 않았다. 새 모듈을 쓰는 곳은 단위 검사뿐이다. 브라우저 `localStorage` 읽기·쓰기와 e2e, `cf:build`, 실제 브라우저 동작은 이 단계에서 실행하지 않았다.
+- 시계: 저장된 시작 시각은 이 브라우저의 시계다. 기기 시계를 되돌리면 남은 시간이 제한을 넘게 보이지 않도록 `remainingMs`를 제한 이하로 자르지만, 시계 변경을 막지는 못한다(계약의 "보안 경계가 아니다").
+- 새 판 다시 시작: 옛 판 기록이 있는 문항에는 새 판의 첫 답을 낼 길이 없다. 초안 이야기가 고쳐지면 그 수업은 이 브라우저에서 읽기 전용이 된다. 새 판 기록으로 옮기는 흐름은 단계 6·7 또는 후속에서 정해야 한다.
+- 문서 UI 상태(`isDocumentState`)는 첫 참고 자료가 `have`여야 해서, 참고 자료가 없는 새 수업의 문서 UI 상태 검사는 단계 5·6이 수업 종류별로 정해야 한다. 이 단계는 키만 나눴다.
+- 기록 크기를 제한하지 않는다(v3와 같다). 대화 길이는 기존 한도가 막는다.
+

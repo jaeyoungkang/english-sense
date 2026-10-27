@@ -15,6 +15,8 @@
 | `lib/document-workspace-state.ts` | 전체 공개 문서 투영·자료 추가 위치·펼침·목차 UI 상태 | 별도 키로 복원하며 학습 사건·수행을 바꾸지 않는다 | (검사: `npm test`, `npm run test:e2e`) |
 | `lib/reference-materials.ts`, `lib/server/reference-materials.ts` | have·get·be·go 공개 감각 설명·예시 전달 | stage 공개 필드만 복사하며 정답·해설을 넘기지 않는다 | (검사: `npm test`) |
 | `lib/learning-workspace-state.ts` | 문항별 수행·스레드와 전체 사건 순서·v3 복원 검사 | 스냅샷·대상·요청 식별을 분리하고 이전 키를 덮어쓰지 않는다 | (검사: `npm test`, `npm run test:e2e`) |
+| `lib/learning-thread.ts` | 대화 사건 수명주기(`beginTurn`·`retryTurn`·`markTurn`·`acceptReply`·`startThread`)와 턴 검증, 복원 시 대기 중 요청의 취소 | 수업 ID·문항 수·답 형식을 모른다. 기록 v3와 수업 기록 v4가 같은 함수를 쓰고 `learning-workspace-state.ts`는 같은 이름으로 다시 내보낸다 | (검사: `npm test`) |
+| `lib/lesson-workspace-state.ts` | 이야기·카드 수업 기록 v4: 선택·시도(첫 답·수정)·판정(`check`)·답 보기(`reveal`)·읽기 사건(`reading-start`·`reading-end`)·대화, 수업별 저장 키 | 수업마다 키 하나(`english-sense-lesson-v4:<lessonId>`)라 한 수업의 손상이 다른 수업을 막지 않는다. 장면(have)은 v3와 전역 키를 그대로 쓰고 v4가 읽거나 옮기지 않는다. 판정·AI 응답은 요청 당시 대상과 맞을 때만 채택하고, 다른 판의 기록은 읽기만 한다. 완료·진행률 필드가 없다 | (검사: `npm test`의 `tests/lesson-workspace-state.test.ts`) |
 | `lib/learning-catalog.ts`, `lib/server/learning-catalog.ts` | 공개 문항 계약과 정본 일곱 문항 조회·내용 해시 | 브라우저 타입 모듈은 정답 데이터를 import하지 않고 서버가 공개 필드만 넘긴다 | (검사: `npm test`) |
 | `lib/lesson-registry.ts`, `lib/lesson-registry-data.ts` | 수업 29개(장면 1·이야기 15·카드 13)의 ID·종류·주소·문항 ID 목록과 공개 투영 타입 | 순수 모듈이라 정답·해설을 담지 않는다. 데이터 파일은 정본에서 만들고(`scripts/generate-lesson-registry.ts`) 단위 검사가 정본과 맞는지 비교한다 | (검사: `npm test`) |
 | `lib/server/lesson-catalog.ts`, `lib/server/study-source.ts` | 읽기·사전 훈련 정본 조회·수업별 공개 투영·수업별 자료 판 해시 | 정본 JSON(`content/reading.json`, `content/prep.json`)은 `lib/server/study-source.ts`만 import한다. 투영은 이야기의 `answer`·`explain`·`basis`와 카드의 `drill.answers`를 뺀다 | (검사: `npm test`의 `tests/lesson-catalog.test.ts`, `tests/import-direction.test.ts`) |
@@ -45,6 +47,7 @@ projectDocumentArtifacts는 catalog 일곱 문항의 읽기용 상태를 정규 
 자료 UI v1·학습 v3와 별도로 레이아웃 설정을 저장한다. 콘텐츠는 본문 앵커, 대화는 읽기 위치·끝 따라가기로 복원한다.
 좁은 화면은 콘텐츠 다음에 대화를 자연스럽게 이어 놓는다. 명시적 이동은 페이지를 움직일 수 있지만 새 응답은 콘텐츠 읽기를 끊지 않는다.
 v3는 문항별 카드·스레드·초안과 전체 사건 순서를 나눠 저장한다.
+수업 기록 v4(이야기·카드)는 수업마다 따로 저장한다. 문항을 고르는 것은 사건이 아니고, 첫 답과 수정은 `attempts`에 차례로 쌓여 수정이 첫 답을 덮지 않는다. 판정과 답 보기는 요청 때 대상과 맞을 때만 기록에 붙으며, 읽기 끝은 벽시계 마감으로 읽기마다 한 번만 쓴다. 복원은 요청을 보내지 않는다.
 선택한 질문 대상은 읽는 자료·목차 위치와 별개이며 화면 이동이나 자료 열람만으로 바뀌지 않는다.
 v1/v2 키는 읽기만 하고 원문을 보존한다. 기존 배포의 고정 자료 해시와 현재 자료가 맞는 경우에만 첫 문항으로 이관한다.
 v1에는 수정과 대화 사이의 순서가 없어 **이전 기록** 묶음으로 표시하며 작성 시각·순서를 만들어 넣지 않는다.

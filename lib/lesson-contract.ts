@@ -65,7 +65,8 @@ function id(value: unknown): value is string {
   return typeof value === "string" && LESSON_ID_PATTERN.test(value);
 }
 
-function validAttempt(value: unknown): value is LessonAttempt {
+/** 첫 답·수정의 형식. 수업 기록 v4도 같은 정의로 시도를 검사한다. */
+export function isLessonAttempt(value: unknown): value is LessonAttempt {
   if (!record(value)) return false;
   if (value.kind === "choose") return keys(value, ["kind", "choice"]) && Number.isInteger(value.choice) && (value.choice as number) >= 0 && (value.choice as number) < lessonCheckLimits.choices;
   if (value.kind !== "fill" || !keys(value, ["kind", "inputs"]) || !Array.isArray(value.inputs)) return false;
@@ -83,7 +84,7 @@ export function isLessonCheckRequest(value: unknown): value is LessonCheckReques
   if (!id(value.lessonId) || !id(value.questionId) || !id(value.artifactId)) return false;
   if (typeof value.requestId !== "string" || !REQUEST_ID_PATTERN.test(value.requestId)) return false;
   if (typeof value.contentVersion !== "string" || !VERSION_PATTERN.test(value.contentVersion)) return false;
-  if (!validAttempt(value.attempt)) return false;
+  if (!isLessonAttempt(value.attempt)) return false;
   return value.action === "check" || value.attempt.kind === "fill";
 }
 
