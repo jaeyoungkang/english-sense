@@ -10,6 +10,10 @@ have 감각 설명·공개 예시와 일곱 문제를 처음부터 펼친 문서
 대화의 ‘함께 풀 문제’를 바꾸어 원하는 문제와 대화를 이어 간다. 수행·대화는 같은 브라우저에 임시 보관한다.
 개인 서버 저장·인증·다른 기기 동기화는 아직 없다. 제출 전에는 준비된 과업 안내를, 제출 후에는 실제 AI 응답을 제공한다.
 
+읽기 이야기 15편(`/reading/<이야기>/`)과 책·영화 사전 훈련 유닛 13개(`/prep/<작품>/unit-<n>/`)도 같은 작업 공간의 수업이다. 이야기는 시간을 재어 읽고
+본문을 가린 뒤 문제를 풀고, 카드는 표현 카드마다 빈칸을 채운다. 정답·해설은 서버 정본에만 있고 첫 답 뒤에 무료 판정 경로(`/api/lesson-check/`)가 정본과 비교해 알려 준다.
+홈 도구 막대의 "수업 목록"이 이 수업들로 가는 링크를 연다. 수업마다 기록이 따로 같은 브라우저에 남는다.
+
 운영 주소는 https://english.artificialmind.kr/ 이다. Next.js App Router와 React로 화면을 만들고,
 OpenNext 어댑터로 Cloudflare Workers에서 화면과 해설 API를 함께 실행한다. 기존 API 도메인도 같은 Worker에 연결했다.
 프로젝트 기반은 project-base에서 받은 씨앗 모델·스킬·상태판·push 훅이다.
@@ -38,13 +42,17 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | `components/` | 쓰임 그림 전환, 문제 풀이, AI 해설을 처리하는 React 컴포넌트 |
 | `components/learning-workspace.tsx`, `app/workspace.css` | 장면 수업(have)의 콘텐츠 문서와 대화·목차·자료 스택·임시 복원 |
 | `components/workspace-shell.tsx`, `workspace-session.tsx`, `workspace-chat.tsx` | 수업 종류에 상관없는 작업 공간 셸·기록 저장·대화 요청 수명주기·대화 표시 |
+| `components/story-workspace.tsx`, `components/card-lesson.tsx`, `components/lesson-common.tsx` | 이야기 수업(읽기 구역·고르기)과 카드 수업(빈칸·수정·답 보기), 둘이 함께 쓰는 판정 요청·"판정" 항목·옛 판 안내 |
+| `components/lesson-list-dialog.tsx`, `lib/lesson-list.ts` | 홈의 "수업 목록" 창과 그 목록 데이터(제목·주소만) |
+| `lib/lesson-registry.ts`, `lib/lesson-contract.ts`, `lib/lesson-workspace-state.ts` | 수업 29개의 ID·주소·문항 목록, 판정 계약, 이야기·카드의 수업 기록 v4 |
+| `lib/server/lesson-catalog.ts`, `lib/server/lesson-judge.ts`, `lib/server/lesson-check.ts`, `lib/server/study-source.ts` | 읽기·사전 훈련 서버 정본·공개 투영·판 해시·무료 판정·목록용 요약 |
 | `lib/workspace-layout-state.ts` | 목차 접힘과 채팅 읽기 설정의 별도 저장·복원 |
 | `lib/document-workspace-state.ts` | 학습 기록과 분리한 자료 추가·펼침·목차 UI 상태 |
 | `lib/reference-materials.ts`, `lib/server/reference-materials.ts` | 기존 공개 감각 자료의 안전한 전달 |
 | `content/site.json` | 표제어와 책, 사이트 기본 설정 |
 | `content/pages.json` | 공개 페이지의 본문, 메타데이터, 문제와 쓰임 그림 데이터 |
 | `content/ask.json` | 해설기 예시 문장과 예시 해설 |
-| `content/reading.json`, `content/prep.json` | 시간 제한 읽기와 책·영화 사전 훈련. study-and-learn 정본에서 만든 결과이며 손으로 고치지 않는다 |
+| `content/reading.json`, `content/prep.json` | 시간 제한 읽기와 책·영화 사전 훈련의 서버 정본(정답·해설 포함). study-and-learn 정본에서 만든 결과이며 손으로 고치지 않고, 서버 모듈(`lib/server/study-source.ts`)만 import한다 |
 | `lib/content.ts` | 콘텐츠 타입과 페이지 조회 |
 | `lib/learning-catalog.ts`, `lib/server/learning-catalog.ts` | 공개 문항 타입과 서버 정본 조회·자료 판·안전한 공개 필드 변환 |
 | `lib/learning-workspace-state.ts` | 카드별 수행·전체 사건·임시 기록 검사와 이전 버전 이관 |
@@ -65,7 +73,8 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | 경로 | 요청과 응답 |
 | --- | --- |
 | `GET /api/health/` | 키와 요청 제한 바인딩의 준비 상태, 사용하는 모델 |
-| `POST /api/learn-chat/` | 정본 장면·처음 답·수정·이전 질답을 이용한 학습 대화. 계약은 `lib/learning-chat-contract.ts` |
+| `POST /api/learn-chat/` | 정본 장면·처음 답·수정·이전 질답을 이용한 학습 대화. have 계약은 `lib/learning-chat-contract.ts`, 이야기·카드 수업은 `lib/lesson-chat-contract.ts` |
+| `POST /api/lesson-check/` | 이야기 보기·카드 빈칸을 서버 정본과 비교하는 무료 판정과 카드 답 보기. AI와 사용량 한도를 쓰지 않는다. 계약은 `lib/lesson-contract.ts` |
 | `POST /api/explain/` | 영어 문장을 감각으로 해설한다 |
 | `POST /api/translate/` | 한국어를 영어로 옮기고 감각으로 해설한다 |
 
