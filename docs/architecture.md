@@ -10,9 +10,12 @@
 | `content/`, `lib/content.ts` | 공개 학습 콘텐츠와 페이지 조회 | 개인 학습 상태를 담지 않는다 | (리뷰) |
 | `app/[[...slug]]/page.tsx` | 정적 페이지·메타데이터와 컴포넌트 조합 | 미리 만든 콘텐츠를 브라우저에 보인다 | (검사: `npm run test:e2e`) |
 | `components/` | 그림 전환·퀴즈·해설기 입력과 응답 표시 | 비밀키나 Cloudflare 바인딩을 가져오지 않는다 | (리뷰) |
-| `components/learning-workspace.tsx`, `app/workspace.css` | 콘텐츠 문서·목차·자료 스택과 별도 대화 영역·임시 복원 | 정본 해설을 props로 넘기지 않고 제출·수정·초안·대화 출처와 발생 순서를 구분한다 | (검사: `npm run test:e2e`) |
+| `components/learning-workspace.tsx`, `app/workspace.css` | 장면 수업(`titanic-have`)의 작업 공간: 기록 v3·have 자료 스택·첫 답(고르기·쓰기)과 수정 폼·판 대조·대화 요청 본문. 공유 셸의 칸을 채운다 | 정본 해설을 props로 넘기지 않고 제출·수정·초안·대화 출처와 발생 순서를 구분한다 | (검사: `npm run test:e2e`) |
+| `components/workspace-shell.tsx` | 수업 종류에 상관없는 작업 공간 셸: 도구 막대·목차·콘텐츠 영역·옆 대화·상태 표시줄·대화 상자, 읽기 위치·목차·레이아웃·스크롤 복원 | 수업 기록·문항·답 형식·레지스트리를 모른다. 종류가 목차 항목, 문서 구역, 대화 맥락·타임라인·입력 폼·작성 칸, 대화 상자 내용을 칸으로 채운다. 참고 자료 스택은 `referenceStack`이 있을 때만 그린다 | (검사: `npm test`의 `tests/workspace-shell.test.ts`, `npm run test:e2e`) |
+| `components/workspace-session.tsx` | 수업 기록의 브라우저 저장(`useRecordStore`: 읽기·저장·저장 실패 표시)과 대화 요청 수명주기(`useTurnRequests`: 한 번에 하나, 취소·70초 중단·실패 표시·늦은 응답 거절) | 기록의 모양과 요청 본문·응답 검사는 종류가 넘긴다. `learning-thread.ts`의 일반 reducer만 쓴다 | (검사: `npm run test:e2e`) |
+| `components/workspace-chat.tsx` | 질문·응답·요청 상태·작성 칸의 공통 표시 | 대상 이름(`label`)을 받을 뿐 수업을 모른다 | (검사: `npm test`, `npm run test:e2e`) |
 | `lib/workspace-layout-state.ts` | 목차 접힘·채팅 읽기 위치·끝 따라가기 UI 설정 | 별도 키로 검사·복원하며 학습 기록·문서 자료 상태를 바꾸지 않는다 | (검사: `npm test`, `npm run test:e2e`) |
-| `lib/document-workspace-state.ts` | 전체 공개 문서 투영·자료 추가 위치·펼침·목차 UI 상태 | 별도 키로 복원하며 학습 사건·수행을 바꾸지 않는다 | (검사: `npm test`, `npm run test:e2e`) |
+| `lib/document-workspace-state.ts` | 전체 공개 문서 투영·자료 추가 위치·펼침·목차 UI 상태. 참고 자료가 없는 수업은 `"plain"` 모드(자료 없음, 읽기 위치는 아무 문서 구역 ID) | 별도 키로 복원하며 학습 사건·수행을 바꾸지 않는다. 기본 모드는 have 문서의 모양과 검사 그대로다 | (검사: `npm test`, `npm run test:e2e`) |
 | `lib/reference-materials.ts`, `lib/server/reference-materials.ts` | have·get·be·go 공개 감각 설명·예시 전달 | stage 공개 필드만 복사하며 정답·해설을 넘기지 않는다 | (검사: `npm test`) |
 | `lib/learning-workspace-state.ts` | 문항별 수행·스레드와 전체 사건 순서·v3 복원 검사 | 스냅샷·대상·요청 식별을 분리하고 이전 키를 덮어쓰지 않는다 | (검사: `npm test`, `npm run test:e2e`) |
 | `lib/learning-thread.ts` | 대화 사건 수명주기(`beginTurn`·`retryTurn`·`markTurn`·`acceptReply`·`startThread`)와 턴 검증, 복원 시 대기 중 요청의 취소 | 수업 ID·문항 수·답 형식을 모른다. 기록 v3와 수업 기록 v4가 같은 함수를 쓰고 `learning-workspace-state.ts`는 같은 이름으로 다시 내보낸다 | (검사: `npm test`) |

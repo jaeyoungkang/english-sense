@@ -524,3 +524,66 @@
 - 서버는 읽기가 끝났는지 알 수 없다. 첫 답이 있는 이야기 요청은 읽기가 끝났다고 믿고 처리한다(시간 측정은 보안 경계가 아니다). 읽기 끝 전 질문은 첫 답이 없어 안내로 처리된다.
 - 수정(카드 `revisions`)은 서버가 다시 판정하지 않는다. 계약이 첫 답만 재판정하도록 정했다.
 - 한 문항의 AI 맥락에 정본 답·해설이 들어가므로, 이를 아는 사람이 첫 답만 내고 AI에게 답을 묻는 길이 있다. 질문 b의 승인 해석(공개 시점 규칙이지 비밀 보호가 아니다)과 같다.
+
+### 단계 5 — 작업 공간 셸의 수업 일반화 (2026-10-27)
+
+만든 것:
+
+- `components/workspace-shell.tsx`: 수업 종류를 모르는 셸. `useWorkspaceShell`이 문서 UI 상태·레이아웃 상태의 복원과 저장, 읽기 위치, 목차 열고 닫기, 대화 스크롤 복원과 끝 따라가기, "새 응답 보기", 대화 상자, 자료 추가를 맡는다.
+  `WorkspaceFrame`이 도구 막대·상태 표시줄·목차·콘텐츠 영역·옆 대화·대화 상자의 틀을 그린다. 종류가 채우는 칸은 다음과 같다.
+
+  | 칸 | 채우는 것 |
+  | --- | --- |
+  | `lessonWord`, `toolbarActions` | 도구 막대의 수업 이름과 단추(기록·자료·새 대화) |
+  | `save` | 상태 표시줄의 저장 문구와 실패 여부 |
+  | `outline`, `toc` | 목차 항목(`id`·`title`·`label`, have 자료만 `referenceId`), 목차 머리와 개수 안내 |
+  | `referenceStack` | 참고 자료 스택. `null`이면 그리지 않는다(새 수업) |
+  | `documentHeading`, `document`, `documentEnd` | 콘텐츠 문서의 머리, 구역들, 끝 안내 |
+  | `chat.context` | 입력 대상 표시: 대상 선택, 대상 발문, 입력 단계 안내, 판정 대기·판정됨·판정 실패 같은 상태 표시 |
+  | `chat.timeline`, `chat.input`, `chat.composer` | 대화 기록(수행·판정·응답), 지금 열린 입력 폼(고르기 단추·빈칸 입력·쓰기·수정), 질문 작성 칸과 알림 |
+  | `dialog` | 대화 상자의 제목과 내용(기록 보기, 자료 찾기, 수업 목록) |
+
+- `components/workspace-session.tsx`: `useRecordStore`(기록 상태, `localStorage` 읽기·저장, 읽기 실패 때 원본 보존과 저장 실패 표시, 다시 시도)와 `useTurnRequests`
+  (대화 요청 수명주기: 한 번에 하나, 취소, 70초 중단, 실패 표시, 요청 당시 대상과 맞지 않는 응답 거절). `learning-thread.ts`의 일반 reducer만 쓴다. 종류는 저장 키·읽기 함수·요청 본문·응답 검사 함수를 넘긴다.
+- `components/workspace-chat.tsx`: 질문(`UserRequest`)·응답(`AssistantReply`)·요청 상태(`RequestStatus`)·질문 작성 칸(`QuestionComposer`). 대상 이름은 `label` 문자열로 받는다.
+- `components/learning-workspace.tsx`: 장면 수업(`titanic-have`)만 남겼다. v3 기록, have 자료 스택, 고르기·쓰기 첫 답 폼, 수정 폼, 옛 기록 묶음, 요청 본문(`ArtifactLearningChatRequest`)이 여기 있다. 기록 키·화면 구조·문구는 그대로다.
+- `lib/document-workspace-state.ts`: 문서 UI 상태에 모드를 더했다. 기본(`"references"`)은 have 문서의 모양과 검사 그대로이고, `"plain"`은 참고 자료가 없는 수업용(`references: []`, 펼친 자료 없음, 읽기 위치는 `^[a-zA-Z0-9_-]{1,160}$`인 문서 구역 ID)이다. 단계 3이 남긴 "참고 자료가 없는 수업의 문서 UI 상태 검사"를 이것으로 닫았다.
+- `tests/workspace-shell.test.ts`(5개): 테스트 전용 가짜 종류(`FakeLesson`)를 서버 렌더링으로 한 번 그려 칸이 채워지는지 보고, `plain` 문서 상태와 키 분리를 검사한다. 프로덕션 경로에는 없다.
+
+계약과 다르거나 계약이 정하지 않아 고른 것:
+
+- 셸은 레지스트리(`lesson-registry`, 문항 ID 약 350개)를 import하지 않는다. 홈의 클라이언트 번들에 레지스트리 데이터가 들어가는 것을 단계 4에서도 피했다. 그래서 셸은 수업 ID·종류·문항 목록을 받지 않고, 종류 컴포넌트가 레지스트리와 `lessonStorageKeys(lessonId)`로 얻은 문서·레이아웃 키(`storageKeys`)만 받는다. 기록 키와 v3/v4 선택은 종류가 `useRecordStore({ key, initial, load })`에 넘긴다. 단위 검사가 셸 세 파일이 레지스트리와 `lib/server`, 두 기록 모듈을 import하지 않음을 본다.
+- 목차 노드를 만드는 `buildDocumentNodes`·`projectDocumentArtifacts`는 have의 기록 타입을 쓰는 채로 두었다. 이야기·카드는 각자 문서 구역을 만들어 `document`·`outline`에 넘긴다.
+- 대화 요청의 어댑터는 `useTurnRequests.send({ endpoint, body, begin, read, accept, onStart })`다. have는 `ArtifactLearningChatRequest` 본문을, 새 수업은 `LessonChatRequest` 본문을 넘긴다. 둘 다 `/api/learn-chat/`로 가고 서버가 요청 모양으로 가른다(단계 4). 판정 요청(`lesson-check`)은 대화 턴이 아니므로(사건이 아니라 시도에 붙고, 멱등이며, 한도를 쓰지 않는다) 이 훅에 넣지 않았다. 단계 6이 판정 전용 호출을 같은 `useRecordStore`의 `update` 위에 만든다.
+- 판정 상태 표시(판정 대기·판정됨·판정 실패)는 전용 컴포넌트를 만들지 않고 `chat.context`·`chat.timeline` 칸에 둔다. 아직 쓰는 종류가 없기 때문이다.
+- `RequestStatus`·`UserRequest`·`AssistantReply`의 대상 이름이 문자열 하나(`"3번 퀴즈"`)가 되어 숫자와 "번 퀴즈"가 따로 나뉘던 텍스트 노드가 하나로 합쳐졌다. 첫 응답 HTML에는 나타나지 않는 대기·실패 상태의 문구라 화면 글은 같다.
+- 질문 작성 칸(`QuestionComposer`)의 전송 막힘 조건은 `blocked` 하나로 받는다(길이 한도, 실패한 요청, 다른 판).
+
+실행한 검사와 결과:
+
+| 검사 | 결과 |
+| --- | --- |
+| `npm run check`(`tsc --noEmit` + `tests/*.test.ts`) | 통과. 단위 143개 통과, 실패 0. 기존 138개는 수정 없이 통과하고 새 5개가 `tests/workspace-shell.test.ts`다. 기존 테스트 파일은 한 줄도 바꾸지 않았다 |
+| 화면 불변: 변경 전후 `npm run cf:build`(Next 빌드 포함)의 `.next/server/app` 374개 파일(`index.html`·`index.rsc`·`index.meta`를 포함한 모든 `.html`·`.rsc`·`.meta`·`.segments`·`robots.txt.body`·`sitemap.xml.body`)을 빌드 ID와 `static/chunks/…` 이름만 지우고 비교 | 373개가 같고, 다른 1개는 `[[...slug]]/page.js.nft.json`(파일 추적 목록의 내용 해시)뿐이다. 홈 첫 응답 HTML은 같다 |
+| 기존 e2e 72개(`npm run cf:build` 뒤 `wrangler dev` 로컬 Workers, `npx playwright test`), 변경 전 | 71개 통과, 1개 실패(`learning-workspace.spec.ts:57`, 30초 제한 초과). 같은 테스트를 따로 돌리면 통과 |
+| 같은 e2e 72개, 변경 뒤 첫 번째 | 70개 통과, 2개 실패(`unified-input-workspace.spec.ts:39`의 빈 수정 검증 메시지 확인 5초 초과, `study-content.spec.ts:128` 30초 초과). 두 테스트를 따로 3번 돌려 모두 통과, `unified-input-workspace.spec.ts:39`를 `--repeat-each=10`(20회)으로 돌려 모두 통과 |
+| 같은 e2e 72개, 변경 뒤 두 번째 | 72개 모두 통과(1.2분) |
+| 검사가 실제로 실패하는지: `plain` 문서 상태 검사에서 자료 개수 조건을 풀어 봄 / 셸이 `referenceStack`이 없는데도 자료 스택 구역을 그리게 함 | 각각 1개 검사가 실패함을 확인하고 되돌렸다 |
+
+e2e는 테스트 파일을 한 줄도 바꾸지 않았다. 옛 `/reading/`·`/prep/` 화면 단언(`study-content.spec.ts`)은 그대로 돌았고 통과했다. 변경 전후 모두 병렬 실행(작업자 2)에서 30초 제한의 긴 테스트가 한 번씩 흔들렸다.
+
+남은 한계:
+
+- 화면 불변은 서버 렌더링 결과(첫 HTML·RSC)와 e2e로 확인했다. 하이드레이션 뒤의 동작(스크롤 복원, 포커스 이동, 요청 취소)은 기존 e2e가 덮는 범위만 확인했고, 사람이 눈으로 비교하지는 않았다.
+- 효과(`useEffect`)가 필요한 셸 동작은 단위 검사로 돌릴 수 없다. 가짜 종류 검사는 서버 렌더링이라 칸이 채워지는지만 본다.
+- `useWorkspaceShell`은 문서 UI 키를 바꾸면 그 키로 다시 읽지만 이미 화면에 있는 다른 수업의 상태를 지우지는 않는다. 수업 사이 이동은 페이지 이동(질문 c의 A)이라 한 화면에서 수업이 바뀌지 않는다.
+- 홈의 클라이언트 번들 파일 이름과 구성이 바뀌었다(청크 하나의 이름). 크기와 로딩 성능은 재지 않았다.
+
+단계 6에 넘길 사항:
+
+- 이야기 종류는 `components/`에 새 컴포넌트를 만들어 `useRecordStore<LessonState>`(`key: lessonStorageKeys(id).record`, `load`는 `loadLessonRecord`가 `ok: false`면 던지게)와 `useWorkspaceShell({ storageKeys: { document, layout }, documentMode: "plain", defaultAnchor: <첫 구역 ID>, … })`, `useTurnRequests`를 쓰고 `WorkspaceFrame`의 칸을 채우면 된다. 대화 요청은 `/api/learn-chat/`에 `LessonChatRequest` 본문으로 보내고, 응답 검사는 `isLessonChatResponse`와 `acceptLessonReply`다. 판정(`/api/lesson-check/`)은 `useTurnRequests` 밖에서 `update`로 `acceptLessonCheck`를 부른다.
+- 읽기 구역의 남은 시간은 도구 막대 칸(`toolbarActions`)이나 `chat.context`에 둔다. 읽기 전에 닫는 입력은 `chat.input`·`chat.composer`가 `null`이거나 안내문을 그리면 된다.
+- 목차 라벨(`OutlineItem.label`), `lessonWord`, `toc` 문구는 이야기·카드 문구로 정한다. 대화 상자의 "수업 목록"은 `dialog` 칸이 담는다(단계 8의 문구와 함께).
+- 저장 문구는 `useRecordStore`의 `overwritePrompt`로 종류마다 정한다(v4는 v1/v2 원본 문구가 필요 없다).
+- 읽기 구역·카드 문서의 문서 구역 ID는 `documentAnchorId(id)`(`doc-<id>`)로 그려야 목차 이동·읽기 위치 추적이 된다. 구역 요소에 `id={documentAnchorId(id)}`와 `tabIndex={-1}`을 둔다.
+- 실행 방법(로컬 Workers): `npm run cf:build`로 만든 뒤 `npx wrangler dev --ip 127.0.0.1 --port 8787 --persist-to <임시 폴더>`를 띄운다. 실제 AI는 `.dev.vars`의 키가 필요하고, 키 없이도 문서·판정·기록은 동작한다. e2e는 `npx playwright test`가 같은 서버를 직접 띄우고 끝나면 내린다. 직접 띄운 서버는 자신이 만든 프로세스 ID로 종료한다.

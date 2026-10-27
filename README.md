@@ -36,7 +36,8 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | --- | --- |
 | `app/` | App Router 페이지, API 경로, 메타데이터와 전역 스타일 |
 | `components/` | 쓰임 그림 전환, 문제 풀이, AI 해설을 처리하는 React 컴포넌트 |
-| `components/learning-workspace.tsx`, `app/workspace.css` | 콘텐츠 문서와 대화·목차·자료 스택·임시 복원 |
+| `components/learning-workspace.tsx`, `app/workspace.css` | 장면 수업(have)의 콘텐츠 문서와 대화·목차·자료 스택·임시 복원 |
+| `components/workspace-shell.tsx`, `workspace-session.tsx`, `workspace-chat.tsx` | 수업 종류에 상관없는 작업 공간 셸·기록 저장·대화 요청 수명주기·대화 표시 |
 | `lib/workspace-layout-state.ts` | 목차 접힘과 채팅 읽기 설정의 별도 저장·복원 |
 | `lib/document-workspace-state.ts` | 학습 기록과 분리한 자료 추가·펼침·목차 UI 상태 |
 | `lib/reference-materials.ts`, `lib/server/reference-materials.ts` | 기존 공개 감각 자료의 안전한 전달 |
