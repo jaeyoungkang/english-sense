@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { StudyPart } from "@/lib/content";
-import { getWork, minutesLabel, unitPath, workLabel } from "@/lib/study-content";
+import { clockLabel, getWork, unitPath, workLabel } from "@/lib/study-content";
+import { levelLimitSeconds } from "@/lib/reading-level";
+import { StoryRecordNote } from "@/components/story-record-note";
 import type { PrepSummary, ReadingSummary, ReadingSummaryStory } from "@/lib/study-content-types";
 
 /**
@@ -16,7 +18,8 @@ function DraftTag() {
 function StoryLink({ story, label }: { story: ReadingSummaryStory; label?: string }) {
   return <a className="link-card" href={`/reading/${story.id}/`}>
     <span className="t"><span className="en">{story.title}</span> {story.draft && <DraftTag />}</span>
-    <span className="s">{label ? `${label} · ` : ""}{story.words}낱말 · 제한 시간 {minutesLabel(story.limitSeconds)} · 문제 {story.questionCount}개</span>
+    <span className="s">{label ? `${label} · ` : ""}{story.words}낱말 · 제한 시간 {clockLabel(levelLimitSeconds(story.words, "fast"))}~{clockLabel(levelLimitSeconds(story.words, "relaxed"))}(수준 선택) · 문제 {story.questionCount}개</span>
+    <StoryRecordNote storyId={story.id} words={story.words} className="s lw-list-record" />
   </a>;
 }
 

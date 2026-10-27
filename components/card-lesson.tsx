@@ -1,6 +1,7 @@
 "use client";
 
 import "./card-lesson.css";
+import "./lesson-common.css";
 import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { LEARNING_CHAT_ENDPOINT, learningChatLimits } from "@/lib/learning-chat-contract";
 import { characterCount, historyFor, markTurn, startThread, threadLimit, updateArtifact, activeThread, type WorkspaceTurn } from "@/lib/learning-thread";
@@ -12,19 +13,20 @@ import {
   type LessonArtifact, type LessonEvent, type LessonState,
 } from "@/lib/lesson-workspace-state";
 import { splitBlanks } from "@/lib/fill-blank";
-import { attemptName, cardAttemptsForRequest, cardStage, explainRequestMessage, madeAfterReveal, placeLabel, sameInputs, setCardInput, setCardMessageDraft, type CardLessonView } from "@/lib/card-lesson";
+import { attemptName, cardAttemptsForRequest, cardStage, explainRequestMessage, joinInputs, madeAfterReveal, placeLabel, sameInputs, setCardInput, setCardMessageDraft, type CardLessonView } from "@/lib/card-lesson";
 import { documentAnchorId } from "@/lib/document-workspace-state";
 import { minutesLabel } from "@/lib/study-content";
 import { Icon, WorkspaceFrame, useWorkspaceShell, type OutlineItem } from "@/components/workspace-shell";
 import { SaveWarning, useTurnRequests } from "@/components/workspace-session";
-import { JudgementItem, JudgementLine, JudgementStatus, LessonListLink, OldVersionNotice, postLessonCheck, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
+import { EventLine, JudgementItem, JudgementLine, JudgementStatus, LessonListLink, OldVersionNotice, postLessonCheck, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
 import { AssistantReply, QuestionComposer, RequestStatus, UserRequest } from "@/components/workspace-chat";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
- * The cards lesson (`/prep/<작품>/unit-<n>/`): one section per card in the document, the blank inputs, the judgement
- * and the AI conversation in the chat. The record is lesson v4 under this lesson's own key. The shell, record store
+ * The cards lesson (`/prep/<작품>/unit-<n>/`): one section per card in the document. The blank inputs sit inside the card's own
+ * sentence, and the judgement, the revisions and the answer ('답 보기') stay in that card. The chat is for the AI conversation and
+ * keeps one summary line per answer. The record is lesson v4 under this lesson's own key. The shell, record store
  * and request lifecycle are the shared ones; this module only knows cards.
  * The server compares the answer with the canonical one. The browser never holds `drill.answers`.
  */
@@ -35,32 +37,38 @@ export function CardLesson({ view }: { view: CardLessonView }) {
   const turns = useTurnRequests(store);
   const judge = useLessonChecks(store);
   const { busy, active } = turns;
+  /** A notice of the conversation (a refused question, a new conversation). */
   const [notice, setNotice] = useState("");
+  /** A notice of one card's own actions (a missing answer, a failed reveal). It is shown in that card. */
+  const [cardNote, setCardNote] = useState<{ questionId: string; text: string } | null>(null);
   /** Answer requests in flight, by artifact. They are not part of the record. */
   const [revealing, setRevealing] = useState<Record<string, string>>({});
   const alive = useRef(true);
   const shell = useWorkspaceShell({ storageKeys: { document: keys.document, layout: keys.layout }, documentMode: "plain", hydrated, lastEventId: record.events.at(-1)?.id || null, defaultAnchor: cards[0].questionId, getLastEventId: () => recordRef.current.events.at(-1)?.id || null });
-  const { documentState, goToEnd, moveToChat, jumpToOutline } = shell;
+  const { goToEnd, moveToChat, jumpToOutline } = shell;
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   const numberOf = (questionId: string) => cards.findIndex(card => card.questionId === questionId) + 1;
   const labelOf = (artifact: LessonArtifact) => `카드 ${numberOf(artifact.question.questionId)} · ${"expression" in artifact.question ? artifact.question.expression : ""}`;
   const artifacts = projectLessonArtifacts(record, lesson);
   const byQuestion = new Map(artifacts.map(artifact => [artifact.question.questionId, artifact]));
-  const selectedId = record.selectedQuestionId && byQuestion.has(record.selectedQuestionId) ? record.selectedQuestionId : cards[0].questionId;
-  const selected = byQuestion.get(selectedId)!, selectedCard = cards.find(card => card.questionId === selectedId)!;
-  const selectedStage = cardStage(selected, lesson), selectedLive = lessonAccess(record, lesson, selected) === "open";
-  const selectedThread = activeThread(selected), limit = threadLimit(selectedThread), unresolved = selectedThread.turns.some(turn => turn.status === "failed");
+  /** The card the learner handled last in the document. Selecting is not an event, and no card is selected until one is handled. */
+  const selectedId = record.selectedQuestionId && byQuestion.has(record.selectedQuestionId) ? record.selectedQuestionId : null;
+  const selected = selectedId ? byQuestion.get(selectedId)! : null, selectedCard = selectedId ? cards.find(card => card.questionId === selectedId)! : null;
+  const selectedStage = selected ? cardStage(selected, lesson) : null, selectedLive = !!selected && lessonAccess(record, lesson, selected) === "open";
+  const selectedThread = selected ? activeThread(selected) : null, limit = selectedThread ? threadLimit(selectedThread) : null, unresolved = !!selectedThread?.turns.some(turn => turn.status === "failed");
   const outdated = artifacts.filter(artifact => artifact.contentVersion !== lesson.contentVersion);
   const answered = artifacts.filter(artifact => artifact.attempts.length > 0).length;
 
-  /** Applies a change to the newest record at once, so a handler can build on it. A change the record refuses is shown as a notice. */
-  function commit(change: (previous: LessonState) => LessonState): boolean {
+  /** Applies a change to the newest record at once, so a handler can build on it. A change the record refuses is shown as a notice in `questionId`'s card. */
+  function commit(change: (previous: LessonState) => LessonState, questionId?: string): boolean {
     try { const next = change(recordRef.current); recordRef.current = next; update(() => next); return true; }
-    catch (cause) { setNotice(cause instanceof Error ? cause.message : "기록을 바꾸지 못했습니다."); return false; }
+    catch (cause) { const text = cause instanceof Error ? cause.message : "기록을 바꾸지 못했습니다."; if (questionId) setCardNote({ questionId, text }); else setNotice(text); return false; }
   }
+  /** Choosing the card the conversation is about. It is not an event and sends nothing. */
+  function handle(questionId: string) { update(previous => selectLessonQuestion(previous, lesson, questionId)); }
   function choose(questionId: string, input = false) {
-    update(previous => selectLessonQuestion(previous, lesson, questionId)); setNotice("");
+    handle(questionId); setNotice("");
     if (input) requestAnimationFrame(() => moveToChat(true));
   }
   // An old address `#<카드 id>` keeps going to that card. Following it selects the card, which is not an event.
@@ -72,30 +80,33 @@ export function CardLesson({ view }: { view: CardLessonView }) {
     return () => window.removeEventListener("hashchange", follow);
   }, [hydrated, shell.layoutReady]);
 
-  function runCheck(artifactId: string) {
-    try { void judge.send(buildLessonCheckRequest(recordRef.current, lesson, artifactId, crypto.randomUUID())); }
-    catch (cause) { setNotice(cause instanceof Error ? cause.message : "판정을 보낼 수 없습니다."); }
+  function runCheck(artifact: LessonArtifact) {
+    try { void judge.send(buildLessonCheckRequest(recordRef.current, lesson, artifact.artifactId, crypto.randomUUID())); }
+    catch (cause) { setCardNote({ questionId: artifact.question.questionId, text: cause instanceof Error ? cause.message : "판정을 보낼 수 없습니다." }); }
   }
-  async function runReveal(artifactId: string) {
+  async function runReveal(artifact: LessonArtifact) {
+    const { artifactId } = artifact, questionId = artifact.question.questionId;
     let request: LessonCheckRequest;
     try { request = buildLessonRevealRequest(recordRef.current, lesson, artifactId, crypto.randomUUID()); }
-    catch (cause) { setNotice(cause instanceof Error ? cause.message : "답을 볼 수 없습니다."); return; }
+    catch (cause) { setCardNote({ questionId, text: cause instanceof Error ? cause.message : "답을 볼 수 없습니다." }); return; }
+    handle(questionId);
     setRevealing(previous => ({ ...previous, [artifactId]: request.requestId }));
-    setNotice("");
+    setCardNote(null);
     const outcome = await postLessonCheck(request);
     if (!alive.current) return;
     if (outcome.ok) { update(previous => acceptLessonReveal(previous, request, outcome.response)); goToEnd(); }
-    else setNotice(`답을 가져오지 못했습니다. 첫 답은 남아 있습니다.${outcome.message ? ` ${outcome.message}` : ""} 다시 눌러 주십시오.`);
+    else setCardNote({ questionId, text: `답을 가져오지 못했습니다. 첫 답은 남아 있습니다.${outcome.message ? ` ${outcome.message}` : ""} 다시 눌러 주십시오.` });
     setRevealing(previous => { if (previous[artifactId] !== request.requestId) return previous; const { [artifactId]: _removed, ...rest } = previous; return rest; });
   }
   /** The first answer or a revision becomes a new attempt, then the server judges it. The earlier attempts are never replaced. */
   function submitAttempt(event: FormEvent<HTMLFormElement>, artifact: LessonArtifact) {
     event.preventDefault();
+    const questionId = artifact.question.questionId;
     if (artifact.contentVersion !== lesson.contentVersion || judge.checks[artifact.artifactId]?.pending) return;
     if (!artifact.inputs.some(input => input.trim())) { const field = event.currentTarget.querySelector<HTMLInputElement>("input"); field?.setCustomValidity("빈칸 하나 이상에 적어 주십시오."); field?.reportValidity(); return; }
-    if (!commit(previous => submitLessonAttempt(registerLessonArtifact(previous, lesson, artifact.question.questionId), lesson, artifact.artifactId, { kind: "fill", inputs: [...artifact.inputs] }))) return;
-    setNotice(""); goToEnd();
-    runCheck(artifact.artifactId);
+    if (!commit(previous => selectLessonQuestion(submitLessonAttempt(registerLessonArtifact(previous, lesson, questionId), lesson, artifact.artifactId, { kind: "fill", inputs: [...artifact.inputs] }), lesson, questionId), questionId)) return;
+    setCardNote(null); goToEnd();
+    runCheck(artifact);
   }
   async function sendMessage(artifactId: string, message: string, retry?: { threadId: string; turnId: string }) {
     const artifact = projectLessonArtifacts(recordRef.current, lesson).find(item => item.artifactId === artifactId);
@@ -122,7 +133,7 @@ export function CardLesson({ view }: { view: CardLessonView }) {
   }
   function newConversation() {
     const artifact = selected;
-    if (!selectedLive || !confirm(`${labelOf(artifact)}의 새 대화를 엽니다. 이 카드의 이전 대화와 미전송 초안, 모든 카드의 답은 남아 있습니다. 계속합니까?`)) return;
+    if (!artifact || !selectedLive || !confirm(`${labelOf(artifact)}의 새 대화를 엽니다. 이 카드의 이전 대화와 미전송 초안, 모든 카드의 답은 남아 있습니다. 계속합니까?`)) return;
     if (active.current?.artifactId === artifact.artifactId) turns.cancel();
     if (commit(previous => startThread(registerLessonArtifact(previous, lesson, artifact.question.questionId), artifact.artifactId))) { setNotice("이 카드의 새 대화를 열었습니다. 이전 대화는 위 흐름에 남아 있습니다."); goToEnd(); }
   }
@@ -130,27 +141,29 @@ export function CardLesson({ view }: { view: CardLessonView }) {
   function restartFromNewVersion() {
     turns.cancel(); store.unblock();
     try { localStorage.removeItem(keys.record); } catch { /* The new empty record is saved right after. */ }
-    judge.clear(); setRevealing({});
-    if (commit(() => selectLessonQuestion(createLessonState(lesson), lesson, selectedId))) setNotice("이전 판의 기록을 지우고 새 판으로 시작했습니다.");
+    judge.clear(); setRevealing({}); setCardNote(null);
+    if (commit(() => selectedId ? selectLessonQuestion(createLessonState(lesson), lesson, selectedId) : createLessonState(lesson))) setNotice("이전 판의 기록을 지우고 새 판으로 시작했습니다.");
   }
 
   const saveWarning = <SaveWarning store={store} />;
+  const byArtifact = (artifactId: string) => artifacts.find(item => item.artifactId === artifactId);
   const outline: OutlineItem[] = cards.map((card, index) => ({ id: card.questionId, title: card.expression, label: `카드 ${index + 1}` }));
 
-  function blanksView(sentence: string, markers = true) {
-    return splitBlanks(sentence).map((piece, index, all) => <Fragment key={index}>{piece}{index < all.length - 1 && <span className="cl-gap">{markers && <span className="lw-sr-only">(빈칸 {index + 1})</span>}<span aria-hidden="true">{index + 1}</span></span>}</Fragment>);
+  /** The sentence of the conversation's target: numbered gaps, no inputs. */
+  function blanksView(sentence: string) {
+    return splitBlanks(sentence).map((piece, index, all) => <Fragment key={index}>{piece}{index < all.length - 1 && <span className="cl-gap"><span aria-hidden="true">{index + 1}</span></span>}</Fragment>);
   }
   function pending(artifact: LessonArtifact) { return !!judge.checks[artifact.artifactId]?.pending; }
   function judgeStatus(artifact: LessonArtifact) {
     const last = artifact.attempts.at(-1);
     if (!last || last.check || artifact.contentVersion !== lesson.contentVersion) return null;
-    return <JudgementStatus state={pending(artifact) ? "pending" : "failed"} label={labelOf(artifact)} message={judge.checks[artifact.artifactId]?.message} onRetry={() => runCheck(artifact.artifactId)} />;
+    return <JudgementStatus state={pending(artifact) ? "pending" : "failed"} label={labelOf(artifact)} message={judge.checks[artifact.artifactId]?.message} onRetry={() => runCheck(artifact)} />;
   }
   function attemptView(artifact: LessonArtifact, index: number) {
     const attempt = artifact.attempts[index]?.attempt;
     if (!attempt || attempt.kind !== "fill") return null;
     const after = madeAfterReveal(artifact, index);
-    return <div className="lw-user-performance cl-attempt" data-attempt-index={index}><div className="lw-message-meta">나 · {labelOf(artifact)} · {attemptName(index)}{after && <span className="cl-after-reveal">답을 본 뒤</span>}</div><ol className="cl-attempt-inputs">{attempt.inputs.map((input, at) => <li key={at}><span>빈칸 {at + 1}</span> <span className="en">{input || "(비움)"}</span></li>)}</ol>{index > 0 && <p className="lw-performance-note">첫 답은 그대로 두고 새 시도로 따로 남긴 답입니다.</p>}{judgeStatus(artifact) && index === artifact.attempts.length - 1 && judgeStatus(artifact)}</div>;
+    return <div className="lw-user-performance cl-attempt" data-attempt-index={index}><div className="lw-message-meta">나 · {labelOf(artifact)} · {attemptName(index)}{after && <span className="cl-after-reveal">답을 본 뒤</span>}</div><ol className="cl-attempt-inputs">{attempt.inputs.map((input, at) => <li key={at}><span>빈칸 {at + 1}</span> <span className="en">{input || "(비움)"}</span></li>)}</ol>{index > 0 && <p className="lw-performance-note">첫 답은 그대로 두고 새 시도로 따로 남긴 답입니다.</p>}{index === artifact.attempts.length - 1 && judgeStatus(artifact)}</div>;
   }
   function judgementView(artifact: LessonArtifact, index: number) {
     const check = artifact.attempts[index]?.check;
@@ -170,15 +183,37 @@ export function CardLesson({ view }: { view: CardLessonView }) {
       <p className="lw-performance-note">첫 답을 낸 뒤에 연 정본 답입니다. 이 뒤의 시도에는 &ldquo;답을 본 뒤&rdquo;를 표시합니다.</p>
     </JudgementItem>;
   }
+  /** What happened in this card, in the order it happened: the answers, their judgements and the revealed answer. */
+  function trail(artifact: LessonArtifact) {
+    const saved = record.artifacts.find(item => item.artifactId === artifact.artifactId);
+    if (!saved) return null;
+    const events = record.events.filter(event => "artifactId" in event && event.artifactId === saved.artifactId && ["initial", "revision", "check", "reveal"].includes(event.kind));
+    if (!events.length) return null;
+    return <div className="cl-trail" aria-label={`${labelOf(artifact)}의 답과 판정`} role="group">{events.map(event => {
+      const item = event.kind === "initial" ? attemptView(saved, 0) : event.kind === "revision" ? attemptView(saved, event.index) : event.kind === "check" ? judgementView(saved, event.index) : event.kind === "reveal" ? revealView(saved) : null;
+      return item ? <div className="cl-trail-item" data-event-kind={event.kind} key={event.id}>{item}</div> : null;
+    })}</div>;
+  }
 
+  function summaryOf(event: LessonEvent, artifact: LessonArtifact): ReactNode {
+    const id = artifact.question.questionId, label = labelOf(artifact);
+    const inputsOf = (index: number) => { const attempt = artifact.attempts[index]?.attempt; return attempt?.kind === "fill" ? joinInputs(attempt.inputs) : ""; };
+    const after = (index: number) => madeAfterReveal(artifact, index) ? " · 답을 본 뒤" : "";
+    if (event.kind === "initial") return <EventLine questionId={id} text={`${label} · 첫 답 ${inputsOf(0)}`} />;
+    if (event.kind === "revision") return <EventLine questionId={id} text={`${label} · ${attemptName(event.index)} ${inputsOf(event.index)}${after(event.index)}`} />;
+    if (event.kind === "check") {
+      const check = artifact.attempts[event.index]?.check;
+      if (check?.kind !== "fill") return null;
+      return <EventLine questionId={id} text={`${label} · ${attemptName(event.index)} · 정본 답과 ${check.allMatch ? "같습니다" : "다릅니다"} (${check.matches.map((match, at) => `빈칸 ${at + 1} ${match ? "같음" : "다름"}`).join(" · ")})${after(event.index)}`} jumpLabel="카드에서 보기" onJump={() => jumpToOutline(id)} />;
+    }
+    if (event.kind === "reveal") return <EventLine questionId={id} text={`${label} · 답 보기 · 정본 답을 열었습니다`} jumpLabel="카드에서 보기" onJump={() => jumpToOutline(id)} />;
+    return null;
+  }
   function timelineEvent(event: LessonEvent): ReactNode {
     if (!("artifactId" in event)) return null;
-    const artifact = record.artifacts.find(item => item.artifactId === event.artifactId);
+    const artifact = projectLessonArtifacts(record, lesson).find(item => item.artifactId === event.artifactId);
     if (!artifact) return null;
-    if (event.kind === "initial") return attemptView(artifact, 0);
-    if (event.kind === "revision") return attemptView(artifact, event.index);
-    if (event.kind === "check") return judgementView(artifact, event.index);
-    if (event.kind === "reveal") return revealView(artifact);
+    if (event.kind === "initial" || event.kind === "revision" || event.kind === "check" || event.kind === "reveal") return summaryOf(event, artifact);
     if (!("threadId" in event)) return null;
     const thread = artifact.threads.find(item => item.id === event.threadId);
     if (!thread) return null;
@@ -194,45 +229,34 @@ export function CardLesson({ view }: { view: CardLessonView }) {
     return <div className="lw-turn"><UserRequest label={labelOf(artifact)} turn={turn} />{status()}</div>;
   }
 
-  function inputArea(): ReactNode {
-    const artifact = selected, number = numberOf(selectedId), stage = selectedStage, last = artifact.attempts.at(-1);
-    const reveal = artifact.reveal ? null : <><button type="button" className="lw-text-button cl-reveal-button" disabled={!hydrated || stage === "old" || !artifact.attempts.length || !!revealing[artifact.artifactId]} aria-describedby="cl-reveal-note" onClick={() => void runReveal(artifact.artifactId)}>{revealing[artifact.artifactId] ? "답을 가져오는 중…" : "답 보기"}</button><span id="cl-reveal-note" className="cl-reveal-note">{artifact.attempts.length ? "정본 답을 엽니다. 첫 답은 그대로 남습니다." : "답 보기는 첫 답을 낸 뒤에 열립니다."}</span></>;
-    if (stage === "old") return <div className="lw-attempt-form cl-form-note" data-stage="old"><p>이 카드는 이전 자료 판의 기록입니다. 답과 판정, 대화를 읽기만 하고 새 답은 받지 않습니다.</p></div>;
-    if (stage === "first" || stage === "revise") {
-      const revising = stage === "revise", unchanged = revising && !!last && last.attempt.kind === "fill" && sameInputs(last.attempt.inputs, artifact.inputs);
-      const lastCheck = last?.check?.kind === "fill" ? last.check : null;
-      return <form key={`${artifact.artifactId}-${stage}`} className="lw-attempt-form lw-initial-input cl-fill-form" aria-label={`카드 ${number} ${revising ? "수정" : "첫 답"}`} data-artifact-id={artifact.artifactId} data-stage={stage} onSubmit={event => submitAttempt(event, artifact)}>
-        <fieldset className="cl-blanks"><legend>{revising ? "수정한 답을 새 시도로 남깁니다" : "빈칸을 채웁니다"}</legend>
-          {artifact.inputs.map((value, index) => <label className="cl-blank-row" key={index}><span className="cl-blank-name" aria-hidden="true">빈칸 {index + 1}</span><input aria-label={`빈칸 ${index + 1}`} className="en" value={value} maxLength={100} disabled={!hydrated} autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} onChange={event => { event.target.setCustomValidity(""); update(previous => setCardInput(previous, lesson, selectedId, index, event.target.value)); }} />{revising && lastCheck && <span className="cl-prev-result" data-match={lastCheck.matches[index]}>직전 판정 · {lastCheck.matches[index] ? "같음" : "다름"}</span>}</label>)}
-        </fieldset>
-        <p className="lw-form-note">{revising ? "직전 답은 그대로 남기고 이 답을 새 시도로 판정합니다." : "첫 답을 남기면 서버가 정본과 대조합니다. AI는 부르지 않습니다."}{revising && last ? ` 수정 ${artifact.attempts.length}/${learningChatLimits.revisions}회 사용.` : ""}</p>
-        <div className="lw-form-actions"><button className="lw-button lw-primary" type="submit" disabled={!hydrated || pending(artifact) || unchanged}>{revising ? "수정해서 다시 판정" : "첫 답 남기기"} <span aria-hidden="true">→</span></button>{reveal}</div>
-        {unchanged && <p className="lw-form-note">직전 답과 같은 내용은 새 시도로 남기지 않습니다.</p>}
-        {saveWarning}
-      </form>;
-    }
-    return <div className="lw-attempt-form cl-form-note" data-stage={stage}>
-      {stage === "waiting" && (pending(artifact) ? <p>판정을 기다리고 있습니다. 답은 남아 있습니다.</p> : <p>판정을 받지 못한 답이 있습니다. 다시 판정할 수 있습니다.</p>)}
-      {stage === "match" && <p>가장 최근 답이 정본 답과 같다고 판정됐습니다. 이 카드에 관한 질문은 계속할 수 있습니다.</p>}
-      {stage === "limit" && <p>수정 {learningChatLimits.revisions}회 한도에 닿았습니다. 남은 답과 판정은 그대로 두고 질문은 계속할 수 있습니다.</p>}
-      <div className="lw-form-actions">{stage === "waiting" && !pending(artifact) && <button type="button" className="lw-button" onClick={() => runCheck(artifact.artifactId)}>다시 판정</button>}{reveal}</div>
-      {saveWarning}
-    </div>;
+  /** The card's blank sentence with the inputs inside it, the buttons of its stage, and the card's own notice. */
+  function drillForm(card: (typeof cards)[number], artifact: LessonArtifact, number: number) {
+    const stage = cardStage(artifact, lesson), last = artifact.attempts.at(-1);
+    const editable = stage === "first" || stage === "revise", revising = stage === "revise";
+    const unchanged = revising && !!last && last.attempt.kind === "fill" && sameInputs(last.attempt.inputs, artifact.inputs);
+    const lastCheck = revising && last?.check?.kind === "fill" ? last.check : null;
+    const note = cardNote?.questionId === card.questionId ? cardNote.text : "";
+    const reveal = artifact.reveal ? null : <><button type="button" className="lw-text-button cl-reveal-button" disabled={!hydrated || stage === "old" || !artifact.attempts.length || !!revealing[artifact.artifactId]} aria-describedby={`cl-reveal-note-${card.questionId}`} onClick={() => void runReveal(artifact)}>{revealing[artifact.artifactId] ? "답을 가져오는 중…" : "답 보기"}</button><span id={`cl-reveal-note-${card.questionId}`} className="cl-reveal-note">{artifact.attempts.length ? "정본 답을 엽니다. 첫 답은 그대로 남습니다." : "답 보기는 첫 답을 낸 뒤에 열립니다."}</span></>;
+    return <form className="cl-drill cl-card-form" aria-label={`카드 ${number} ${stage === "first" ? "첫 답" : revising ? "수정" : "빈칸"}`} data-artifact-id={artifact.artifactId} data-stage={stage} onSubmit={event => submitAttempt(event, artifact)}>
+      <p className="cl-drill-label">빈칸 문장 · 한국어 힌트: {card.drill.hint}</p>
+      <p className="en cl-drill-sentence">{splitBlanks(card.drill.sentence).map((piece, index, all) => <Fragment key={index}>{piece}{index < all.length - 1 && <span className="cl-blank">
+        <input className="en cl-blank-input" aria-label={`빈칸 ${index + 1}`} placeholder={String(index + 1)} value={artifact.inputs[index] ?? ""} maxLength={100} readOnly={!editable} disabled={!hydrated} autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} onFocus={() => { if (selectedId !== card.questionId) handle(card.questionId); }} onChange={event => { event.target.setCustomValidity(""); update(previous => selectLessonQuestion(setCardInput(previous, lesson, card.questionId, index, event.target.value), lesson, card.questionId)); }} />
+        {lastCheck && <span className="cl-prev-result" data-match={lastCheck.matches[index]}>직전 판정 · {lastCheck.matches[index] ? "같음" : "다름"}</span>}</span>}</Fragment>)}</p>
+      <p className="cl-source">{placeLabel(lesson.work, card.drill)}</p>
+      {editable && <p className="lw-form-note">{revising ? "직전 답은 그대로 남기고 이 답을 새 시도로 판정합니다." : "첫 답을 남기면 서버가 정본과 대조합니다. AI는 부르지 않습니다."}{revising && last ? ` 수정 ${artifact.attempts.length}/${learningChatLimits.revisions}회 사용.` : ""}</p>}
+      {stage === "old" && <p className="lw-form-note">이 카드는 이전 자료 판의 기록입니다. 답과 판정을 읽기만 하고 새 답은 받지 않습니다.</p>}
+      {stage === "waiting" && <p className="lw-form-note">{pending(artifact) ? "판정을 기다리고 있습니다. 답은 남아 있습니다." : "판정을 받지 못한 답이 있습니다. 아래에서 다시 판정할 수 있습니다."}</p>}
+      {stage === "match" && <p className="lw-form-note">가장 최근 답이 정본 답과 같다고 판정됐습니다. 이 카드에 관한 질문은 계속할 수 있습니다.</p>}
+      {stage === "limit" && <p className="lw-form-note">수정 {learningChatLimits.revisions}회 한도에 닿았습니다. 남은 답과 판정은 그대로 두고 질문은 계속할 수 있습니다.</p>}
+      <div className="lw-form-actions">
+        {editable && <button className="lw-button lw-primary" type="submit" disabled={!hydrated || pending(artifact) || unchanged}>{revising ? "수정해서 다시 판정" : "첫 답 남기기"} <span aria-hidden="true">→</span></button>}
+        {stage !== "old" && reveal}
+      </div>
+      {unchanged && <p className="lw-form-note">직전 답과 같은 내용은 새 시도로 남기지 않습니다.</p>}
+      {note && <p className="lw-form-note cl-card-note" role="status">{note}</p>}
+      {editable && saveWarning}
+    </form>;
   }
-
-  function composer(): ReactNode {
-    const artifact = selected, first = artifact.attempts.length > 0, number = numberOf(selectedId);
-    const blocked = !selectedLive || !!limit || unresolved;
-    return <>
-      {(limit || notice) && <div className="lw-chat-notice" role="status"><p>{limit || notice}</p>{limit && <button type="button" onClick={newConversation}>답을 유지하고 이 카드 새 대화</button>}</div>}
-      <div className="lw-composer-tools"><span>{first ? `카드 ${number}에서 이어 가는 대화` : "답을 낸 뒤 AI에게 설명을 요청할 수 있습니다"}</span><button type="button" className="cl-explain" disabled={!hydrated || !first || busy || blocked || !selectedLive} onClick={() => void sendMessage(artifact.artifactId, explainRequestMessage)}>AI에게 설명 요청</button>{busy && <button type="button" className="lw-send lw-stop" onClick={turns.cancel}><Icon kind="stop" size={15} /><span>{active.current ? numberOf(byArtifact(active.current.artifactId)?.question.questionId || "") : ""}번 카드 응답 중단</span></button>}</div>
-      <QuestionComposer artifactId={artifact.artifactId} label="이 카드에 대해 질문하기" value={artifact.messageDraft} placeholder={first ? `카드 ${number}에서 막힌 부분을 물어보십시오…` : "풀기 전에 궁금한 점을 물어보십시오…"} hydrated={hydrated} busy={busy} blocked={blocked}
-        onChange={value => update(previous => setCardMessageDraft(previous, lesson, selectedId, value))} onSend={() => void sendMessage(artifact.artifactId, artifact.messageDraft)} />
-      <p className="lw-ai-note">{first ? "AI는 사용자가 보낼 때만 부릅니다. AI의 답은 틀릴 수 있고 서버 판정을 바꾸지 않습니다." : "답 제출 전에는 AI 대신 무료 준비 안내를 제공합니다."}</p>
-      {saveWarning}
-    </>;
-  }
-  function byArtifact(artifactId: string) { return artifacts.find(item => item.artifactId === artifactId); }
 
   return <WorkspaceFrame shell={shell} lessonWord={<>{lesson.work.title} <span className="cl-unit-word">유닛 {lesson.unit.n}</span></>} save={{ text: store.saveText, failed: store.saveState === "failed" }} outline={outline}
     toolbarActions={<><LessonListLink href={view.listHref} title="이 작품의 유닛 목록" /><button type="button" onClick={newConversation} disabled={!selectedLive}>이 카드 새 대화</button></>}
@@ -246,9 +270,10 @@ export function CardLesson({ view }: { view: CardLessonView }) {
         <h2 id={card.questionId} className="cl-expression"><span id={`${documentAnchorId(card.questionId)}-h`} className="en">{card.expression}</span><span className="cl-count">{view.countLabel} {card.count}번{card.countInPart !== undefined ? ` · ${lesson.unit.n}부 ${card.countInPart}번` : ""}</span></h2>
         <dl className="cl-kv"><dt>뜻</dt><dd>{card.meaning}</dd><dt>감각</dt><dd>{card.sense}</dd></dl>
         <figure className="cl-example"><blockquote className="en">{card.example.text}</blockquote><figcaption>{placeLabel(lesson.work, card.example)}</figcaption></figure>
-        <div className="cl-drill"><p className="cl-drill-label">빈칸 문장 · 한국어 힌트: {card.drill.hint}</p><p className="en cl-drill-sentence">{blanksView(card.drill.sentence)}</p><p className="cl-source">{placeLabel(lesson.work, card.drill)}</p></div>
+        {drillForm(card, artifact, index + 1)}
+        {trail(artifact)}
         <p className="cl-basis">근거: {card.basis}</p>
-        <footer className="cl-card-foot"><button type="button" aria-pressed={selectedId === card.questionId} aria-label={`카드 ${index + 1} ${card.expression} 이어 가기`} onClick={() => choose(card.questionId, true)}>이 카드로 이어 가기</button>{artifact.attempts.length > 0 && <span className="cl-card-fact">첫 답을 남겼습니다{artifact.attempts.length > 1 ? ` · 수정 ${artifact.attempts.length - 1}회` : ""}{artifact.reveal ? " · 답을 봤습니다" : ""}</span>}{old && <span className="cl-card-fact">이전 자료 판의 기록이 있어 읽기만 합니다.</span>}</footer>
+        <footer className="cl-card-foot"><button type="button" aria-pressed={selectedId === card.questionId} aria-label={`카드 ${index + 1} ${card.expression} 질문하기`} onClick={() => choose(card.questionId, true)}>이 카드에 질문하기</button>{artifact.attempts.length > 0 && <span className="cl-card-fact">첫 답을 남겼습니다{artifact.attempts.length > 1 ? ` · 수정 ${artifact.attempts.length - 1}회` : ""}{artifact.reveal ? " · 답을 봤습니다" : ""}</span>}{old && <span className="cl-card-fact">이전 자료 판의 기록이 있어 읽기만 합니다.</span>}</footer>
       </section>;
     })}</>}
     documentEnd={<>
@@ -261,16 +286,25 @@ export function CardLesson({ view }: { view: CardLessonView }) {
     </>}
     chat={{
       context: <>
-        <p className="lw-reading-context">입력 대상: <strong>{labelOf(selected)}</strong><span>{selected.attempts.length ? `첫 답 있음${selected.attempts.length > 1 ? ` · 수정 ${selected.attempts.length - 1}회` : ""}` : "첫 답 전"}</span></p>
-        <div className="lw-target-selector"><label htmlFor="lw-target">함께 풀 카드</label><select id="lw-target" aria-label="함께 풀 카드" value={selectedId} onChange={event => choose(event.target.value)}>{cards.map((card, index) => <option key={card.questionId} value={card.questionId}>카드 {index + 1} · {card.expression}</option>)}</select></div>
-        <p className="lw-target-question en">{blanksView(selectedCard.drill.sentence, false)}</p>
-        <p className="lw-target-hint">한국어 힌트: {selectedCard.drill.hint}</p>
-        <p className="lw-input-stage" role="status">{selectedStage === "old" ? "이전 자료 판의 기록은 읽기만 합니다" : selectedStage === "first" ? "빈칸을 채워 첫 답을 남깁니다" : selectedStage === "revise" || selectedStage === "limit" ? "새 시도로 수정을 남깁니다" : selectedStage === "waiting" ? "판정을 기다리는 답이 있습니다" : "이 카드에 관해 질문합니다"}</p>
+        <p className="lw-reading-context">입력 대상: <strong>{selected ? labelOf(selected) : "아직 없음"}</strong>{selected && <span>{selected.attempts.length ? `첫 답 있음${selected.attempts.length > 1 ? ` · 수정 ${selected.attempts.length - 1}회` : ""}` : "첫 답 전"} · 문서에서 마지막으로 다룬 카드</span>}</p>
+        {selectedCard ? <><p className="lw-target-question en">{blanksView(selectedCard.drill.sentence)}</p><p className="lw-target-hint">한국어 힌트: {selectedCard.drill.hint}</p></> : <p className="lw-target-question">문서에서 빈칸을 채우거나 ‘이 카드에 질문하기’를 누르면 대화 대상이 정해집니다.</p>}
+        <p className="lw-input-stage" role="status">{!selectedStage ? "카드를 다루면 이곳에서 질문할 수 있습니다" : selectedStage === "old" ? "이전 자료 판의 기록은 읽기만 합니다" : selectedStage === "first" ? "답은 카드에서 남깁니다 · 여기서는 질문합니다" : selectedStage === "waiting" ? "판정을 기다리는 답이 있습니다" : "이 카드에 관해 질문합니다"}</p>
         {outdated.length > 0 && <OldVersionNotice className="cl-old-banner" role="status" confirmMessage="이전 자료 판으로 남은 이 수업의 기록(모든 카드의 답·판정·대화)을 지우고 새 판으로 시작합니다. 되돌릴 수 없습니다. 지웁니까?" onRestart={restartFromNewVersion}>이전 자료 판으로 남은 기록이 {outdated.length}개 카드에 있습니다. 읽기만 하고 판정과 AI 전송을 막았습니다.</OldVersionNotice>}
       </>,
-      timeline: <>{record.events.map(event => <div className="lw-timeline-event" data-event-kind={event.kind} data-artifact-id={"artifactId" in event ? event.artifactId : undefined} key={event.id}>{timelineEvent(event)}</div>)}</>,
-      input: inputArea(),
-      composer: composer(),
+      timeline: <>{record.events.length === 0 && <p className="lw-muted">카드의 빈칸에 답하면 답과 판정, 수정, 질문이 일어난 순서대로 여기에 한 줄씩 쌓입니다. 판정은 그 카드 안에 있습니다.</p>}{record.events.map(event => <div className="lw-timeline-event" data-event-kind={event.kind} data-artifact-id={"artifactId" in event ? event.artifactId : undefined} key={event.id}>{timelineEvent(event)}</div>)}</>,
+      input: null,
+      composer: selected ? <>
+        {(limit || notice) && <div className="lw-chat-notice" role="status"><p>{limit || notice}</p>{limit && <button type="button" onClick={newConversation}>답을 유지하고 이 카드 새 대화</button>}</div>}
+        <div className="lw-composer-tools"><span>{selected.attempts.length ? `카드 ${numberOf(selected.question.questionId)}에서 이어 가는 대화` : "답을 낸 뒤 AI에게 설명을 요청할 수 있습니다"}</span><button type="button" className="cl-explain" disabled={!hydrated || !selected.attempts.length || busy || !selectedLive || !!limit || unresolved} onClick={() => void sendMessage(selected.artifactId, explainRequestMessage)}>AI에게 설명 요청</button>{busy && <button type="button" className="lw-send lw-stop" onClick={turns.cancel}><Icon kind="stop" size={15} /><span>{active.current ? numberOf(byArtifact(active.current.artifactId)?.question.questionId || "") : ""}번 카드 응답 중단</span></button>}</div>
+        <QuestionComposer artifactId={selected.artifactId} label="이 카드에 대해 질문하기" value={selected.messageDraft} placeholder={selected.attempts.length ? `카드 ${numberOf(selected.question.questionId)}에서 막힌 부분을 물어보십시오…` : "풀기 전에 궁금한 점을 물어보십시오…"} hydrated={hydrated} busy={busy} blocked={!selectedLive || !!limit || unresolved}
+          onChange={value => update(previous => setCardMessageDraft(previous, lesson, selected.question.questionId, value))} onSend={() => void sendMessage(selected.artifactId, selected.messageDraft)} />
+        <p className="lw-ai-note">{selected.attempts.length ? "AI는 사용자가 보낼 때만 부릅니다. AI의 답은 틀릴 수 있고 서버 판정을 바꾸지 않습니다." : "답 제출 전에는 AI 대신 무료 준비 안내를 제공합니다."}</p>
+        {saveWarning}
+      </> : <>
+        {notice && <div className="lw-chat-notice" role="status"><p>{notice}</p></div>}
+        <p className="lw-locked-note">문서에서 카드의 빈칸을 채우거나 ‘이 카드에 질문하기’를 누르면 질문 칸이 열립니다.</p>
+        {saveWarning}
+      </>,
     }}
     dialog={null} />;
 }

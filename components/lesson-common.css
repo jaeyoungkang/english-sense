@@ -1,0 +1,5 @@
+/* Shared by the story and cards lessons. */
+/* The conversation keeps one line per answer or judgement; the judgement itself, with its explanation, is in the document. */
+.lw-app .lw-event-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:0;padding:8px 12px;border-left:3px solid #b7c1aa;background:#f6f8f1;font-size:12px;line-height:1.7;color:#3f4b35}
+.lw-app .lw-event-line>span{min-width:0;overflow-wrap:anywhere}
+.lw-app .lw-event-line>button{min-height:44px;padding:4px 10px;border:1px solid #ced5c4;border-radius:3px;background:#fff;color:#4d5f3e;font:inherit;font-size:11px;cursor:pointer}

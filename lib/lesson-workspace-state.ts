@@ -5,6 +5,8 @@ import { WORKSPACE_STORAGE_KEYS } from "./learning-workspace-state";
 import { acceptReply, beginTurn, findArtifact, identity, newId, object, publicKeys, restoredTurns, retryTurn, text, updateArtifact, validTurn, type ThreadEvent, type ThreadReply, type WorkspaceThread, type WorkspaceTurn } from "./learning-thread";
 import { isLessonAttempt, isLessonCheckResponse, lessonCheckLimits, type LessonAttempt, type LessonCheckRequest, type LessonCheckResponse } from "./lesson-contract";
 import { getLessonEntry, type LessonEntry, type PublicCard, type PublicCardsLesson, type PublicStoryLesson, type PublicStoryQuestion } from "./lesson-registry";
+import { LESSON_STORAGE_PREFIX } from "./lesson-record-key";
+import { isReadingLevel, levelLimitSeconds, type ReadingLevel } from "./reading-level";
 import { WORKSPACE_LAYOUT_STORAGE_KEY } from "./workspace-layout-state";
 
 /**
@@ -12,7 +14,7 @@ import { WORKSPACE_LAYOUT_STORAGE_KEY } from "./workspace-layout-state";
  * `titanic-have` keeps learning v3 and its global keys; nothing here reads or migrates them.
  * The record states facts (answers, judgements, events). It never derives completion, mastery or progress.
  */
-export const LESSON_STORAGE_PREFIX = "english-sense-lesson-v4:";
+export { LESSON_STORAGE_PREFIX };
 export const readingLimitSeconds = 3600;
 
 export type LessonDocument = PublicStoryLesson | PublicCardsLesson;
@@ -35,16 +37,16 @@ export type LessonEvent = { id: string } & (
   | { kind: "revision"; artifactId: string; index: number }
   | { kind: "check"; artifactId: string; index: number; requestId: string }
   | { kind: "reveal"; artifactId: string; requestId: string }
-  | { kind: "reading-start"; readingId: string; startedAt: number; limitSeconds: number }
-  | { kind: "reading-end"; readingId: string; endedAt: number; by: "time" | "user" }
+  | { kind: "reading-start"; readingId: string; startedAt: number; limitSeconds: number; level?: ReadingLevel }
+  | { kind: "reading-end"; readingId: string; endedAt: number; by: "time" | "user"; elapsedMs?: number }
   | ThreadEvent
 );
 export type LessonState = { version: 4; lessonId: string; artifacts: LessonArtifact[]; selectedQuestionId: string | null; events: LessonEvent[] };
 export type LessonReply = ThreadReply & { lessonId: string };
 export type ReadingStatus =
   | { phase: "before" }
-  | { phase: "reading"; readingId: string; startedAt: number; deadline: number; remainingMs: number }
-  | { phase: "ended"; readingId: string; startedAt: number; endedAt: number; by: "time" | "user"; readMs: number };
+  | { phase: "reading"; readingId: string; startedAt: number; deadline: number; remainingMs: number; elapsedMs: number; level?: ReadingLevel }
+  | { phase: "ended"; readingId: string; startedAt: number; endedAt: number; by: "time" | "user"; readMs: number; level?: ReadingLevel };
 export type LessonAccess = "open" | "old-version" | "reading-not-ended";
 export type LessonLoad = { ok: true; key: string; state: LessonState } | { ok: false; key: string; message: string };
 
@@ -113,22 +115,31 @@ export function readingStatus(state: LessonState, now: number): ReadingStatus {
   const { start, end } = readingOf(state);
   if (!start) return { phase: "before" };
   const deadline = start.startedAt + start.limitSeconds * 1000;
-  if (end) return { phase: "ended", readingId: start.readingId, startedAt: start.startedAt, endedAt: end.endedAt, by: end.by, readMs: end.endedAt - start.startedAt };
-  if (now >= deadline) return { phase: "ended", readingId: start.readingId, startedAt: start.startedAt, endedAt: deadline, by: "time", readMs: deadline - start.startedAt };
-  return { phase: "reading", readingId: start.readingId, startedAt: start.startedAt, deadline, remainingMs: Math.min(start.limitSeconds * 1000, deadline - now) };
+  const level = start.level ? { level: start.level } : {};
+  if (end) return { phase: "ended", readingId: start.readingId, startedAt: start.startedAt, endedAt: end.endedAt, by: end.by, readMs: end.endedAt - start.startedAt, ...level };
+  if (now >= deadline) return { phase: "ended", readingId: start.readingId, startedAt: start.startedAt, endedAt: deadline, by: "time", readMs: deadline - start.startedAt, ...level };
+  const remainingMs = Math.min(start.limitSeconds * 1000, deadline - now);
+  return { phase: "reading", readingId: start.readingId, startedAt: start.startedAt, deadline, remainingMs, elapsedMs: start.limitSeconds * 1000 - remainingMs, ...level };
 }
-export function startReading(state: LessonState, lesson: LessonDocument, now: number): LessonState {
+/**
+ * With a level the limit is that level's (words ÷ pace, `lib/reading-level.ts`) and the event keeps the level. Without one it is the
+ * lesson's own limit and the event has no level, as in a record written before levels existed.
+ */
+export function startReading(state: LessonState, lesson: LessonDocument, now: number, level?: ReadingLevel): LessonState {
   sameLesson(state, lesson);
   if (lesson.kind !== "story" || !validTime(now) || !Number.isInteger(lesson.limitSeconds) || lesson.limitSeconds < 1 || lesson.limitSeconds > readingLimitSeconds) throw new Error("이 수업에는 시간 제한 읽기가 없습니다.");
+  if (level !== undefined && !isReadingLevel(level)) throw new Error("읽기 수준을 확인합니다.");
+  const limitSeconds = level ? levelLimitSeconds(lesson.words, level) : lesson.limitSeconds;
+  if (!Number.isInteger(limitSeconds) || limitSeconds < 1 || limitSeconds > readingLimitSeconds) throw new Error("이 수업에는 시간 제한 읽기가 없습니다.");
   if (readingOf(state).start) throw new Error("읽기는 한 번만 시작합니다.");
-  return { ...state, events: [...state.events, { id: newId(), kind: "reading-start", readingId: newId(), startedAt: now, limitSeconds: lesson.limitSeconds }] };
+  return { ...state, events: [...state.events, { id: newId(), kind: "reading-start", readingId: newId(), startedAt: now, limitSeconds, ...(level ? { level } : {}) }] };
 }
 /** Writes the end event once per reading. A passed deadline ends the reading by time at the deadline, not at `now`. */
 export function syncReading(state: LessonState, now: number): LessonState {
   const { start, end } = readingOf(state);
   if (!start || end || !validTime(now)) return state;
   const deadline = start.startedAt + start.limitSeconds * 1000;
-  return now >= deadline ? { ...state, events: [...state.events, { id: newId(), kind: "reading-end", readingId: start.readingId, endedAt: deadline, by: "time" }] } : state;
+  return now >= deadline ? { ...state, events: [...state.events, { id: newId(), kind: "reading-end", readingId: start.readingId, endedAt: deadline, by: "time", elapsedMs: deadline - start.startedAt }] } : state;
 }
 export function endReading(state: LessonState, now: number): LessonState {
   const { start, end } = readingOf(state);
@@ -136,7 +147,8 @@ export function endReading(state: LessonState, now: number): LessonState {
   if (end || !validTime(now)) return state;
   const synced = syncReading(state, now);
   if (synced !== state) return synced;
-  return { ...state, events: [...state.events, { id: newId(), kind: "reading-end", readingId: start.readingId, endedAt: Math.max(now, start.startedAt), by: "user" }] };
+  const endedAt = Math.max(now, start.startedAt);
+  return { ...state, events: [...state.events, { id: newId(), kind: "reading-end", readingId: start.readingId, endedAt, by: "user", elapsedMs: endedAt - start.startedAt }] };
 }
 
 /** Story questions open after the reading ends. An artifact from another content version is read-only. */
@@ -279,12 +291,15 @@ export function isLessonState(value: unknown): value is LessonState {
     if (!object(raw) || !identity(raw.id) || ids.has(raw.id)) return false;
     ids.add(raw.id);
     if (raw.kind === "reading-start") {
-      if (entry.kind !== "story" || start || !exact(raw, ["id", "kind", "readingId", "startedAt", "limitSeconds"]) || !identity(raw.readingId) || !validTime(raw.startedAt) || !Number.isInteger(raw.limitSeconds) || Number(raw.limitSeconds) < 1 || Number(raw.limitSeconds) > readingLimitSeconds) return false;
+      // `level` is optional: a record written before levels existed has none and stays valid as it is.
+      if (entry.kind !== "story" || start || !exact(raw, Object.hasOwn(raw, "level") ? ["id", "kind", "readingId", "startedAt", "limitSeconds", "level"] : ["id", "kind", "readingId", "startedAt", "limitSeconds"]) || (Object.hasOwn(raw, "level") && !isReadingLevel(raw.level)) || !identity(raw.readingId) || !validTime(raw.startedAt) || !Number.isInteger(raw.limitSeconds) || Number(raw.limitSeconds) < 1 || Number(raw.limitSeconds) > readingLimitSeconds) return false;
       start = raw as Extract<LessonEvent, { kind: "reading-start" }>;
       return true;
     }
     if (raw.kind === "reading-end") {
-      if (!start || ended || !exact(raw, ["id", "kind", "readingId", "endedAt", "by"]) || raw.readingId !== start.readingId || !validTime(raw.endedAt) || !["time", "user"].includes(raw.by as string)) return false;
+      // `elapsedMs` is optional and, when present, is exactly the time from the start to the end.
+      if (!start || ended || !exact(raw, Object.hasOwn(raw, "elapsedMs") ? ["id", "kind", "readingId", "endedAt", "by", "elapsedMs"] : ["id", "kind", "readingId", "endedAt", "by"]) || raw.readingId !== start.readingId || !validTime(raw.endedAt) || !["time", "user"].includes(raw.by as string)) return false;
+      if (Object.hasOwn(raw, "elapsedMs") && raw.elapsedMs !== Number(raw.endedAt) - start.startedAt) return false;
       const deadline = start.startedAt + start.limitSeconds * 1000;
       ended = true;
       return raw.by === "time" ? raw.endedAt === deadline : Number(raw.endedAt) >= start.startedAt && Number(raw.endedAt) <= deadline;

@@ -1,0 +1,22 @@
+/* Story lesson (/reading/<id>/): the level choice, the facts of a reading, the questions answered inside the document. */
+.lw-app .lw-level-choice{border:0;margin:0;padding:0;min-width:0;display:grid;gap:2px;width:100%}
+.lw-app .lw-level-choice legend{font-size:12px;font-weight:600;color:#3e5830;padding:0;margin-bottom:4px}
+.lw-app .lw-level{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 8px;border:1px solid transparent;border-radius:4px;font-size:13px;line-height:1.7;cursor:pointer}
+.lw-app .lw-level:has(input:checked){border-color:#96aa7e;background:#eef3e6}
+.lw-app .lw-level input{width:18px;height:18px;flex:none;margin:0;accent-color:#4f6740}
+.lw-app .lw-level span{min-width:0;overflow-wrap:anywhere}
+.lw-app .lw-level b{font-variant-numeric:tabular-nums}
+.lw-app .lw-reading-record{margin:0;font-size:12px;line-height:1.8;color:#3e5830;overflow-wrap:anywhere}
+.lw-app .lw-reading-record>span{display:inline-block;margin-right:6px;padding:0 7px;border:1px solid #b8c4a8;border-radius:2px;font-size:10px;background:#f1f5ea}
+.lw-app.lw-split-app .lw-toolbar-actions .lw-elapsed{margin-left:10px;color:#59644f}
+.lw-app.lw-split-app .lw-toolbar-actions .lw-elapsed b{font-size:13px}
+
+/* A question in the document: choices and the first-answer button are here, the judgement follows below. */
+.lw-app .lw-story-form fieldset{border:0;margin:0;padding:0;min-width:0}
+.lw-app .lw-story-form legend{font-size:11px;color:#59644f;padding:0;margin-bottom:6px}
+.lw-app .lw-story-option{min-height:44px;padding:11px 8px;gap:10px;font-size:14px;line-height:1.8}
+.lw-app .lw-story-option>span{min-width:0;overflow-wrap:anywhere;font-size:15px;line-height:1.8}
+.lw-app .lw-story-option input{width:18px;height:18px}
+.lw-app .lw-story-form .lw-form-actions{margin-top:14px}
+.lw-app .lw-story-question .lw-judgement{margin-top:18px}
+.lw-app .lw-story-question .lw-judgement-status{margin-top:14px}

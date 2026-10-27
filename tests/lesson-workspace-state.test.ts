@@ -139,7 +139,7 @@ test("a story reading ends once, by the wall clock, and an expired reading resto
   const late = checked(syncReading(state, T0 + limit + 600_000));
   const ends = late.events.filter(event => event.kind === "reading-end");
   assert.equal(ends.length, 1);
-  assert.deepEqual(ends[0], { id: ends[0].id, kind: "reading-end", readingId: start.readingId, endedAt: T0 + limit, by: "time" });
+  assert.deepEqual(ends[0], { id: ends[0].id, kind: "reading-end", readingId: start.readingId, endedAt: T0 + limit, by: "time", elapsedMs: limit });
   assert.equal(syncReading(late, T0 + limit + 700_000), late);
   assert.equal(endReading(late, T0 + limit + 700_000), late, "ending an ended reading adds nothing");
   assert.deepEqual(readingStatus(late, T0 + limit + 700_000), { phase: "ended", readingId: start.readingId, startedAt: T0, endedAt: T0 + limit, by: "time", readMs: limit });
@@ -164,6 +164,52 @@ test("a story reading ends once, by the wall clock, and an expired reading resto
   const inside = restoreLessonState(raw, doc, T0 + 61_000);
   assert.deepEqual(inside.events, state.events);
   assert.equal((readingStatus(inside, T0 + 61_000) as { remainingMs: number }).remainingMs, limit - 61_000);
+});
+
+test("a reading keeps its level and the limit that level gave, and its end keeps how it ended and how long it took", async () => {
+  const doc = await story();
+  assert.ok(doc.kind === "story");
+  for (const [level, seconds] of [["relaxed", 270], ["normal", 220], ["fast", 180]] as const) {
+    const state = checked(startReading(createLessonState(doc), doc, T0, level));
+    const start = state.events[0] as Extract<typeof state.events[number], { kind: "reading-start" }>;
+    assert.deepEqual([start.level, start.limitSeconds], [level, seconds]);
+    const status = readingStatus(state, T0 + 10_000);
+    assert.deepEqual([status.phase, "level" in status && status.level, "elapsedMs" in status && status.elapsedMs, "remainingMs" in status && status.remainingMs], ["reading", level, 10_000, seconds * 1000 - 10_000]);
+    const early = (seconds - 8) * 1000;
+    const user = checked(endReading(state, T0 + early));
+    assert.deepEqual(user.events[1], { id: user.events[1].id, kind: "reading-end", readingId: start.readingId, endedAt: T0 + early, by: "user", elapsedMs: early });
+    const time = checked(syncReading(state, T0 + 999_000_000));
+    assert.deepEqual(time.events[1], { id: time.events[1].id, kind: "reading-end", readingId: start.readingId, endedAt: T0 + seconds * 1000, by: "time", elapsedMs: seconds * 1000 });
+    assert.deepEqual(readingStatus(user, T0 + 999_000_000), { phase: "ended", readingId: start.readingId, startedAt: T0, endedAt: T0 + early, by: "user", readMs: early, level });
+  }
+  assert.throws(() => startReading(createLessonState(doc), doc, T0, "turbo" as never), /읽기 수준/);
+});
+
+test("a record written before levels existed is restored as it is, and the new fields are validated without loosening the old checks", async () => {
+  const { doc, state } = await readStory();
+  // `readStory` starts without a level: the lesson's own limit, no level, and an end that carries its elapsed time.
+  const [start, end] = state.events as unknown as Record<string, unknown>[];
+  assert.equal(Object.hasOwn(start, "level"), false);
+  const legacyEnd = { ...end }; delete legacyEnd.elapsedMs;
+  const variant = (events: unknown[]) => isLessonState({ ...copy(state), events });
+  assert.equal(variant([start, legacyEnd]), true, "a v4 record without the new fields stays valid");
+  const restored = restoreLessonState(JSON.stringify({ ...copy(state), events: [start, legacyEnd] }), doc, T0 + 999_000_000);
+  assert.deepEqual(restored.events, [start, legacyEnd], "restoring writes nothing into an old record");
+  assert.deepEqual(readingStatus(restored, T0 + 999_000_000), { phase: "ended", readingId: start.readingId, startedAt: T0, endedAt: T0 + 5000, by: "user", readMs: 5000 });
+  // an old record whose deadline passed still ends by time exactly as before (the new end carries elapsedMs, the old one does not need it)
+  const oldStart = { ...start, startedAt: T0 };
+  const expired = restoreLessonState(JSON.stringify({ ...copy(state), events: [oldStart] }), doc, T0 + 999_000_000);
+  assert.equal(expired.events.filter(event => event.kind === "reading-end").length, 1);
+  // the new fields
+  assert.equal(variant([{ ...start, level: "normal" }, end]), true);
+  assert.equal(variant([{ ...start, level: "turbo" }, end]), false, "an unknown level");
+  assert.equal(variant([{ ...start, level: undefined }, end]), false, "a level key without a level");
+  assert.equal(variant([{ ...start, level: 2 }, end]), false);
+  assert.equal(variant([start, { ...end, elapsedMs: 4999 }]), false, "an elapsed time that is not end minus start");
+  assert.equal(variant([start, { ...end, elapsedMs: "5000" }]), false);
+  assert.equal(variant([start, { ...end, extra: 1 }]), false, "other keys are still refused");
+  assert.equal(variant([{ ...start, startedAt: 1.5 }, end]), false, "the old checks are unchanged");
+  assert.equal(variant([{ ...start, limitSeconds: 0 }, end]), false);
 });
 
 test("a card lesson has no reading and rejects reading events", async () => {

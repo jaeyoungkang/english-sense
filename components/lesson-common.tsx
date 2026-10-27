@@ -128,3 +128,11 @@ export function OldVersionNotice({ className, role = "note", confirmMessage, not
 export function LessonListLink({ href, title }: { href: string; title?: string }) {
   return <a href={href} aria-label="수업 목록" title={title}><Icon kind="book" size={18} /><span>수업 목록</span></a>;
 }
+
+/**
+ * One line of the conversation's timeline for an answer, a judgement or a revealed answer. The full judgement and the canonical
+ * explanation stay in the document at the question or card; `onJump` offers the way back to them.
+ */
+export function EventLine({ text, questionId, jumpLabel, onJump }: { text: string; questionId: string; jumpLabel?: string; onJump?: () => void }) {
+  return <p className="lw-event-line" data-summary-of={questionId}><span>{text}</span>{onJump && <button type="button" onClick={onJump}>{jumpLabel}</button>}</p>;
+}

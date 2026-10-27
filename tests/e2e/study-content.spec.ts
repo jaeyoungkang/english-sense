@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import readingJson from "../../content/reading.json";
 import prepJson from "../../content/prep.json";
 import type { PrepData, ReadingData } from "../../lib/study-content-types";
+import { clockLabel } from "../../lib/study-content";
+import { levelLimitSeconds } from "../../lib/reading-level";
 
 const reading = readingJson as ReadingData;
 const prep = prepJson as PrepData;
@@ -37,7 +39,8 @@ test("a story is hidden until start, hidden again for the questions, and keeps i
   await expect(page.getByText(firstLine)).toHaveCount(0);
   await page.getByRole("button", { name: "읽기 시작" }).click();
   await expect(page.getByText(firstLine)).toBeVisible();
-  await expect(page.getByRole("timer")).toContainText(/남은 시간 (3:00|2:\d\d)/);
+  // The default level is 보통, so the first limit is its own, not the old fixed 3:00.
+  await expect(page.getByRole("timer")).toContainText(new RegExp(`남은 시간 (${clockLabel(levelLimitSeconds(story.words, "normal"))}|${clockLabel(levelLimitSeconds(story.words, "normal") - 1)}|${clockLabel(levelLimitSeconds(story.words, "normal") - 2)})`));
   await page.getByRole("button", { name: "다 읽었습니다", exact: true }).click();
   await expect(page.getByText(firstLine)).toHaveCount(0);
   await expect(page.getByText(/본문을 가렸습니다 · 읽은 시간 0:\d\d/)).toBeVisible();
@@ -50,7 +53,7 @@ test("when time runs out the story closes and the questions open", async ({ page
   await page.goto(`/reading/${story.id}/`);
   await page.getByRole("button", { name: "읽기 시작" }).click();
   await expect(page.locator(".lw-story-body")).toBeVisible();
-  await page.clock.fastForward((story.limitSeconds + 1) * 1000);
+  await page.clock.fastForward((levelLimitSeconds(story.words, "normal") + 1) * 1000);
   await expect(page.locator(".lw-story-body")).toHaveCount(0);
   await expect(page.getByText("시간 마감", { exact: false }).first()).toBeVisible();
   await expect(page.getByRole("form", { name: "문제 1 첫 답" }).getByRole("radio")).toHaveCount(story.questions[0].options.length);
@@ -86,12 +89,12 @@ test("a paired story links to its unit and links each expression question to its
   await page.getByRole("button", { name: "읽기 시작" }).click();
   await page.getByRole("button", { name: "다 읽었습니다", exact: true }).click();
   const first = story.questions.findIndex(q => q.kind === "expression");
-  await expect(page.locator(`.lw-story-question[data-question-id="${story.questions[0].id}"] .lw-artifact-header`)).toContainText("내용");
-  await expect(page.locator(`.lw-story-question[data-question-id="${story.questions[first].id}"] .lw-artifact-header`)).toContainText("표현");
+  // Story and questions are one document: no question kind is shown.
+  await expect(page.locator(`.lw-story-question[data-question-id="${story.questions[first].id}"] .lw-artifact-header`)).not.toContainText(/내용|표현/);
   const q = story.questions[first];
-  await page.getByLabel("풀 문제", { exact: true }).selectOption(q.id);
-  await page.getByRole("form", { name: `문제 ${first + 1} 첫 답` }).getByRole("radio").nth(q.answer).check();
-  await page.getByRole("button", { name: /첫 답 남기기/ }).click();
+  const form = page.getByRole("form", { name: `문제 ${first + 1} 첫 답` });
+  await form.getByRole("radio").nth(q.answer).check();
+  await form.getByRole("button", { name: /첫 답 남기기/ }).click();
   await expect(page.locator(".lw-judgement-line")).toHaveText("정본 답과 같습니다.");
   await expect(page.locator(".lw-judgement")).toContainText(q.explain);
   const link = page.locator(".lw-judgement-card a");

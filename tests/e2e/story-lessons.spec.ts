@@ -3,10 +3,14 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import readingJson from "../../content/reading.json";
 import { storyExplainRequestMessage } from "../../lib/story-lesson";
+import { levelLimitSeconds } from "../../lib/reading-level";
+import { clockLabel } from "../../lib/study-content";
 import type { ReadingData } from "../../lib/study-content-types";
 
 const reading = readingJson as ReadingData;
 const story = reading.stories.find(item => item.id === "green-umbrella")!;
+/** The default level is 보통 (125 words a minute); its limit is what a reading started without choosing lasts. */
+const limit = levelLimitSeconds(story.words, "normal");
 const key = (id: string) => `english-sense-lesson-v4:${id}`;
 const bodyText = (item: typeof story) => item.paragraphs[0].map(piece => piece.text).join("");
 const letter = (index: number) => String.fromCharCode(65 + index);
@@ -30,12 +34,12 @@ async function readAndEnd(page: Page, id = story.id) {
   await startReading(page);
   await endReading(page);
 }
+/** Makes the question the conversation's target through the button in the document (not an event). */
 async function pick(page: Page, questionId: string) {
-  await page.getByLabel("풀 문제", { exact: true }).selectOption(questionId);
+  await page.locator(`.lw-story-question[data-question-id="${questionId}"]`).getByRole("button", { name: "이 문제에 질문하기" }).click();
 }
 /** Selects the question, picks `choice` and leaves the first answer. Waits for the judgement. */
 async function answer(page: Page, item: typeof story, number: number, choice: number) {
-  await pick(page, item.questions[number - 1].id);
   const form = page.getByRole("form", { name: `문제 ${number} 첫 답`, exact: true });
   await form.getByRole("radio").nth(choice).check();
   await form.getByRole("button", { name: /첫 답 남기기/ }).click();
@@ -63,9 +67,11 @@ test("a story is a workspace of eight document sections, hides the body before t
   await open(page);
   await expect(page.locator(".lw-document-toc nav li")).toHaveCount(8);
   await expect(page.locator("[data-outline-id]")).toHaveCount(8);
-  await expect(page.locator(".lw-document-toc nav li").nth(1)).toContainText("내용");
+  await expect(page.locator(".lw-document-toc nav li").nth(1)).toContainText("문제 1");
+  // Story and questions are one document: no question kind is shown in the outline or in a section.
+  await expect(page.locator(".lw-document-toc nav")).not.toContainText(/내용|표현의 감각|표현/);
   await expect(page.getByText(bodyText(story))).toHaveCount(0);
-  await expect(page.locator(".lw-reading-gate")).toContainText(`제한 시간 3:00 · ${story.words}낱말 · 문제 ${story.questions.length}개`);
+  await expect(page.locator(".lw-reading-gate")).toContainText(`${story.words}낱말 · 문제 ${story.questions.length}개`);
   await expect(page.locator(".lw-toolbar .draft-tag")).toHaveText("초안");
   await expect(page.locator(".lw-story-question .lw-locked-note")).toHaveCount(7);
   await expect(page.locator(".lw-question-options")).toHaveCount(0);
@@ -81,13 +87,17 @@ test("reading shows the body and the remaining time in the toolbar, then ends on
   const calls: string[] = [];
   await page.route("**/api/**", async route => { calls.push(route.request().url()); await route.continue(); });
   await open(page);
-  const before = await page.evaluate(() => window.scrollY);
+  // The level choice makes the start screen taller, so the start button is brought into view first; the start itself must not move the page.
+  await page.getByRole("button", { name: "읽기 시작" }).scrollIntoViewIfNeeded();
+  // Where the reader is looking is the story title's place on screen. On a narrow screen the timer makes the toolbar one line taller and the browser keeps the content in place by moving scrollY, so the title's position is compared, not scrollY.
+  const titleTop = () => page.locator("#lw-reading-title").evaluate(element => element.getBoundingClientRect().top);
+  const before = await titleTop();
   await startReading(page);
   await expect(page.getByText(bodyText(story))).toBeVisible();
   const timer = page.locator(".lw-toolbar").getByRole("timer");
-  await expect(timer).toContainText(/남은 시간 (3:00|2:5\d)/);
+  await expect(timer).toContainText(new RegExp(`남은 시간 (${clockLabel(limit)}|${clockLabel(limit - 1)})`));
   await expect(timer).toHaveAttribute("aria-live", "off");
-  expect(await page.evaluate(() => window.scrollY)).toBe(before);
+  expect(Math.abs((await titleTop()) - before)).toBeLessThanOrEqual(2);
   // The questions and the conversation stay closed while reading.
   await expect(page.locator(".lw-story-question .lw-locked-note")).toHaveCount(7);
   await expect(page.locator("#lw-message")).toHaveCount(0);
@@ -95,8 +105,9 @@ test("reading shows the body and the remaining time in the toolbar, then ends on
   await endReading(page);
   await expect(page.locator(".lw-body-hidden")).toContainText(/본문을 가렸습니다 · 읽은 시간 0:0\d/);
   await expect(page.getByRole("timer")).toHaveCount(0);
-  await expect(page.locator(".lw-question-options")).toHaveCount(7);
-  await expect(page.locator(".lw-locked-note")).toHaveCount(0);
+  await expect(page.locator(".lw-story-form")).toHaveCount(7);
+  await expect(page.locator(".lw-story-form").first().getByRole("radio")).toHaveCount(4);
+  await expect(page.locator(".lw-story-question .lw-locked-note")).toHaveCount(0);
   await expect(page.getByRole("form", { name: "문제 1 첫 답" })).toBeVisible();
   const saved = await record(page) as Rec;
   expect(saved.events.map(event => event.kind)).toEqual(["reading-start", "reading-end"]);
@@ -115,8 +126,8 @@ test("a reload while reading keeps the remaining time and starts nothing new", a
   const text = await page.locator(".lw-toolbar").getByRole("timer").innerText();
   const [, minutes, seconds] = /(\d+):(\d\d)/.exec(text)!;
   const remaining = Number(minutes) * 60 + Number(seconds);
-  expect(remaining).toBeLessThanOrEqual(179);
-  expect(remaining).toBeGreaterThan(140);
+  expect(remaining).toBeLessThanOrEqual(limit - 1);
+  expect(remaining).toBeGreaterThan(limit - 40);
   expect((await record(page) as Rec).events).toEqual(first.events);
 });
 
@@ -124,14 +135,14 @@ test("a deadline passed by the browser clock ends the reading by time exactly on
   await page.clock.install();
   await open(page);
   await startReading(page);
-  await page.clock.fastForward((story.limitSeconds + 2) * 1000);
+  await page.clock.fastForward((limit + 2) * 1000);
   await expect(page.locator(".lw-story-body")).toHaveCount(0);
   await expect(page.locator(".lw-body-hidden")).toContainText("시간 마감");
-  await expect(page.locator(".lw-chat-pane")).toContainText("읽기를 마쳤습니다 · 읽은 시간 3:00 · 시간 마감");
+  await expect(page.locator(".lw-chat-pane")).toContainText(`읽기를 마쳤습니다 · 읽은 시간 ${clockLabel(limit)} · 시간 마감`);
   await page.clock.fastForward(60 * 1000);
   const saved = await record(page) as Rec;
   expect(saved.events.map(event => event.kind)).toEqual(["reading-start", "reading-end"]);
-  expect(saved.events[1]).toMatchObject({ by: "time", endedAt: saved.events[0].startedAt! + story.limitSeconds * 1000 });
+  expect(saved.events[1]).toMatchObject({ by: "time", endedAt: saved.events[0].startedAt! + limit * 1000 });
   await expect(page.locator(".lw-chat-pane .lw-reading-marker")).toHaveCount(2);
 });
 
@@ -143,9 +154,9 @@ test("the timer is silent for screen readers except at one minute, thirty second
   const timer = page.locator(".lw-toolbar").getByRole("timer");
   await expect(timer).toHaveAttribute("aria-live", "off");
   await page.clock.fastForward(30 * 1000);
-  await expect(timer).toContainText("2:");
+  await expect(timer).toContainText(new RegExp(`남은 시간 ${clockLabel(limit - 30)}`));
   await expect(live).toHaveText("");
-  await page.clock.fastForward((story.limitSeconds - 30 - 55) * 1000);
+  await page.clock.fastForward((limit - 30 - 55) * 1000);
   await expect(live).toHaveText("남은 시간이 1분 이하입니다.");
   await page.clock.fastForward(30 * 1000);
   await expect(live).toHaveText("남은 시간이 30초 이하입니다.");
@@ -168,7 +179,7 @@ test("restoring after the deadline ends the reading by time at the deadline with
   await expect(page.getByRole("form", { name: "문제 1 첫 답" })).toBeVisible();
   const saved = await record(page) as Rec;
   expect(saved.events.map(event => event.kind)).toEqual(["reading-start", "reading-end"]);
-  expect(saved.events[1]).toMatchObject({ by: "time", endedAt: saved.events[0].startedAt! + story.limitSeconds * 1000 });
+  expect(saved.events[1]).toMatchObject({ by: "time", endedAt: saved.events[0].startedAt! + limit * 1000 });
   await page.reload();
   expect((await record(page) as Rec).events).toEqual(saved.events);
 });
@@ -187,7 +198,6 @@ test("the server judges a first answer, shows the canonical answer only then, an
   await expect(judged).toContainText(`정본 답: ${letter(first.answer)}. ${first.options[first.answer]}`);
   await expect(judged).toContainText(first.explain);
   await expect(page.locator(".lw-judgement")).not.toContainText("정답입니다");
-  await expect(page.locator(".lw-user-performance .lw-first-answer")).toContainText(first.options[wrong]);
   const options = page.locator(`.lw-story-question[data-question-id="${first.id}"] .lw-question-options li`);
   await expect(options.nth(wrong)).toContainText("내 첫 답");
   await expect(options.nth(first.answer)).toContainText("정본 답");
@@ -210,13 +220,12 @@ test("a failed judgement keeps the first answer, offers to judge again and recov
   await page.route("**/api/lesson-check/**", async route => { checks += 1; await route.abort("failed"); });
   await readAndEnd(page);
   const first = story.questions[0];
-  await pick(page, first.id);
   const form = page.getByRole("form", { name: "문제 1 첫 답", exact: true });
   await form.getByRole("radio").nth(2).check();
   await form.getByRole("button", { name: /첫 답 남기기/ }).click();
   const status = page.locator(".lw-judgement-failed");
   await expect(status).toContainText("판정을 받지 못했습니다. 답은 남아 있습니다.");
-  await expect(page.locator(".lw-user-performance .lw-first-answer")).toContainText(first.options[2]);
+  await expect(page.locator(`.lw-story-question[data-question-id="${first.id}"] .lw-question-options li`).nth(2)).toContainText("내 첫 답");
   await expect(page.getByText(first.explain)).toHaveCount(0);
   const failed = await record(page) as Rec;
   expect(failed.artifacts[0].attempts[0]).toMatchObject({ attempt: { choice: 2 }, check: null });
@@ -248,8 +257,9 @@ test("questions open in any order and selecting or reading creates no event or r
   const before = await record(page) as Rec;
   await pick(page, story.questions[6].id);
   await pick(page, story.questions[1].id);
-  await page.locator(`.lw-story-question[data-question-id="${story.questions[3].id}"]`).getByRole("button", { name: "이 문제로 풀기" }).click();
-  await expect(page.getByLabel("풀 문제", { exact: true })).toHaveValue(story.questions[3].id);
+  await pick(page, story.questions[3].id);
+  await expect(page.locator(".lw-reading-context")).toContainText("입력 대상: 문제 4");
+  await expect(page.locator(`.lw-story-question[data-question-id="${story.questions[3].id}"]`).getByRole("button", { name: "이 문제에 질문하기" })).toHaveAttribute("aria-pressed", "true");
   expect((await record(page) as Rec).events).toEqual(before.events);
   expect(requests).toEqual([]);
   await answer(page, story, 7, story.questions[6].answer);
@@ -309,12 +319,15 @@ test("the AI is called only from the explain button or a question, with the mock
   await page.getByRole("button", { name: "질문 보내기", exact: true }).click();
   await expect.poll(() => chat.length).toBe(2);
   await pick(page, story.questions[1].id);
-  await expect(page.getByLabel("풀 문제", { exact: true })).toHaveValue(story.questions[1].id);
+  await expect(page.locator(".lw-reading-context")).toContainText("입력 대상: 문제 2");
+  // Choosing the target moves to the conversation's question box on a narrow screen; the reply must not move the page after that.
+  await expect(page.getByLabel("이 문제에 대해 질문하기")).toBeFocused();
+  await page.waitForTimeout(300);
   const top = await page.evaluate(() => window.scrollY);
   release!();
   await expect(page.locator(`.lw-timeline-event[data-event-kind="reply"][data-artifact-id="${firstId}"]`)).toHaveCount(2);
   await expect(page.locator(`.lw-timeline-event[data-event-kind="reply"]:not([data-artifact-id="${firstId}"])`)).toHaveCount(0);
-  await expect(page.getByLabel("풀 문제", { exact: true })).toHaveValue(story.questions[1].id);
+  await expect(page.locator(".lw-reading-context")).toContainText("입력 대상: 문제 2");
   expect(Math.abs((await page.evaluate(() => window.scrollY)) - top)).toBeLessThanOrEqual(2);
   expect(chat).toHaveLength(2);
   expect(chat[1]).toMatchObject({ questionId: story.questions[0].id, artifactId: firstId, initialAttempt: { kind: "choose", choice: 0 } });
@@ -322,7 +335,7 @@ test("the AI is called only from the explain button or a question, with the mock
 
 test("a question before the first answer gets the free preparation guidance from the server", async ({ page }) => {
   await readAndEnd(page);
-  await page.getByRole("button", { name: "답하기 전에 질문하기", exact: true }).click();
+  await pick(page, story.questions[0].id);
   await page.getByLabel("이 문제에 대해 질문하기").fill("검사용 준비 질문");
   await page.getByRole("button", { name: "질문 보내기", exact: true }).click();
   await expect(page.getByText("준비 안내 · AI 호출 없음")).toBeVisible();
@@ -370,7 +383,7 @@ test("a record of an older content version is read only and can be replaced only
   await expect(page.locator(".lw-version-warning")).toBeVisible();
   await expect(page.getByRole("button", { name: "AI에게 설명 요청" })).toHaveCount(0);
   await expect(page.locator("#lw-message")).toHaveCount(0);
-  await expect(page.locator(".lw-user-performance .lw-first-answer")).toContainText(story.questions[0].options[1]);
+  await expect(page.locator(`.lw-story-question[data-question-id="${story.questions[0].id}"] .lw-question-options li`).nth(1)).toContainText("내 첫 답");
   await expect(judgement(page, 1)).toContainText(story.questions[0].explain);
   // Cancelling the confirmation keeps the record.
   page.once("dialog", dialog => dialog.dismiss());
@@ -399,8 +412,8 @@ test("a paired story links its unit and its expression question links its card a
   await endReading(page);
   const index = paired.questions.findIndex(item => item.kind === "expression");
   expect(index).toBeGreaterThan(0);
-  await expect(page.locator(`.lw-story-question[data-question-id="${paired.questions[0].id}"] .lw-artifact-header`)).toContainText("내용");
-  await expect(page.locator(`.lw-story-question[data-question-id="${paired.questions[index].id}"] .lw-artifact-header`)).toContainText("표현");
+  // Story and questions are one document: a question section shows no kind.
+  for (const question of [paired.questions[0], paired.questions[index]]) await expect(page.locator(`.lw-story-question[data-question-id="${question.id}"] .lw-artifact-header`)).not.toContainText(/내용|표현/);
   await answer(page, paired, 1, paired.questions[0].answer);
   await expect(page.locator(".lw-judgement-card")).toHaveCount(0);
   await answer(page, paired, index + 1, paired.questions[index].answer);
@@ -426,11 +439,15 @@ for (const [width, height] of [[1440, 900], [1100, 800], [390, 844], [320, 640]]
     await page.setViewportSize({ width, height });
     await open(page);
     expect(await noOverflow(page)).toBe(true);
+    for (const label of ["여유 있게", "보통", "빠르게"]) await hit(page, page.getByRole("radio", { name: new RegExp(`^${label}`) }), `level ${label}`);
     await hit(page, page.getByRole("button", { name: "읽기 시작" }), "start button");
     await hit(page, page.getByRole("button", { name: /^목차/ }), "outline toggle");
     await startReading(page);
     expect(await noOverflow(page)).toBe(true);
     await hit(page, page.locator(".lw-toolbar").getByRole("timer"), "timer");
+    // Both the remaining and the elapsed time are on screen at every width, in the toolbar and (below 1100px) above the body.
+    await expect(page.locator(".lw-toolbar").getByRole("timer")).toContainText(/남은 시간 \d+:\d\d\s*지난 시간 \d+:\d\d/);
+    if (width < 1100) await expect(page.locator(".lw-reading-clock")).toContainText(/남은 시간 \d+:\d\d · 지난 시간 \d+:\d\d/);
     await hit(page, page.locator(".lw-toolbar").getByRole("button", { name: "다 읽었습니다", exact: true }), "finish button");
     await hit(page, page.locator(".lw-story-body p").first(), "first paragraph");
     await hit(page, page.locator(".lw-story-body p").last(), "last paragraph");
@@ -438,8 +455,7 @@ for (const [width, height] of [[1440, 900], [1100, 800], [390, 844], [320, 640]]
     await page.locator(".lw-toolbar").getByRole("button", { name: "다 읽었습니다", exact: true }).click();
     await expect(page.locator(".lw-body-hidden")).toBeVisible();
     expect(await noOverflow(page)).toBe(true);
-    await pick(page, story.questions[0].id);
-    await hit(page, page.getByLabel("풀 문제", { exact: true }), "target selector");
+    await hit(page, page.locator(`.lw-story-question[data-question-id="${story.questions[0].id}"]`).getByRole("button", { name: "이 문제에 질문하기" }), "target button");
     const form = page.getByRole("form", { name: "문제 1 첫 답", exact: true });
     for (let index = 0; index < 4; index += 1) await hit(page, form.getByRole("radio").nth(index), `option ${index}`);
     await form.getByRole("radio").nth(1).check();
@@ -447,6 +463,7 @@ for (const [width, height] of [[1440, 900], [1100, 800], [390, 844], [320, 640]]
     await form.getByRole("button", { name: /첫 답 남기기/ }).click();
     await expect(judgement(page, 1)).toBeVisible();
     await hit(page, judgement(page, 1), "judgement");
+    await expect(judgement(page, 1)).toContainText(story.questions[0].explain);
     await hit(page, page.getByLabel("이 문제에 대해 질문하기"), "question box");
     await hit(page, page.getByRole("button", { name: "AI에게 설명 요청", exact: true }), "explain button");
     expect(await noOverflow(page)).toBe(true);

@@ -14,18 +14,21 @@ const recordKey = (lessonId: string) => `english-sense-lesson-v4:${lessonId}`;
 const TWO = "wonder-0-12"; // "My mom can ___ me ___." answers: pick, up
 const ONE = "wonder-0-01"; // "Her smile ___ hugged me." answer: kind of
 const chat = (page: Page) => page.getByRole("region", { name: "AI 대화", exact: true });
-const blank = (page: Page, n: number) => chat(page).getByLabel(`빈칸 ${n}`, { exact: true });
 const section = (page: Page, id: string) => page.locator(`section.cl-card[data-question-id="${id}"]`);
-const target = (page: Page) => page.getByLabel("함께 풀 카드", { exact: true });
+/** The input of blank `n` inside the sentence of card `id`. */
+const blank = (page: Page, id: string, n: number) => section(page, id).getByLabel(`빈칸 ${n}`, { exact: true });
 const timeline = (page: Page) => page.getByRole("log", { name: "학습 수행과 대화" });
+const context = (page: Page) => page.locator(".lw-reading-context");
 const ready = async (page: Page) => { await expect(page.locator(".lw-session-status")).not.toContainText("임시 기록 확인 중"); };
 const answer = (id: string) => prep.works.flatMap(work => work.units.flatMap(unit => unit.cards)).find(card => card.id === id)!.drill.answers;
 
 async function open(page: Page, item = wonder0, hash = "") { await page.goto(`${item.path}${hash}`); await ready(page); }
-async function pick(page: Page, id: string) { await section(page, id).getByRole("button", { name: /이어 가기$/ }).click(); await expect(target(page)).toHaveValue(id); }
-async function submit(page: Page, inputs: string[], mode: "첫 답 남기기" | "수정해서 다시 판정" = "첫 답 남기기") {
-  for (const [index, value] of inputs.entries()) await blank(page, index + 1).fill(value);
-  await chat(page).getByRole("button", { name: mode }).click();
+/** Makes the card the conversation's target through the card's own button (not an event). */
+async function pick(page: Page, id: string) { const button = section(page, id).getByRole("button", { name: /질문하기$/ }); await button.click(); await expect(button).toHaveAttribute("aria-pressed", "true"); }
+/** Fills the card's blanks in its sentence and leaves the answer from the card itself. */
+async function submit(page: Page, id: string, inputs: string[], mode: "첫 답 남기기" | "수정해서 다시 판정" = "첫 답 남기기") {
+  for (const [index, value] of inputs.entries()) await blank(page, id, index + 1).fill(value);
+  await section(page, id).getByRole("button", { name: mode }).click();
 }
 /** The outline starts open from 1100px and collapsed below it; open it when it is not. */
 async function outline(page: Page) {
@@ -56,27 +59,35 @@ async function mockChat(page: Page, reply = (body: LessonChatRequest) => `검사
 }
 function countRequests(page: Page, pattern: string) { const urls: string[] = []; page.on("request", request => { if (request.url().includes(pattern)) urls.push(request.method()); }); return urls; }
 
-test.describe("card lesson: judging, revising and the answer", () => {
-  test("a two-blank card is judged blank by blank, a partial match differs, and judging never calls the AI", async ({ page }) => {
+test.describe("card lesson: judging, revising and the answer happen inside the card", () => {
+  test("a two-blank card is judged blank by blank inside the card, a partial match differs, and judging never calls the AI", async ({ page }) => {
     const chatCalls = await mockChat(page);
     await open(page);
-    await pick(page, TWO);
-    await expect(chat(page).locator(".lw-attempt-form input")).toHaveCount(2);
-    await expect(page.locator(".lw-content-pane form, .lw-content-pane textarea, .lw-content-pane input")).toHaveCount(0);
-    await expect(page.locator(".lw-reading-context")).toContainText("입력 대상: 카드 12 · pick up");
-    await blank(page, 1).fill("pick");
-    await blank(page, 2).fill("down");
+    // The blanks are inputs inside the sentence of the card itself; the chat holds no answer form.
+    await expect(section(page, TWO).locator("p.cl-drill-sentence input")).toHaveCount(2);
+    await expect(chat(page).locator("form.lw-attempt-form, input")).toHaveCount(0);
+    await expect(page.locator(".lw-reading-context")).toContainText("입력 대상: 아직 없음");
+    await blank(page, TWO, 1).fill("pick");
+    // Working in a card makes it the chat's target without any event.
+    await expect(context(page)).toContainText("입력 대상: 카드 12 · pick up");
+    await blank(page, TWO, 2).fill("down");
     expect(await stored(page).catch(() => null)).not.toBeNull();
     const checked = page.waitForResponse(response => response.url().includes("/api/lesson-check/"));
-    await chat(page).getByRole("button", { name: "첫 답 남기기" }).click();
+    await section(page, TWO).getByRole("button", { name: "첫 답 남기기" }).click();
     const body = await (await checked).text();
     expect(body).not.toContain('"up"');
     expect(body).not.toContain("answers");
-    const judgement = timeline(page).locator(".cl-judgement").first();
+    const judgement = section(page, TWO).locator(".cl-judgement").first();
     await expect(judgement).toContainText("정본 답과 다릅니다.");
     await expect(judgement.getByText("빈칸 1 · 같음")).toBeVisible();
     await expect(judgement.getByText("빈칸 2 · 다름")).toBeVisible();
     await expect(judgement).toContainText("판정");
+    // The conversation keeps one line per event: the answer and the judgement, in order, without the explanation.
+    const lines = timeline(page).locator(".lw-event-line");
+    await expect(lines).toHaveCount(2);
+    await expect(lines.nth(0)).toHaveText("카드 12 · pick up · 첫 답 pick / down");
+    await expect(lines.nth(1)).toContainText("카드 12 · pick up · 첫 답 · 정본 답과 다릅니다 (빈칸 1 같음 · 빈칸 2 다름)");
+    await expect(timeline(page).locator(".cl-judgement, .lw-judgement")).toHaveCount(0);
     await expect(timeline(page).locator(".lw-assistant-message")).toHaveCount(0);
     expect(chatCalls).toHaveLength(0);
     const record = await stored(page);
@@ -84,31 +95,43 @@ test.describe("card lesson: judging, revising and the answer", () => {
     expect(record.artifacts[0].attempts[0].attempt).toEqual({ kind: "fill", inputs: ["pick", "down"] });
   });
 
-  test("a wrong answer is revised as a new attempt, the answer opens only after a first answer, and later attempts say so", async ({ page }) => {
+  test("a wrong answer is revised as a new attempt in the card, the answer opens only after a first answer, and later attempts say so", async ({ page }) => {
     await open(page);
-    await pick(page, TWO);
-    const reveal = chat(page).getByRole("button", { name: "답 보기" });
+    const card = section(page, TWO);
+    const reveal = card.getByRole("button", { name: "답 보기" });
     await expect(reveal).toBeDisabled();
-    await expect(chat(page)).toContainText("답 보기는 첫 답을 낸 뒤에 열립니다.");
-    await submit(page, ["pick", "down"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
-    await expect(chat(page).getByRole("form", { name: "카드 12 수정" })).toBeVisible();
-    await expect(chat(page).getByText("직전 판정 · 다름")).toBeVisible();
+    await expect(card).toContainText("답 보기는 첫 답을 낸 뒤에 열립니다.");
+    await submit(page, TWO, ["pick", "down"]);
+    await expect(card.locator(".cl-judgement")).toHaveCount(1);
+    await expect(card.getByRole("form", { name: "카드 12 수정" })).toBeVisible();
+    await expect(card.getByText("직전 판정 · 다름")).toBeVisible();
     await expect(reveal).toBeEnabled();
 
     await reveal.click();
-    const shown = timeline(page).locator(".cl-reveal");
+    const shown = card.locator(".cl-reveal");
     await expect(shown).toContainText("빈칸 1 · pick");
     await expect(shown).toContainText("빈칸 2 · up");
-    await expect(chat(page).getByRole("button", { name: "답 보기" })).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "답 보기" })).toHaveCount(0);
+    await expect(timeline(page).locator(".lw-event-line").last()).toHaveText(/카드 12 · pick up · 답 보기 · 정본 답을 열었습니다/);
+    await expect(timeline(page)).not.toContainText("빈칸 2 · up");
 
-    await submit(page, ["pick", "up"], "수정해서 다시 판정");
-    const items = timeline(page).locator(".lw-timeline-event");
-    await expect(items.locator(".cl-judgement").last()).toContainText("정본 답과 같습니다.");
-    await expect(timeline(page).locator(".cl-attempt").last()).toContainText("수정 1");
-    await expect(timeline(page).locator(".cl-attempt").last()).toContainText("답을 본 뒤");
-    await expect(timeline(page).locator(".cl-attempt").first()).not.toContainText("답을 본 뒤");
-    await expect(chat(page).locator(".lw-attempt-form input")).toHaveCount(0);
+    await blank(page, TWO, 2).fill("up");
+    await card.getByRole("button", { name: "수정해서 다시 판정" }).click();
+    await expect(card.locator(".cl-judgement").last()).toContainText("정본 답과 같습니다.");
+    await expect(card.locator(".cl-attempt").last()).toContainText("수정 1");
+    await expect(card.locator(".cl-attempt").last()).toContainText("답을 본 뒤");
+    await expect(card.locator(".cl-attempt").first()).not.toContainText("답을 본 뒤");
+    // A matching card keeps its answer visible but no longer takes edits.
+    await expect(blank(page, TWO, 2)).toHaveAttribute("readonly", "");
+    await expect(card.getByRole("button", { name: /다시 판정$/ })).toHaveCount(0);
+    const order = await timeline(page).locator(".lw-event-line").allInnerTexts();
+    expect(order.map(text => text.replace(/\s*카드에서 보기$/, ""))).toEqual([
+      "카드 12 · pick up · 첫 답 pick / down",
+      "카드 12 · pick up · 첫 답 · 정본 답과 다릅니다 (빈칸 1 같음 · 빈칸 2 다름)",
+      "카드 12 · pick up · 답 보기 · 정본 답을 열었습니다",
+      "카드 12 · pick up · 수정 1 pick / up · 답을 본 뒤",
+      "카드 12 · pick up · 수정 1 · 정본 답과 같습니다 (빈칸 1 같음 · 빈칸 2 같음) · 답을 본 뒤",
+    ]);
 
     const record = await stored(page);
     expect(record.events.map(event => event.kind)).toEqual(["initial", "check", "reveal", "revision", "check"]);
@@ -121,54 +144,61 @@ test.describe("card lesson: judging, revising and the answer", () => {
 
   test("the first answer is kept across a reload without a new request, and an unchanged revision is not sent", async ({ page }) => {
     await open(page);
-    await pick(page, TWO);
-    await submit(page, ["pick", "down"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
-    await blank(page, 2).fill("dow");
+    await submit(page, TWO, ["pick", "down"]);
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(1);
+    await blank(page, TWO, 2).fill("dow");
     const requests = countRequests(page, "/api/");
     await page.reload();
     await ready(page);
-    await expect(timeline(page).locator(".cl-attempt")).toHaveCount(1);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
-    await expect(target(page)).toHaveValue(TWO);
-    await expect(blank(page, 2)).toHaveValue("dow");
+    await expect(section(page, TWO).locator(".cl-attempt")).toHaveCount(1);
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(1);
+    await expect(context(page)).toContainText("입력 대상: 카드 12 · pick up");
+    await expect(blank(page, TWO, 2)).toHaveValue("dow");
+    await expect(timeline(page).locator(".lw-event-line")).toHaveCount(2);
     expect(requests).toEqual([]);
     expect((await stored(page)).artifacts[0].attempts).toHaveLength(1);
-    await blank(page, 2).fill("down");
-    await expect(chat(page).getByRole("button", { name: "수정해서 다시 판정" })).toBeDisabled();
+    await blank(page, TWO, 2).fill("down");
+    await expect(section(page, TWO).getByRole("button", { name: "수정해서 다시 판정" })).toBeDisabled();
   });
 
   test("a single-blank card accepts a lenient right answer", async ({ page }) => {
     await open(page);
-    await pick(page, ONE);
-    await expect(blank(page, 1)).toBeVisible();
-    await expect(chat(page).getByLabel("빈칸 2", { exact: true })).toHaveCount(0);
-    await submit(page, ["  KIND of "]);
-    await expect(timeline(page).locator(".cl-judgement")).toContainText("정본 답과 같습니다.");
-    await expect(chat(page)).toContainText("정본 답과 같다고 판정됐습니다");
+    await expect(blank(page, ONE, 1)).toBeVisible();
+    await expect(section(page, ONE).getByLabel("빈칸 2", { exact: true })).toHaveCount(0);
+    await submit(page, ONE, ["  KIND of "]);
+    await expect(section(page, ONE).locator(".cl-judgement")).toContainText("정본 답과 같습니다.");
+    await expect(section(page, ONE)).toContainText("정본 답과 같다고 판정됐습니다");
+  });
+
+  test("submitting with every blank empty asks for an answer in the card and sends nothing", async ({ page }) => {
+    const requests = countRequests(page, "/api/");
+    await open(page);
+    await section(page, TWO).getByRole("button", { name: "첫 답 남기기" }).click();
+    expect(await blank(page, TWO, 1).evaluate(input => (input as HTMLInputElement).validationMessage)).toBe("빈칸 하나 이상에 적어 주십시오.");
+    expect(requests).toEqual([]);
+    expect((await stored(page)).events).toEqual([]);
   });
 });
 
 test.describe("card lesson: judging requests that fail", () => {
-  test("a blocked request keeps the first answer, offers judging again, and the same request gives the same result", async ({ page }) => {
+  test("a blocked request keeps the first answer, offers judging again in the card, and the same request gives the same result", async ({ page }) => {
     await open(page);
-    await pick(page, TWO);
     await page.route("**/api/lesson-check/**", route => route.abort());
-    await submit(page, ["pick", "down"]);
-    const failure = timeline(page).locator(".lw-judgement-failed");
+    await submit(page, TWO, ["pick", "down"]);
+    const failure = section(page, TWO).locator(".lw-judgement-failed");
     await expect(failure).toContainText("판정을 받지 못했습니다. 답은 남아 있습니다.");
-    await expect(timeline(page).locator(".cl-attempt")).toContainText("down");
+    await expect(section(page, TWO).locator(".cl-attempt")).toContainText("down");
     expect((await stored(page)).artifacts[0].attempts[0]).toMatchObject({ attempt: { kind: "fill", inputs: ["pick", "down"] }, check: null });
-    await expect(chat(page).locator(".lw-attempt-form input")).toHaveCount(0);
+    await expect(blank(page, TWO, 1)).toHaveAttribute("readonly", "");
 
     await page.reload();
     await ready(page);
-    await expect(timeline(page).locator(".lw-judgement-failed")).toBeVisible();
+    await expect(section(page, TWO).locator(".lw-judgement-failed")).toBeVisible();
     await page.unroute("**/api/lesson-check/**");
     const bodies: string[] = [];
     page.on("request", request => { if (request.url().includes("/api/lesson-check/")) bodies.push(request.postData() || ""); });
-    await timeline(page).getByRole("button", { name: "다시 판정" }).click();
-    await expect(timeline(page).locator(".cl-judgement")).toContainText("정본 답과 다릅니다.");
+    await section(page, TWO).getByRole("button", { name: "다시 판정" }).click();
+    await expect(section(page, TWO).locator(".cl-judgement")).toContainText("정본 답과 다릅니다.");
     expect(bodies).toHaveLength(1);
     const repeat = async () => (await page.request.post("/api/lesson-check/", { data: JSON.parse(bodies[0]), headers: { Origin: new URL(page.url()).origin } })).text();
     expect(await repeat()).toBe(await repeat());
@@ -179,16 +209,15 @@ test.describe("card lesson: judging requests that fail", () => {
 
   test("a failed reveal keeps the answer closed and can be tried again", async ({ page }) => {
     await open(page);
-    await pick(page, TWO);
-    await submit(page, ["pick", "down"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
+    await submit(page, TWO, ["pick", "down"]);
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(1);
     await page.route("**/api/lesson-check/**", route => route.abort());
-    await chat(page).getByRole("button", { name: "답 보기" }).click();
-    await expect(chat(page)).toContainText("답을 가져오지 못했습니다. 첫 답은 남아 있습니다.");
+    await section(page, TWO).getByRole("button", { name: "답 보기" }).click();
+    await expect(section(page, TWO)).toContainText("답을 가져오지 못했습니다. 첫 답은 남아 있습니다.");
     expect((await stored(page)).artifacts[0].reveal).toBeNull();
     await page.unroute("**/api/lesson-check/**");
-    await chat(page).getByRole("button", { name: "답 보기" }).click();
-    await expect(timeline(page).locator(".cl-reveal")).toContainText("빈칸 2 · up");
+    await section(page, TWO).getByRole("button", { name: "답 보기" }).click();
+    await expect(section(page, TWO).locator(".cl-reveal")).toContainText("빈칸 2 · up");
   });
 });
 
@@ -196,10 +225,11 @@ test.describe("card lesson: the AI is called only when the learner sends", () =>
   test("a first answer calls no AI; the explain button and a question send the documented request", async ({ page }) => {
     const calls = await mockChat(page);
     await open(page);
-    await pick(page, TWO);
+    await expect(chat(page).getByRole("button", { name: "AI에게 설명 요청" })).toHaveCount(0);
+    await blank(page, TWO, 1).fill("pick");
     await expect(chat(page).getByRole("button", { name: "AI에게 설명 요청" })).toBeDisabled();
-    await submit(page, ["pick", "down"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
+    await submit(page, TWO, ["pick", "down"]);
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(1);
     expect(calls).toHaveLength(0);
 
     await chat(page).getByRole("button", { name: "AI에게 설명 요청" }).click();
@@ -208,16 +238,19 @@ test.describe("card lesson: the AI is called only when the learner sends", () =>
     expect(calls[0]).toMatchObject({ lessonId: wonder0.lessonId, questionId: TWO, initialAttempt: { kind: "fill", inputs: ["pick", "down"] }, revisions: [] });
     expect(Object.keys(calls[0]).sort()).toEqual(["artifactId", "contentVersion", "initialAttempt", "lessonId", "message", "messages", "questionId", "requestId", "revisions"]);
     await expect(timeline(page).locator(".lw-assistant-message")).not.toHaveClass(/cl-judgement/);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(1);
 
-    await submit(page, ["pick", "up"], "수정해서 다시 판정");
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(2);
+    await submit(page, TWO, ["pick", "up"], "수정해서 다시 판정");
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(2);
     await chat(page).getByLabel("이 카드에 대해 질문하기").fill("up은 왜 필요한가요?");
     await chat(page).getByRole("button", { name: "질문 보내기" }).click();
     await expect(timeline(page).locator(".lw-assistant-message")).toHaveCount(2);
     expect(calls).toHaveLength(2);
     expect(calls[1]).toMatchObject({ message: "up은 왜 필요한가요?", initialAttempt: { kind: "fill", inputs: ["pick", "down"] }, revisions: [{ text: "pick / up" }] });
     expect(calls[1].messages).toHaveLength(2);
+    // Answers, judgements and questions stay in the order they happened.
+    const kinds = await timeline(page).locator(".lw-timeline-event").evaluateAll(nodes => nodes.map(node => node.getAttribute("data-event-kind")));
+    expect(kinds).toEqual(["initial", "check", "request", "reply", "revision", "check", "request", "reply"]);
   });
 
   test("before a first answer a question gets the free preparation guide from the real server and no answer", async ({ page }) => {
@@ -232,7 +265,7 @@ test.describe("card lesson: the AI is called only when the learner sends", () =>
     await expect(timeline(page).locator(".lw-assistant-message")).toContainText("준비 안내");
   });
 
-  test("a reply that arrives after another card was selected stays on the original card and the page does not move", async ({ page }) => {
+  test("a reply that arrives after another card was handled stays on the original card and the page does not move", async ({ page }) => {
     let release: () => void = () => {};
     const gate = new Promise<void>(resolve => { release = resolve; });
     const calls: LessonChatRequest[] = [];
@@ -243,19 +276,19 @@ test.describe("card lesson: the AI is called only when the learner sends", () =>
       await route.fulfill({ json: { requestId: body.requestId, lessonId: body.lessonId, artifactId: body.artifactId, questionId: body.questionId, contentVersion: body.contentVersion, reply: "검사용 늦은 응답", mode: "ai" } });
     });
     await open(page);
-    await pick(page, TWO);
-    await submit(page, ["pick", "down"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
+    await submit(page, TWO, ["pick", "down"]);
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(1);
     await chat(page).getByRole("button", { name: "AI에게 설명 요청" }).click();
     await expect(timeline(page).locator(".lw-waiting")).toContainText("카드 12 · pick up");
-    await target(page).selectOption(ONE);
-    await expect(page.locator(".lw-reading-context")).toContainText("카드 1 · kind of");
+    // While the request is pending the learner works in another card: it becomes the target, the request keeps its own.
+    await blank(page, ONE, 1).fill("kind");
+    await expect(context(page)).toContainText("카드 1 · kind of");
     await section(page, ONE).scrollIntoViewIfNeeded();
     const scrollBefore = await page.evaluate(() => scrollY);
     release();
     await expect(timeline(page).locator(".lw-assistant-message")).toContainText("검사용 늦은 응답");
     await expect(timeline(page).locator(".lw-assistant-message .lw-message-meta")).toContainText("카드 12 · pick up");
-    await expect(target(page)).toHaveValue(ONE);
+    await expect(context(page)).toContainText("카드 1 · kind of");
     expect(Math.abs((await page.evaluate(() => scrollY)) - scrollBefore)).toBeLessThanOrEqual(2);
     const record = await stored(page);
     const original = record.artifacts.find(artifact => artifact.question.questionId === TWO)!;
@@ -267,16 +300,14 @@ test.describe("card lesson: the AI is called only when the learner sends", () =>
   test("when the AI limit is reached, judging, the document and the record keep working", async ({ page }) => {
     await page.route("**/api/learn-chat/**", route => route.fulfill({ status: 429, json: { detail: "오늘 AI 설명 한도에 도달했습니다.", error: { code: "quota_exceeded", message: "오늘 AI 설명 한도에 도달했습니다." } } }));
     await open(page);
-    await pick(page, TWO);
-    await submit(page, ["pick", "down"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
+    await submit(page, TWO, ["pick", "down"]);
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(1);
     await chat(page).getByRole("button", { name: "AI에게 설명 요청" }).click();
     await expect(timeline(page).locator(".lw-request-error")).toContainText("오늘 AI 설명 한도에 도달했습니다.");
-    await submit(page, ["pick", "up"], "수정해서 다시 판정");
-    await expect(timeline(page).locator(".cl-judgement").last()).toContainText("정본 답과 같습니다.");
-    await pick(page, ONE);
-    await submit(page, ["kind of"]);
-    await expect(timeline(page).locator(".cl-judgement").last()).toContainText("정본 답과 같습니다.");
+    await submit(page, TWO, ["pick", "up"], "수정해서 다시 판정");
+    await expect(section(page, TWO).locator(".cl-judgement").last()).toContainText("정본 답과 같습니다.");
+    await submit(page, ONE, ["kind of"]);
+    await expect(section(page, ONE).locator(".cl-judgement").last()).toContainText("정본 답과 같습니다.");
     const record = await stored(page);
     expect(record.artifacts).toHaveLength(2);
     expect(record.artifacts.find(artifact => artifact.question.questionId === TWO)!.threads[0].turns[0].status).toBe("failed");
@@ -288,10 +319,9 @@ test.describe("card lesson: document, links and records", () => {
     await open(page, wonder0);
     await expect(page.locator("section.cl-card")).toHaveCount(wonder0.unit.cards.length);
     await expect((await outline(page)).getByRole("link")).toHaveCount(wonder0.unit.cards.length);
-    await expect(target(page).locator("option")).toHaveCount(wonder0.unit.cards.length);
     await open(page, wonder0, `#${TWO}`);
     await expect(section(page, TWO)).toBeInViewport();
-    await expect(page.locator(".lw-reading-context")).toContainText("입력 대상: 카드 12 · pick up");
+    await expect(context(page)).toContainText("입력 대상: 카드 12 · pick up");
     const record = await stored(page);
     expect(record.events).toEqual([]);
     expect(record.artifacts).toEqual([]);
@@ -307,9 +337,10 @@ test.describe("card lesson: document, links and records", () => {
     const requests = countRequests(page, "/api/");
     await open(page);
     await section(page, TWO).scrollIntoViewIfNeeded();
-    await target(page).selectOption(TWO);
-    await target(page).selectOption(ONE);
+    await pick(page, TWO);
+    await pick(page, ONE);
     await (await outline(page)).getByRole("link", { name: /카드 3/ }).click();
+    await blank(page, ONE, 1).focus();
     expect(requests).toEqual([]);
     const record = await stored(page);
     expect(record.events).toEqual([]);
@@ -327,29 +358,27 @@ test.describe("card lesson: document, links and records", () => {
 
   test("two lessons keep separate records across reloads and a damaged record blocks only its own lesson", async ({ page }) => {
     await open(page);
-    await pick(page, ONE);
-    await submit(page, ["kind of"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
+    await submit(page, ONE, ["kind of"]);
+    await expect(section(page, ONE).locator(".cl-judgement")).toHaveCount(1);
     const second = units.find(item => item.lessonId === "wonder-unit-1")!;
     await open(page, second);
-    await expect(timeline(page).locator(".cl-attempt")).toHaveCount(0);
+    await expect(page.locator(".cl-attempt")).toHaveCount(0);
     const secondCard = second.unit.cards[0];
-    await pick(page, secondCard.id);
-    await submit(page, ["wrong"]);
-    await expect(timeline(page).locator(".cl-judgement")).toContainText("정본 답과 다릅니다.");
+    await submit(page, secondCard.id, ["wrong"]);
+    await expect(section(page, secondCard.id).locator(".cl-judgement")).toContainText("정본 답과 다릅니다.");
     await page.reload();
     await ready(page);
-    await expect(timeline(page).locator(".cl-attempt")).toHaveCount(1);
+    await expect(page.locator(".cl-attempt")).toHaveCount(1);
     expect((await stored(page, second.lessonId)).artifacts.map(artifact => artifact.question.questionId)).toEqual([secondCard.id]);
     expect((await stored(page, wonder0.lessonId)).artifacts.map(artifact => artifact.question.questionId)).toEqual([ONE]);
     await open(page);
-    await expect(timeline(page).locator(".cl-attempt")).toHaveCount(1);
-    await expect(timeline(page).locator(".cl-attempt")).toContainText("kind of");
+    await expect(page.locator(".cl-attempt")).toHaveCount(1);
+    await expect(page.locator(".cl-attempt")).toContainText("kind of");
     // The other lesson's record is damaged; this lesson still opens with its own record.
     await page.evaluate(key => localStorage.setItem(key, "{broken"), recordKey(second.lessonId));
     await page.reload();
     await ready(page);
-    await expect(timeline(page).locator(".cl-attempt")).toHaveCount(1);
+    await expect(page.locator(".cl-attempt")).toHaveCount(1);
     await page.goto(second.path);
     await expect(page.locator(".lw-save-warning").first()).toBeVisible();
     expect(await page.evaluate(key => localStorage.getItem(key), recordKey(second.lessonId))).toBe("{broken");
@@ -357,9 +386,8 @@ test.describe("card lesson: document, links and records", () => {
 
   test("a record of an older content version is kept read only, and restarting clears only this lesson's record key", async ({ page }) => {
     await open(page);
-    await pick(page, TWO);
-    await submit(page, ["pick", "down"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
+    await submit(page, TWO, ["pick", "down"]);
+    await expect(section(page, TWO).locator(".cl-judgement")).toHaveCount(1);
     const before = await stored(page);
     const current = before.artifacts[0].contentVersion;
     await page.evaluate(([key, version]) => {
@@ -371,9 +399,10 @@ test.describe("card lesson: document, links and records", () => {
     await ready(page);
     expect(requests).toEqual([]);
     await expect(chat(page).locator(".cl-old-banner")).toContainText("이전 자료 판으로 남은 기록");
-    await expect(timeline(page).locator(".cl-attempt")).toHaveCount(1);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
-    await expect(chat(page).locator(".lw-attempt-form input")).toHaveCount(0);
+    await expect(page.locator(".cl-attempt")).toHaveCount(1);
+    await expect(page.locator(".cl-judgement")).toHaveCount(1);
+    await expect(blank(page, TWO, 1)).toHaveAttribute("readonly", "");
+    await expect(section(page, TWO).getByRole("button", { name: /첫 답 남기기|수정해서 다시 판정|답 보기/ })).toHaveCount(0);
     await expect(chat(page).getByRole("button", { name: "AI에게 설명 요청" })).toBeDisabled();
     await expect(chat(page).getByRole("button", { name: "질문 보내기" })).toBeDisabled();
     expect(await page.evaluate(key => localStorage.getItem(key)!.includes("e".repeat(64)), recordKey(wonder0.lessonId))).toBe(true);
@@ -382,25 +411,24 @@ test.describe("card lesson: document, links and records", () => {
     page.once("dialog", dialog => { message = dialog.message(); void dialog.dismiss(); });
     await chat(page).getByRole("button", { name: "이 기록을 지우고 새 판으로 시작" }).click();
     expect(message).toContain("되돌릴 수 없습니다");
-    await expect(timeline(page).locator(".cl-attempt")).toHaveCount(1);
+    await expect(page.locator(".cl-attempt")).toHaveCount(1);
     page.once("dialog", dialog => void dialog.accept());
     await chat(page).getByRole("button", { name: "이 기록을 지우고 새 판으로 시작" }).click();
-    await expect(timeline(page).locator(".cl-attempt")).toHaveCount(0);
+    await expect(page.locator(".cl-attempt")).toHaveCount(0);
     await expect(chat(page).locator(".cl-old-banner")).toHaveCount(0);
-    await expect(blank(page, 1)).toBeVisible();
+    await expect(blank(page, TWO, 1)).toBeEditable();
     const fresh = await stored(page);
     expect(fresh.artifacts).toEqual([]);
     expect(fresh.events).toEqual([]);
     expect(await page.evaluate(() => localStorage.getItem("english-sense-lesson-v4:wonder-unit-1"))).toBe("{\"keep\":true}");
-    await submit(page, ["pick", "up"]);
-    await expect(timeline(page).locator(".cl-judgement")).toContainText("정본 답과 같습니다.");
+    await submit(page, TWO, ["pick", "up"]);
+    await expect(section(page, TWO).locator(".cl-judgement")).toContainText("정본 답과 같습니다.");
   });
 
   test("nothing on the screen says mastery, completion or progress", async ({ page }) => {
     await open(page);
-    await pick(page, ONE);
-    await submit(page, ["kind of"]);
-    await expect(timeline(page).locator(".cl-judgement")).toHaveCount(1);
+    await submit(page, ONE, ["kind of"]);
+    await expect(section(page, ONE).locator(".cl-judgement")).toHaveCount(1);
     await outline(page);
     const text = (await page.locator("body").innerText()).replace(/\s+/g, " ");
     expect(text).not.toMatch(/숙달|완료|진행률|마스터|달성|정답입니다|맞습니다|축하/);
@@ -410,7 +438,7 @@ test.describe("card lesson: document, links and records", () => {
 });
 
 for (const [width, height] of [[1440, 900], [1100, 800], [390, 844], [320, 640]] as const) {
-  test(`${width}px: a 22-card unit's text, outline, target selector and inputs are reachable and nothing fixed covers them`, async ({ page }) => {
+  test(`${width}px: a 22-card unit's text, outline, inline blanks and the chat are reachable and nothing fixed covers them`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
@@ -435,19 +463,19 @@ for (const [width, height] of [[1440, 900], [1100, 800], [390, 844], [320, 640]]
     await heading.scrollIntoViewIfNeeded();
     expect(await unobscured(heading)).toBe(true);
     await expect(heading).toContainText(cards[21].expression);
-    await expect(target(page).locator("option")).toHaveCount(22);
-    await target(page).scrollIntoViewIfNeeded();
-    expect(await unobscured(target(page))).toBe(true);
-    await target(page).selectOption(cards[20].id);
-    await expect(page.locator(".lw-reading-context")).toContainText(`카드 21 · ${cards[20].expression}`);
-    const input = blank(page, 1);
+    await expect(page.locator("section.cl-card form")).toHaveCount(22);
+    const input = blank(page, cards[20].id, 1);
     await input.scrollIntoViewIfNeeded();
     expect(await unobscured(input)).toBe(true);
     await input.fill("x");
     await expect(input).toHaveValue("x");
-    const submitButton = chat(page).getByRole("button", { name: "첫 답 남기기" });
+    await expect(context(page)).toContainText(`카드 21 · ${cards[20].expression}`);
+    const submitButton = section(page, cards[20].id).getByRole("button", { name: "첫 답 남기기" });
     await submitButton.scrollIntoViewIfNeeded();
     expect(await unobscured(submitButton)).toBe(true);
+    const askButton = section(page, cards[20].id).getByRole("button", { name: /질문하기$/ });
+    await askButton.scrollIntoViewIfNeeded();
+    expect(await unobscured(askButton)).toBe(true);
     const question = page.getByLabel("이 카드에 대해 질문하기");
     await question.scrollIntoViewIfNeeded();
     expect(await unobscured(question)).toBe(true);
