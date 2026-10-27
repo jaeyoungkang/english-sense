@@ -112,19 +112,29 @@ async function ask(input: ChatInput, system: string, request: Request, env: ApiE
       }),
     });
     if (!response.ok) {
-      await response.body?.cancel();
+      // 원인을 운영 로그에서 가리려고 상태 코드와 오류 종류만 남긴다. 질문·응답·키는 남기지 않는다.
+      let errorType = "unreadable";
+      try { const body: unknown = JSON.parse(await boundedText(response.body, 4 * 1024)); if (record(body) && record(body.error) && typeof body.error.type === "string") errorType = body.error.type.slice(0, 60); } catch { await response.body?.cancel().catch(() => {}); }
+      console.error(JSON.stringify({ event: "provider_rejected", status: response.status, errorType, requestId: response.headers.get("request-id")?.slice(0, 80) ?? null }));
       throw new ChatError(response.status === 429 ? 503 : 502, "provider_error", failed);
     }
     let payload: unknown;
-    try { payload = JSON.parse(await boundedText(response.body, 64 * 1024)); } catch { throw new ChatError(502, "provider_error", failed); }
-    if (!record(payload) || payload.stop_reason !== "end_turn" || !Array.isArray(payload.content)) throw new ChatError(502, "provider_error", failed);
+    try { payload = JSON.parse(await boundedText(response.body, 64 * 1024)); } catch { console.error(JSON.stringify({ event: "provider_unparsable", status: response.status })); throw new ChatError(502, "provider_error", failed); }
+    if (!record(payload) || payload.stop_reason !== "end_turn" || !Array.isArray(payload.content)) {
+      console.error(JSON.stringify({ event: "provider_unexpected", stopReason: record(payload) && typeof payload.stop_reason === "string" ? payload.stop_reason.slice(0, 40) : null }));
+      throw new ChatError(502, "provider_error", failed);
+    }
     const blocks = payload.content.filter((block) => record(block) && block.type === "text");
-    if (blocks.length !== 1 || typeof blocks[0].text !== "string" || !blocks[0].text.trim() || [...blocks[0].text].length > learningChatLimits.reply) throw new ChatError(502, "provider_error", failed);
+    if (blocks.length !== 1 || typeof blocks[0].text !== "string" || !blocks[0].text.trim() || [...blocks[0].text].length > learningChatLimits.reply) {
+      console.error(JSON.stringify({ event: "provider_reply_shape", textBlocks: blocks.length, chars: blocks.length === 1 && typeof blocks[0].text === "string" ? [...blocks[0].text].length : null }));
+      throw new ChatError(502, "provider_error", failed);
+    }
     return blocks[0].text.trim();
   } catch (error) {
     if (timedOut) throw new ChatError(504, "timeout", "AI 응답을 기다리는 시간이 길어 중단했습니다. 다시 보내면 사용 횟수가 추가로 차감될 수 있습니다.");
     if (request.signal.aborted) throw new ChatError(499, "cancelled", "대화 요청을 중단했습니다. 다시 보내면 사용 횟수가 추가로 차감될 수 있습니다.");
     if (error instanceof ChatError) throw error;
+    console.error(JSON.stringify({ event: "provider_exception", name: error instanceof Error ? error.name.slice(0, 60) : typeof error, message: error instanceof Error ? error.message.slice(0, 160) : null }));
     throw new ChatError(502, "provider_error", failed);
   } finally {
     clearTimeout(timeout);
