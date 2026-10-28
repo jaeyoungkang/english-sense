@@ -407,7 +407,10 @@ test("a paired story links its unit and its expression question links its card a
   await expect(page.locator(".pair-note")).toContainText("Wonder 유닛 3 표현으로 쓴 이야기");
   await expect(page.locator(".pair-note a")).toHaveAttribute("href", "/prep/wonder/unit-3/");
   await expect(page.locator(".lw-toolbar .draft-tag")).toHaveText("초안");
-  await expect(page.getByRole("link", { name: "수업 목록" })).toHaveAttribute("href", "/reading/");
+  await page.locator(".lw-toolbar").getByRole("button", { name: "수업 목록", exact: true }).click();
+  const listWindow = page.getByRole("dialog", { name: "수업 목록" });
+  await expect(listWindow.getByRole("link", { name: "이야기 전체 목록" })).toHaveAttribute("href", "/reading/");
+  await listWindow.getByRole("button", { name: "닫고 학습으로 돌아가기" }).click();
   await startReading(page);
   await endReading(page);
   const index = paired.questions.findIndex(item => item.kind === "expression");

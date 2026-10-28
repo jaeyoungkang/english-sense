@@ -15,7 +15,7 @@ import { defaultReadingLevel, levelLimitSeconds, readingFactsLine, readingLevels
 import { clockLabel } from "@/lib/study-content";
 import { Icon, WorkspaceFrame, useWorkspaceShell, type OutlineItem } from "@/components/workspace-shell";
 import { SaveWarning, useTurnRequests } from "@/components/workspace-session";
-import { EventLine, JudgementItem, JudgementLine, JudgementStatus, LessonListLink, OldVersionNotice, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
+import { EventLine, JudgementItem, JudgementLine, JudgementStatus, OldVersionNotice, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
 import { AssistantReply, QuestionComposer, RequestStatus, UserRequest } from "@/components/workspace-chat";
 import { CoveredNotes, NoteBlock, NoteTools, NotesBanner, NotesButton, NotesFact, NotesProvider, usePenNotes } from "@/components/pen-notes";
 import { isStoryBodyKey, isStoryQuestionKey, storyAskKey, storyBlocks, storyBodyKey, storyOptionKey, storyParagraphRuns } from "@/lib/note-blocks";
@@ -265,7 +265,8 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   </span> : null;
 
   return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<><span className="lw-story-word" lang="en">{lesson.title}</span>{lesson.draft && <span className="tag draft-tag">초안</span>}</>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} outline={outline}
-    toolbarActions={<>{timerControls}<span className="lw-sr-only" role="status">{announce}</span><NotesButton /><LessonListLink href="/reading/" /></>}
+    currentList={{ href: "/reading/", title: "이야기 전체 목록" }}
+    toolbarActions={<>{timerControls}<span className="lw-sr-only" role="status">{announce}</span><NotesButton /></>}
     toc={{ title: <>이야기 수업<br />학습 문서</>, lead: "이야기를 읽고, 본문을 가린 뒤 이어지는 문제를 풉니다.", summary: <><p>이야기 1개 · 문제 {lesson.questions.length}개</p>{answered > 0 && <p>첫 답을 남긴 문제 {answered}개</p>}<NotesFact /><p>문서 전체의 목차입니다. 문제는 원하는 순서로 풉니다.</p></> }}
     referenceStack={null}
     documentHeading={<><p>ENGLISH SENSE · TIMED READING</p><h2>읽고, 가리고, 떠올리기</h2><div><span>{lesson.draft ? "초안 · " : ""}{lesson.words}낱말 · 문제 {lesson.questions.length}개</span></div>

@@ -23,9 +23,11 @@ test("reading and prep pages are public, linked from the menu, in the sitemap an
   }
   expect(errors).toEqual([]);
   await page.goto("/practice/");
-  await page.getByRole("navigation", { name: "사이트" }).getByRole("link", { name: "읽기" }).click();
+  await page.getByRole("navigation", { name: "사이트", exact: true }).getByRole("button", { name: "수업 목록", exact: true }).click();
+  await page.getByRole("dialog", { name: "수업 목록" }).locator('a[href="/reading/"]').click();
   await expect(page).toHaveURL(/\/reading\/$/);
-  await page.getByRole("navigation", { name: "사이트" }).getByRole("link", { name: "사전 훈련" }).click();
+  await page.getByRole("navigation", { name: "사이트", exact: true }).getByRole("button", { name: "수업 목록", exact: true }).click();
+  await page.getByRole("dialog", { name: "수업 목록" }).locator('a[href="/prep/"]').click();
   await expect(page).toHaveURL(/\/prep\/$/);
   const xml = await (await request.get("/sitemap.xml")).text();
   for (const path of paths) expect(xml).toContain(`https://english.artificialmind.kr/${path}`);

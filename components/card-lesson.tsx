@@ -19,7 +19,7 @@ import { minutesLabel } from "@/lib/study-content";
 import { Icon, WorkspaceFrame, useWorkspaceShell, type OutlineItem } from "@/components/workspace-shell";
 import { SaveWarning, useTurnRequests } from "@/components/workspace-session";
 import { useReadingHold } from "@/components/use-reading-hold";
-import { EventLine, JudgementItem, JudgementLine, JudgementStatus, LessonListLink, OldVersionNotice, postLessonCheck, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
+import { EventLine, JudgementItem, JudgementLine, JudgementStatus, OldVersionNotice, postLessonCheck, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
 import { AssistantReply, QuestionComposer, RequestStatus, UserRequest } from "@/components/workspace-chat";
 import { NoteBlock, NoteTools, NotesBanner, NotesButton, NotesFact, NotesProvider, usePenNotes } from "@/components/pen-notes";
 import { cardBasisRuns, cardBlocks, cardKey, cardSentenceRuns, isClosedCardBlock } from "@/lib/note-blocks";
@@ -291,7 +291,8 @@ export function CardLesson({ view }: { view: CardLessonView }) {
   }
 
   return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<>{lesson.work.title} <span className="cl-unit-word">유닛 {lesson.unit.n}</span></>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} outline={outline}
-    toolbarActions={<><LessonListLink href={view.listHref} title="이 작품의 유닛 목록" /><NotesButton /><button type="button" onClick={newConversation} disabled={!selectedLive}>이 카드 새 대화</button></>}
+    currentList={{ href: view.listHref, title: "이 작품의 유닛 목록" }}
+    toolbarActions={<><NotesButton /><button type="button" onClick={newConversation} disabled={!selectedLive}>이 카드 새 대화</button></>}
     toc={{ title: <>{lesson.work.title}{" "}<br />유닛 {lesson.unit.n}</>, lead: `${lesson.unit.when}에 익힐 표현을 카드마다 뜻과 힌트로 떠올려 빈칸을 채웁니다. 첫 답을 내면 카드가 열립니다.`, summary: <><p>카드 {cards.length}개{answered > 0 ? ` · 첫 답을 남긴 카드 ${answered}개` : ""}</p><NotesFact /><p>문서 전체의 목차입니다. 읽기와 풀이는 원하는 순서로 합니다.</p></> }}
     referenceStack={null}
     documentHeading={<><p>사전 훈련 · {lesson.work.kind === "book" ? "책" : "영화"}</p><h2>{lesson.unit.when}에 익힐 표현 {cards.length}개</h2><div><span><i>{lesson.work.title}</i> · 유닛 {lesson.unit.n}</span><span>{lesson.unit.summary}</span></div></>}

@@ -357,7 +357,10 @@ test.describe("card lesson: document, links and records", () => {
     await expect(link).toHaveAttribute("href", "/reading/prep-wonder-3/");
     await expect(page.getByRole("navigation", { name: "다른 유닛" }).getByRole("link", { name: /이전/ })).toHaveAttribute("href", "/prep/wonder/unit-2/");
     await expect(page.getByRole("navigation", { name: "다른 유닛" }).getByRole("link", { name: /다음/ })).toHaveAttribute("href", "/prep/wonder/unit-4/");
-    await expect(page.getByRole("link", { name: "수업 목록" })).toHaveAttribute("href", "/prep/wonder/");
+    await page.locator(".lw-toolbar").getByRole("button", { name: "수업 목록", exact: true }).click();
+    const listWindow = page.getByRole("dialog", { name: "수업 목록" });
+    await expect(listWindow.getByRole("link", { name: "이 작품의 유닛 목록" })).toHaveAttribute("href", "/prep/wonder/");
+    await listWindow.getByRole("button", { name: "닫고 학습으로 돌아가기" }).click();
   });
 
   test("two lessons keep separate records across reloads and a damaged record blocks only its own lesson", async ({ page }) => {

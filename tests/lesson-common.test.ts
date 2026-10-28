@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CHECK_TIMEOUT_MS, JudgementItem, JudgementLine, JudgementStatus, LessonListLink, OldVersionNotice, postLessonCheck } from "../components/lesson-common";
+import { CHECK_TIMEOUT_MS, JudgementItem, JudgementLine, JudgementStatus, OldVersionNotice, postLessonCheck } from "../components/lesson-common";
 import type { LessonCheckRequest } from "../lib/lesson-contract";
 import { getLessonContentVersion } from "../lib/server/lesson-catalog";
 import { handleLessonCheck } from "../lib/server/lesson-check";
@@ -43,13 +43,10 @@ test("a first answer without a judgement shows waiting, old version or failed wi
   assert.ok(!html(createElement(JudgementStatus, { state: "failed", label: "카드 1", onRetry: retry })).includes("lw-muted"));
 });
 
-test("the old-version notice and the list link carry the shared wording and the kind's class", () => {
+test("the old-version notice carries the shared wording and the kind's class", () => {
   const notice = html(createElement(OldVersionNotice, { className: "cl-old-banner", role: "status", confirmMessage: "지웁니까?", onRestart: () => {}, children: "옛 판입니다." }));
   assert.match(notice, /^<div class="lw-old-version cl-old-banner" role="status"><p>옛 판입니다\.<\/p><button type="button">이 기록을 지우고 새 판으로 시작<\/button><\/div>$/);
   assert.match(html(createElement(OldVersionNotice, { note: "하나만 지웁니다.", confirmMessage: "x", onRestart: () => {}, children: "a" })), /^<div class="lw-old-version" role="note">.*<p class="lw-form-note">하나만 지웁니다\.<\/p>/);
-  const link = html(createElement(LessonListLink, { href: "/prep/wonder/", title: "이 작품의 유닛 목록" }));
-  assert.match(link, /^<a href="\/prep\/wonder\/" aria-label="수업 목록" title="이 작품의 유닛 목록">/);
-  assert.match(link, /<span>수업 목록<\/span><\/a>$/);
 });
 
 const realFetch = globalThis.fetch;

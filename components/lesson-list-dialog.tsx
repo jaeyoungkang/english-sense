@@ -8,7 +8,12 @@ import { StoryRecordNote } from "@/components/story-record-note";
 export function LessonListDialog({ listing }: { listing: LessonListing }) {
   const units = listing.works.reduce((sum, work) => sum + work.units.length, 0);
   return <>
-    <p className="lw-dialog-intro">읽기와 사전 훈련 수업으로 가는 목록입니다. 수업을 열면 페이지가 바뀌고, 수업마다 기록이 따로 남습니다. 지금 하던 have 기록은 그대로 있습니다.</p>
+    <p className="lw-dialog-intro">장면 연습, 이야기 읽기, 책·영화 사전 훈련을 고릅니다. 수업을 열면 페이지가 바뀝니다.</p>
+    <section className="lw-lesson-list" aria-labelledby="lw-lessons-scenes">
+      <h3 id="lw-lessons-scenes">장면 연습 <a href="/practice/">전체 목록</a></h3>
+      <p className="study-list-note">홈의 have 수업과 별도로 푸는 장면 퀴즈입니다.</p>
+      <ul className="study-scene-links">{["have", "get", "be", "go", "come"].map(word => <li key={word}><a href={`/practice/titanic/${word}/`}>Titanic · <span lang="en">{word}</span></a></li>)}</ul>
+    </section>
     <section className="lw-lesson-list" aria-labelledby="lw-lessons-stories">
       <h3 id="lw-lessons-stories">이야기 읽기 · {listing.stories.length}편 <a href="/reading/">전체 목록</a></h3>
       <ul>{listing.stories.map(story => <li key={story.href}><a href={story.href}><span lang="en">{story.title}</span>{story.draft && <span className="tag draft-tag">초안</span>}</a><StoryRecordNote storyId={story.id} words={story.words} /></li>)}</ul>

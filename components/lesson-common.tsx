@@ -3,12 +3,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LESSON_CHECK_ENDPOINT, isLessonCheckResponse, type LessonCheckRequest, type LessonCheckResponse } from "@/lib/lesson-contract";
 import { acceptLessonCheck, createLessonState, lessonStorageKeys, loadLessonRecord, type LessonDocument, type LessonState } from "@/lib/lesson-workspace-state";
-import { Icon } from "@/components/workspace-shell";
 import { useRecordStore, type RecordStore } from "@/components/workspace-session";
 
 /**
  * What the story lesson and the cards lesson build the same way: the lesson record, the request to the free judgement route
- * with its failure state, the "판정" item, the old-version notice and the "수업 목록" link.
+ * with its failure state, the "판정" item and the old-version notice.
  * Each kind decides when to show them and what the judgement says; the markup, class names and wording live here once.
  */
 
@@ -122,11 +121,6 @@ export function OldVersionNotice({ className, role = "note", confirmMessage, not
     <button type="button" onClick={() => { if (confirm(confirmMessage)) onRestart(); }}>이 기록을 지우고 새 판으로 시작</button>
     {note && <p className="lw-form-note">{note}</p>}
   </div>;
-}
-
-/** The toolbar link to the list this lesson belongs to (`/reading/` for a story, `/prep/<작품>/` for a unit). */
-export function LessonListLink({ href, title }: { href: string; title?: string }) {
-  return <a href={href} aria-label="수업 목록" title={title}><Icon kind="book" size={18} /><span>수업 목록</span></a>;
 }
 
 export { EventLine } from "@/components/event-line";

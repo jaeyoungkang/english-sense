@@ -752,6 +752,8 @@ test.describe("layout", () => {
         expect(inside).toBe(true);
       }
       // The toolbar button is reachable on every width.
+      // On narrow screens the toolbar follows the page flow; scroll back to it before checking for an obstruction.
+      await page.getByRole("button", { name: "노트 1개" }).scrollIntoViewIfNeeded();
       expect(await reachable(page.getByRole("button", { name: "노트 1개" }))).toBe(true);
       await page.getByRole("button", { name: "노트 1개" }).click();
       const dialog = page.getByRole("dialog", { name: "노트" });

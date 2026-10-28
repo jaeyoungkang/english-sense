@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Breadcrumbs, SiteFooter, SiteHeader } from "@/components/site-shell";
+import { Breadcrumbs, SiteFooter, SiteHeader, SiteOutline } from "@/components/site-shell";
 import { SenseStage } from "@/components/sense-stage";
 import { Quiz } from "@/components/quiz";
 import { Ask } from "@/components/ask";
@@ -9,7 +9,7 @@ import LearningWorkspace from "@/components/learning-workspace";
 import { StoryWorkspace } from "@/components/story-workspace";
 import { site, type ContentPage, type ContentPart, type StudyPart } from "@/lib/content";
 import { getPage, pages } from "@/lib/server/site-pages";
-import { getLessonListing, getStudyListing } from "@/lib/server/study-source";
+import { getStudyListing } from "@/lib/server/study-source";
 import { getPublicLearningCatalog } from "@/lib/server/learning-catalog";
 import { getPublicLesson, getStoryLessonLinks } from "@/lib/server/lesson-catalog";
 import { getPublicReferenceMaterials } from "@/lib/server/reference-materials";
@@ -43,7 +43,7 @@ export default async function ContentRoute({ params }: Props) {
   const page = getPage((await params).slug);
   if (!page) notFound();
   if (page.path === "") {
-    return <LearningWorkspace catalog={await getPublicLearningCatalog()} materials={getPublicReferenceMaterials()} lessons={getLessonListing()} />;
+    return <LearningWorkspace catalog={await getPublicLearningCatalog()} materials={getPublicReferenceMaterials()} />;
   }
   const structured = structuredData(page).map((data, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />);
   const story = page.parts.find((part): part is Extract<ContentPart, { kind: "reading" }> => part.kind === "reading");
@@ -61,9 +61,9 @@ export default async function ContentRoute({ params }: Props) {
     return <>{structured}<CardLesson view={view} /></>;
   }
   return <>
-    {structured}
+    {structured}<div className={`public-app${page.menu === "ask" ? " public-ask" : ""}`}>
     <SiteHeader menu={page.menu} />
-    <main className="wrap" id="main-content"><Breadcrumbs page={page} />
+    <div className="public-layout"><SiteOutline menu={page.menu} /><div className="public-page"><main className="wrap" id="main-content"><Breadcrumbs page={page} />
       {page.parts.map((part, index) => {
         if (part.kind === "html") return <div className="content-fragment" key={index} dangerouslySetInnerHTML={{ __html: part.html }} />;
         if (part.kind === "stage") return <SenseStage key={index} content={part} />;
@@ -72,6 +72,6 @@ export default async function ContentRoute({ params }: Props) {
         if (part.kind === "reading") return null;
         return <StudyPartView key={index} part={part} listing={getStudyListing()} />;
       })}
-    </main><SiteFooter />
+    </main><SiteFooter /></div></div></div>
   </>;
 }

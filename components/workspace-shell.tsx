@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { SiteNavigation } from "@/components/site-navigation";
 import type { ReferenceId } from "@/lib/reference-materials";
 import { addReference, createDocumentState, documentAnchorId, referenceOutlineId, restoreDocumentState, type DocumentMode, type DocumentWorkspaceState } from "@/lib/document-workspace-state";
 import { chatRestorePosition, createLayoutState, restoreLayoutState, type WorkspaceLayoutState } from "@/lib/workspace-layout-state";
@@ -141,6 +142,7 @@ export type WorkspaceFrameProps = {
   /** Lesson word after "영어 감각 /" in the toolbar heading. */
   lessonWord: ReactNode;
   toolbarActions: ReactNode;
+  currentList?: { href: string; title: string };
   /** Session status line: where the record is kept and whether the last save worked. */
   save: { text: string; failed: boolean };
   outline: OutlineItem[];
@@ -158,7 +160,7 @@ export type WorkspaceFrameProps = {
   layer?: ReactNode;
 };
 
-export function WorkspaceFrame({ shell, lessonWord, toolbarActions, save, outline, toc, referenceStack, documentHeading, document: documentBody, documentEnd, chat, dialog, layer }: WorkspaceFrameProps) {
+export function WorkspaceFrame({ shell, lessonWord, toolbarActions, currentList, save, outline, toc, referenceStack, documentHeading, document: documentBody, documentEnd, chat, dialog, layer }: WorkspaceFrameProps) {
   const { documentState, layoutState, outlineOpen } = shell;
   const outlineRef = useRef(outline);
   outlineRef.current = outline;
@@ -178,7 +180,7 @@ export function WorkspaceFrame({ shell, lessonWord, toolbarActions, save, outlin
     return () => window.removeEventListener("scroll", trackDocumentReading);
   }, []);
   return <main id="main-content" className="lw-app lw-document-app lw-split-app" data-layout-ready={shell.layoutReady} onKeyDown={event => { if (event.key === "Escape" && !event.nativeEvent.isComposing && outlineOpen && !shell.dialog && (document.getElementById("lw-document-outline")?.contains(event.target as Node) || shell.outlineTrigger.current?.contains(event.target as Node))) { event.preventDefault(); shell.closeOutline(); } }} onInputCapture={event => { if (event.target instanceof HTMLTextAreaElement) event.target.setCustomValidity(""); }}>
-    <header className="lw-toolbar"><div className="lw-lesson-title"><button className="lw-outline-toggle" type="button" ref={shell.outlineTrigger} aria-label={outlineOpen ? "목차 접기" : "목차 펼치기"} aria-expanded={outlineOpen} aria-controls="lw-document-outline" onClick={() => { if (outlineOpen) shell.closeOutline(); else shell.openOutline(); }}><span aria-hidden="true">≡</span><span>목차</span></button><a className="lw-mark" href="/" aria-label="영어 감각 홈">e.</a><h1>영어 감각 <span aria-hidden="true">/</span> <span className="lw-word">{lessonWord}</span></h1></div><div className="lw-toolbar-actions">{toolbarActions}</div></header>
+    <header className="lw-toolbar"><div className="lw-lesson-title"><button className="lw-outline-toggle" type="button" ref={shell.outlineTrigger} aria-label={outlineOpen ? "목차 접기" : "목차 펼치기"} aria-expanded={outlineOpen} aria-controls="lw-document-outline" onClick={() => { if (outlineOpen) shell.closeOutline(); else shell.openOutline(); }}><span aria-hidden="true">≡</span><span>목차</span></button><a className="lw-mark" href="/" aria-label="영어 감각 홈">e.</a><h1>영어 감각 <span aria-hidden="true">/</span> <span className="lw-word">{lessonWord}</span></h1></div><SiteNavigation currentList={currentList} /><div className="lw-toolbar-actions">{toolbarActions}</div></header>
     <div className="lw-session-status"><span className={save.failed ? "lw-save-failed" : ""} role="status">{save.text}</span><span>계정·개인 서버 저장 없음</span></div>
     <div className="lw-document-shell" data-outline-collapsed={layoutState.outlineCollapsed}><aside className={`lw-document-toc ${outlineOpen ? "lw-toc-open" : ""}`} id="lw-document-outline"><div className="lw-toc-title"><span>STUDY DOCUMENT</span><h2>{toc.title}</h2><p>{toc.lead}</p><button type="button" className="lw-mobile-toc-close" onClick={shell.closeOutline}>목차 닫기 <Icon kind="close" size={17} /></button></div><nav aria-label="학습 문서 목차"><ol>{outline.map((item, index) => <li key={item.id}><a href={`#${documentAnchorId(item.id)}`} aria-current={documentState.readingAnchor === item.id ? "location" : undefined} onClick={event => { event.preventDefault(); shell.jumpToOutline(item.id, item.referenceId); }}><span className="lw-outline-number">{String(index + 1).padStart(2, "0")}</span><span><small>{item.label}</small>{item.title}</span></a></li>)}</ol></nav><div className="lw-toc-foot">{toc.summary}{shell.documentNotice && <p role="status">{shell.documentNotice}</p>}{shell.layoutNotice && <p role="status">{shell.layoutNotice}</p>}</div></aside><div className="lw-document-main lw-split-panels"><section className="lw-content-pane" role="region" aria-label="학습 콘텐츠"><header className="lw-pane-header"><h2 id="lw-content-heading" tabIndex={-1}>콘텐츠 문서</h2><button type="button" onClick={() => shell.moveToChat()}>대화로 이동 <span aria-hidden="true">→</span></button></header>    {referenceStack}
 <div className="lw-content-scroll" ref={shell.contentScroll} onScroll={trackDocumentReading}><div className="lw-document-flow"><header className="lw-document-heading">{documentHeading}</header>{documentBody}{documentEnd}

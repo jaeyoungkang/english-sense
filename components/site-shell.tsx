@@ -1,13 +1,17 @@
 import { site, type ContentPage } from "@/lib/content";
+import { SiteNavigation } from "@/components/site-navigation";
 
 export function SiteHeader({ menu }: { menu?: string }) {
   return <header className="top"><div className="top-in">
-    <a className="brand" href="/"><span className="brand-mark" aria-hidden="true" />{site.name}</a>
-    <nav className="menu" aria-label="사이트">
-      {[["words", "/#words", "표제어"], ["practice", "/practice/", "연습"], ["reading", "/reading/", "읽기"], ["prep", "/prep/", "사전 훈련"], ["ask", "/ask/", "해설기"]].map(([key, href, label]) =>
-        <a key={key} href={href} aria-current={menu === key ? "page" : undefined}>{label}</a>)}
-    </nav>
+    <a className="brand" href="/" aria-label="영어 감각 홈"><span className="public-mark" aria-hidden="true">e.</span>{site.name}</a>
+    <SiteNavigation currentPage={menu} />
   </div></header>;
+}
+
+export function SiteOutline({ menu }: { menu?: string }) {
+  return <aside className="public-outline"><p className="public-outline-label">ENGLISH SENSE</p><h2>학습 찾아보기</h2>
+    <nav aria-label="학습 분류"><a href="/">학습 노트 <span aria-hidden="true">↗</span></a>{[["practice", "/practice/", "장면 연습"], ["reading", "/reading/", "이야기 읽기"], ["prep", "/prep/", "책·영화 사전 훈련"], ["ask", "/ask/", "문장 해설기"]].map(([key, href, title]) => <a href={href} key={key} aria-current={key === menu ? "page" : undefined}>{title}</a>)}</nav>
+  </aside>;
 }
 
 export function Breadcrumbs({ page }: { page: ContentPage }) {

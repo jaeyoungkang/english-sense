@@ -36,6 +36,8 @@ test("the list window opens from the home toolbar with every story and unit at i
   const hrefs = await dialog.getByRole("link").evaluateAll(nodes => nodes.map(node => node.getAttribute("href")));
   expect(hrefs.filter(href => href!.startsWith("/reading/") && href !== "/reading/")).toEqual(stories);
   expect(hrefs.filter(href => /^\/prep\/[^/]+\/unit-\d+\/$/.test(href!))).toEqual(units);
+  expect(hrefs.filter(href => /^\/practice\/titanic\/[^/]+\/$/.test(href!))).toEqual(["have", "get", "be", "go", "come"].map(word => `/practice/titanic/${word}/`));
+  expect(hrefs).toContain("/practice/");
   expect(hrefs).toContain("/reading/");
   expect(hrefs).toContain("/prep/");
   expect(stories).toHaveLength(15);
@@ -53,19 +55,25 @@ test("the list window opens from the home toolbar with every story and unit at i
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("a link in the list window opens that lesson, and the lesson's own list link comes back to its list", async ({ page }) => {
+test("a list link opens its lesson, whose common window keeps the lesson's own list available", async ({ page }) => {
   await page.goto("/");
   await toolbarButton(page).click();
   await page.getByRole("dialog", { name: "수업 목록" }).getByRole("link", { name: first.title }).click();
   await expect(page).toHaveURL(new RegExp(`/reading/${first.id}/$`));
-  await expect(page.getByRole("link", { name: "수업 목록" })).toHaveAttribute("href", "/reading/");
+  await toolbarButton(page).click();
+  await page.getByRole("dialog", { name: "수업 목록" }).getByRole("link", { name: "이야기 전체 목록" }).click();
+  await expect(page).toHaveURL(/\/reading\/$/);
   await page.goto("/");
   await toolbarButton(page).click();
   const link = page.getByRole("dialog", { name: "수업 목록" }).getByRole("link", { name: "유닛 3 · 3부 앞" }).first();
   const href = (await link.getAttribute("href"))!;
   await link.click();
   await expect(page).toHaveURL(new RegExp(`${href}$`));
-  await expect(page.getByRole("link", { name: "수업 목록" })).toHaveAttribute("href", /^\/prep\/[^/]+\/$/);
+  await toolbarButton(page).click();
+  const ownList = page.getByRole("dialog", { name: "수업 목록" }).getByRole("link", { name: "이 작품의 유닛 목록" });
+  await expect(ownList).toHaveAttribute("href", "/prep/wonder/");
+  await ownList.click();
+  await expect(page).toHaveURL(/\/prep\/wonder\/$/);
 });
 
 test("at 390px and 320px the toolbar item is reachable and the window has no horizontal overflow", async ({ page }) => {
