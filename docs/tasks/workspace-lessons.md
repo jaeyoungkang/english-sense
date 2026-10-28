@@ -220,7 +220,7 @@
     `tests/e2e/study-content.spec.ts`의 옛 화면 단언(주소·sitemap 단언은 유지). `lib/fill-blank.ts`는 서버 판정용으로 남긴다.
 - 선택을 바꿀 미검증 가정과 최소 실행: 단계 2에서 이야기 한 편의 정본으로 판정 API를 실제 Workers에서 호출해 응답에 정답이
   새지 않는지(틀린 빈칸의 응답 본문)와 한도 객체를 건드리지 않는지 확인한다. 이 결과가 단계 5~7의 방향을 정한다.
-- 구현에 넘길 것: 이 계약, `.claude/skills/web-app-implementation/SKILL.md`와 머리표의 배경 모델, 수정 범위(단계별).
+- 구현에 넘길 것: 이 계약, `shared-skills/web-app-implementation/SKILL.md`와 머리표의 배경 모델, 수정 범위(단계별).
   멈출 조건: 같은 확인을 고쳐 재는 일이 3회를 넘거나, 기존 have 기록 검증이 바뀌어야만 진행되는 경우, 정답이 공개 산출물에
   나오는 경우. 승인 없이 push·배포·원격 변경을 하지 않는다.
 

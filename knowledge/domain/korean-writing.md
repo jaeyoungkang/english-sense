@@ -7,7 +7,7 @@ kind: primitive
 # 도메인 모델: 한국어 작문법
 
 한국어 글을 쓰고 다듬을 때 쓴다. 뿌리는 이오덕의 『우리 글 바로 쓰기』다. 쓰고 다듬는 순서는
-`.claude/skills/korean-prose/SKILL.md`에 있다.
+`shared-skills/korean-prose/SKILL.md`에 있다.
 
 ## 개념
 
@@ -65,7 +65,7 @@ kind: primitive
    제품명은 정확히 그대로 쓴다. 전문 용어는 우리말로 새로 지어 풀지 않고 업계에서 쓰는 말을 쓰며, 처음 나올 때 영어를
    괄호에 함께 적는다(예: 평탄화(flatten)). 업계에 한국어 용어가 없으면 영어를 그대로 쓴다. (관계 7)
 9. 따라 쓴 말은 먼저 그 말이 문장에서 맡은 역할을 확인하고, 뜻이 같은 범위에서 다듬는다. (관계 6) 표현마다 교정 예와 판단
-   기준은 `.claude/skills/korean-prose/references/uri-geul-baro-sseugi.md` "점검할 표현"에 있다.
+   기준은 `shared-skills/korean-prose/references/uri-geul-baro-sseugi.md` "점검할 표현"에 있다.
 
 ### 뜻과 어감
 
@@ -94,7 +94,7 @@ kind: primitive
 ## 한계와 출처
 
 - 출처: 『우리 글 바로 쓰기』 발췌 PDF(12쪽, 강PD 제공, 저장소에 두지 않는다). 확인한 범위는
-  `.claude/skills/korean-prose/references/uri-geul-baro-sseugi.md`에 있다. 원전 전권은 읽지 않았다. 교정 예는 이 모델을 위해 만든 것이며 책의 문장이 아니다.
+  `shared-skills/korean-prose/references/uri-geul-baro-sseugi.md`에 있다. 원전 전권은 읽지 않았다. 교정 예는 이 모델을 위해 만든 것이며 책의 문장이 아니다.
 - "적용 범위"부터 "호응과 문체"까지의 규칙은 2026-10-24 korean-prose 스킬 본문에서 이 모델로 옮겼다(project-base #12). 뜻은
   바꾸지 않았다. 함께 옮긴 규칙 "형식"은 한국어 작문법이 아니라 문서 형식에 관한 것이라 2026-10-25
   `knowledge/domain/document-format.md`로 뗐다(project-base #13).

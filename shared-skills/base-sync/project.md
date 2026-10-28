@@ -6,6 +6,10 @@
   절에 둔다.
 - 최근 동기화 판: `abec83e02269a2460d1ac459bda213c338942d2f` (2026-10-26). 씨앗 모델 9개와 스킬 4개의 변경을 검토해 받았다.
 - 이 사본은 english-sense 프로젝트의 정본이다. 상태판은 `AGENTS.md`에 연결한 열린 진행 상태판 이슈를 쓴다.
+- 이 프로젝트의 스킬 정본은 `shared-skills/`다. `.claude/skills`와 `.agents/skills`는 모두 `../shared-skills`를 가리킨다.
+  베이스는 `.claude/skills/`를 정본으로 쓰므로 원본 변경을 읽을 때는 해당 베이스 경로를 쓴다. 이 배치는 project-base
+  `knowledge/skills.md` "호스트별 경로"의 공용 정본·호스트별 링크 방식(참고 판 `413dd741fd2f541d36df62340138019ce94f3003`)을
+  따르며, 별칭과 판을 실제 파일로 대조하는 처리만 이번에 적용했다. 모델 로더·스냅샷을 포함한 전체 동기화와는 구분한다.
 - 베이스 받아 오기: `gh repo clone jaeyoungkang/project-base .git/base-sync/project-base`. 폴더 이름이 저장소 이름이어야 평가기가
   `picked_from`의 저장소를 찾는다. 다 쓰면 `.git/base-sync/`를 지운다. 베이스 작업 트리의 파일은 직접 고치지 않는다.
 - 고른 모델의 밀린 변경 보기: `python3 scripts/knowledge-quality.py . .git/base-sync/project-base`의 "고른 모델의 밀린 변경" 표.

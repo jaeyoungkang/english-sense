@@ -23,7 +23,7 @@
 
 - 독립적으로 진행할 수 있고 병렬 처리가 유용한 작업은 필요에 따라 하위 에이전트에 위임한다. 모델, 추론 강도와 동시 실행 수는 세션의 글로벌 기본 설정을 따르며 별도로 지정하지 않는다.
 - push, merge, PR, 배포, 게시처럼 외부로 나가는 행동은 강PD가 승인한 범위 안에서만 한다.
-- 강PD에게 하는 말은 한국어 어법에 맞게 '합니다'체로 쓰되, '께서', '말씀', '여쭙니다' 같은 극존칭은 쓰지 않는다. 문서는 `.claude/skills/korean-prose/SKILL.md`를 따르고, 개념과 말은 `knowledge/concepts.md`를 따른다.
+- 강PD에게 하는 말은 한국어 어법에 맞게 '합니다'체로 쓰되, '께서', '말씀', '여쭙니다' 같은 극존칭은 쓰지 않는다. 문서는 `shared-skills/korean-prose/SKILL.md`를 따르고, 개념과 말은 `knowledge/concepts.md`를 따른다.
 - 커밋은 강PD의 개인 계정(`jaeyoungkang`, `jaeyoung2010@gmail.com`)으로 한다. 커밋하기 전에 `git config user.email`을 확인한다.
 - 호스트의 로컬 메모리(Claude Code auto memory)는 읽지도 쓰지도 않는다. `.claude/settings.json`이 이를 끈다.
 - 비밀 정보와 인증 정보는 기록하지도 출력하지도 않는다. API 키 같은 값은 추적하지 않는 로컬 환경 파일이나 Cloudflare Worker secrets에만 두고 커밋하지 않는다.
@@ -34,22 +34,22 @@
 | --- | --- |
 | 일을 시작하거나 마친다. 결과가 기대와 다르다. 검사나 스킬을 더하거나 걷어 낸다 | `knowledge/production.md` |
 | 모델을 만들거나 키운다 | `knowledge/model.md`. 한 분야의 모델은 `knowledge/domain/`에 있다 |
-| 새로 배운 것을 모델에 반영한다. 모델의 관계나 규칙을 다시 짠다 | `.claude/skills/model-update/SKILL.md` |
-| 한국어 문서·이슈·댓글·커밋을 새로 쓰거나 어법에 맞게 고쳐 쓴다. 오탈자처럼 한 군데만 고치는 일은 해당하지 않는다. 다른 스킬의 절차로 이런 글을 쓸 때도 그 스킬과 함께 부른다 | `.claude/skills/korean-prose/SKILL.md`. 모델은 `knowledge/domain/korean-writing.md`, `knowledge/domain/document-format.md` |
+| 새로 배운 것을 모델에 반영한다. 모델의 관계나 규칙을 다시 짠다 | `shared-skills/model-update/SKILL.md` |
+| 한국어 문서·이슈·댓글·커밋을 새로 쓰거나 어법에 맞게 고쳐 쓴다. 오탈자처럼 한 군데만 고치는 일은 해당하지 않는다. 다른 스킬의 절차로 이런 글을 쓸 때도 그 스킬과 함께 부른다 | `shared-skills/korean-prose/SKILL.md`. 모델은 `knowledge/domain/korean-writing.md`, `knowledge/domain/document-format.md` |
 | 문서에서 쓰는 말의 뜻을 확인하거나 새 개념을 더한다 | `knowledge/concepts.md` |
 | `AGENTS.md`나 `CLAUDE.md`를 만들거나 고친다 | `knowledge/agents-md.md` |
 | 스킬을 만들거나 고친다 | `knowledge/skills.md` |
 | 영어 학습 화면이나 서비스의 범위를 정한다 | `docs/learning-service.md`. 학습 자료의 정본은 study-and-learn 프로젝트에 있다 |
-| 웹앱 기능을 기획하거나 사용자에게 보이는 행동을 바꾸기 전에 작업 계약을 만든다 | `.claude/skills/web-app-planning/SKILL.md`와 머리표의 배경 모델. 이미 승인한 범위는 다시 묻지 않는다 |
-| 승인한 웹 기능을 구현·수정하거나 API·저장·외부 연동·배포 경계를 바꾼다 | `.claude/skills/web-app-implementation/SKILL.md`와 머리표의 배경 모델 |
+| 웹앱 기능을 기획하거나 사용자에게 보이는 행동을 바꾸기 전에 작업 계약을 만든다 | `shared-skills/web-app-planning/SKILL.md`와 머리표의 배경 모델. 이미 승인한 범위는 다시 묻지 않는다 |
+| 승인한 웹 기능을 구현·수정하거나 API·저장·외부 연동·배포 경계를 바꾼다 | `shared-skills/web-app-implementation/SKILL.md`와 머리표의 배경 모델 |
 | 웹앱에서 사용자 과업과 품질·완료 근거를 판단한다 | `knowledge/domain/web-app-production.md` |
-| 앱의 정보구조·사용자 흐름·화면·시각 체계를 설계하거나 처음부터 다시 만든다 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`와 `.claude/skills/web-app-planning/SKILL.md`. 현재 콘텐츠·대화 배치는 `docs/tasks/content-chat-workspace.md`, 이전 문서·스택은 `docs/tasks/document-workspace.md`, 퀴즈 아티팩트는 `docs/tasks/quiz-artifacts.md`, 이전 단일 문제는 `docs/tasks/learning-workspace.md`, 이전 시안은 `docs/tasks/ux-redesign.md`에서 읽는다 |
+| 앱의 정보구조·사용자 흐름·화면·시각 체계를 설계하거나 처음부터 다시 만든다 | `knowledge/domain/web-app-ux-design.md`, `docs/ux-design.md`와 `shared-skills/web-app-planning/SKILL.md`. 현재 콘텐츠·대화 배치는 `docs/tasks/content-chat-workspace.md`, 이전 문서·스택은 `docs/tasks/document-workspace.md`, 퀴즈 아티팩트는 `docs/tasks/quiz-artifacts.md`, 이전 단일 문제는 `docs/tasks/learning-workspace.md`, 이전 시안은 `docs/tasks/ux-redesign.md`에서 읽는다 |
 | 책임·상태·데이터·API·권한·실패의 경계를 설계하거나 바꾼다 | `knowledge/domain/web-app-architecture.md`. 실제 구조는 `docs/architecture.md` |
 | Next.js의 경로·컴포넌트·렌더링·데이터 변경·캐시를 고른다 | `knowledge/domain/nextjs-development.md`. 설치 버전과 설정을 함께 확인한다 |
 | Next.js 실행, Cloudflare 배포, 환경 설정을 바꾼다 | `README.md`. 실제 설정과 명령을 함께 확인한다 |
 | 상태판 본문을 쓴다 | `templates/status-board.md` |
-| 세션을 시작한다. 베이스에 있는 모델이나 스킬이 필요하다. 모델이나 스킬을 만들거나 고쳤다 | `.claude/skills/base-sync/SKILL.md` |
-| 지식 체계(모델과 모델 사이의 이음)와 그것을 배경에 둔 스킬의 품질을 진단한다. 기반을 점검하거나, 베이스와 동기화한 뒤 어디부터 다시 볼지 정한다 | `.claude/skills/knowledge-diagnosis/SKILL.md`. 모델은 `knowledge/domain/knowledge-quality.md` |
+| 세션을 시작한다. 베이스에 있는 모델이나 스킬이 필요하다. 모델이나 스킬을 만들거나 고쳤다 | `shared-skills/base-sync/SKILL.md` |
+| 지식 체계(모델과 모델 사이의 이음)와 그것을 배경에 둔 스킬의 품질을 진단한다. 기반을 점검하거나, 베이스와 동기화한 뒤 어디부터 다시 볼지 정한다 | `shared-skills/knowledge-diagnosis/SKILL.md`. 모델은 `knowledge/domain/knowledge-quality.md` |
 
 프로젝트의 문서와 스킬이 늘면 이 표에 행을 더한다. 행은 읽으면 행동이 달라지는 문서만 가리킨다.
 

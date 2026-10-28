@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # knowledge-quality.py의 시험. 가짜 저장소 둘(재료 이음 하나가 낡은 것, 순환이 있는 것)을 만들어 값과 경보를 본다.
 # 쓰는 법: python3 scripts/test_knowledge_quality.py   (임시 저장소는 TMPDIR 아래에 만들고 지운다)
-import importlib.util, subprocess, tempfile, unittest
+import importlib.util, os, subprocess, tempfile, unittest
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('kq', Path(__file__).resolve().parent / 'knowledge-quality.py')
@@ -405,6 +405,109 @@ class KnowledgeMap(unittest.TestCase):
         out = Path(self.tmp.name) / 'map.md'
         kq.main(['--map', str(self.app), str(self.lib), '--out', str(out)])
         self.assertTrue(out.read_text(encoding='utf-8').startswith('# 지식 지도'))
+
+
+class SharedSkills(unittest.TestCase):
+    """정본 이동과 호스트 별칭이 노드·라우팅·씨앗·옛 판의 뜻을 바꾸지 않는다."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name) / 'lib'
+        self.root.mkdir()
+        git(self.root, 'init', '-q')
+        write(self.root, 'AGENTS.md', AGENTS)
+        write(self.root, 'knowledge/domain/a.md', model('a', 'primitive', '도메인 모델: 에이', '## 규칙\n\n1. 규칙.\n'))
+        self.c1 = commit(self.root, '모델')
+        self.old = '.claude/skills/do-b/SKILL.md'
+        self.shared = 'shared-skills/do-b/SKILL.md'
+        write(self.root, self.old, skill('do-b', f'a@{self.c1}', '`knowledge/domain/a.md` "규칙"을 따른다.\n'))
+        write(self.root, '.claude/skills/base-sync/project.md', SEEDS)
+        self.c2 = commit(self.root, '옛 경로의 스킬')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def move(self):
+        (self.root / '.claude/skills').rename(self.root / 'shared-skills')
+        (self.root / '.agents').mkdir()
+        for host in ('.claude/skills', '.agents/skills'):
+            os.symlink('../shared-skills', self.root / host)
+        return commit(self.root, '스킬 정본을 옮긴다')
+
+    def test_aliases_and_seed_table(self):
+        self.move()
+        for path in (self.old, self.shared, '.agents/skills/do-b/SKILL.md'):
+            with self.subTest(path=path):
+                write(self.root, 'AGENTS.md', AGENTS.replace(self.old, path))
+                write(self.root, 'knowledge/domain/ref.md', model('ref', 'primitive', '도메인 모델: 참조', f'`{path}` "do-b"를 읽는다.\n'))
+                r = kq.evaluate([self.root])
+                skills = [n for n in r['nodes'] if n.kind == 'skill']
+                self.assertEqual([n.rel for n in skills], [self.shared])
+                self.assertEqual(r['core'], set(skills))
+                self.assertIs(kq.resolve(skills[0].repo, path, 'AGENTS.md', {n.rel: n for n in r['nodes']}), skills[0])
+                self.assertEqual(r['broken'], [])
+                self.assertEqual(r['missing_sections'], [])
+                self.assertEqual(next(e for e in r['edges'] if e['dst'] is skills[0])['stale'], 0)
+        self.assertEqual(kq.seed_table(self.root, 'lib'), {('model', 'sd'): '씨앗', ('skill', 's'): '씨앗', ('model', 'pk'): '고르기'})
+
+    def test_standalone_shared_and_codex_paths(self):
+        # 두 호스트 링크가 없어도 정본을 읽고, Codex 폴더만 있는 저장소도 읽는다.
+        for base in ('shared-skills', '.agents/skills'):
+            with self.subTest(base=base):
+                root = Path(self.tmp.name) / base.replace('/', '-')
+                root.mkdir()
+                git(root, 'init', '-q')
+                write(root, f'{base}/s/SKILL.md', skill('s', '', '할 일.\n'))
+                write(root, f'{base}/base-sync/project.md', SEEDS)
+                commit(root, '처음')
+                self.assertEqual([n.rel for n in kq.discover(kq.Repo(root))], [f'{base}/s/SKILL.md'])
+                self.assertEqual(kq.seed_table(root, 'lib')[('skill', 's')], '씨앗')
+
+    def test_move_keeps_picked_edge_and_history(self):
+        app = Path(self.tmp.name) / 'app'
+        app.mkdir()
+        git(app, 'init', '-q')
+        copy = skill('do-b', '', '할 일.\n').replace('description: 시험용 스킬.\n',
+                 f'description: 시험용 스킬.\nmetadata:\n  picked_from: "lib:do-b@{self.c2}"\n')
+        write(app, '.claude/skills/do-b/SKILL.md', copy)
+        commit(app, '고른다')
+        self.move()
+        r = kq.evaluate([self.root, app])
+        picked = next(e for e in r['edges'] if e['kind'] == 'pick')
+        self.assertEqual(picked['src'].rel, self.shared)
+        self.assertEqual(picked['stale'], 0)
+        repo = kq.Repo(self.root)
+        self.assertEqual(repo.body_at(self.c2, self.shared), repo.body_at('HEAD', self.shared))
+        self.assertEqual(repo.changed_since(self.c2, self.shared), 0)
+        self.assertEqual(repo.changed_since(self.c1, self.shared), 1)  # 처음 만든 본문은 센다.
+        write(self.root, self.shared, (self.root / self.shared).read_text() + '실제로 본문을 고친다.\n')
+        commit(self.root, '이동 뒤 본문을 고친다')
+        self.assertEqual(kq.Repo(self.root).changed_since(self.c2, self.shared), 1)
+        self.assertEqual(next(e for e in kq.evaluate([self.root, app])['edges'] if e['kind'] == 'pick')['stale'], 1)
+
+    def test_unreviewed_scalar_metadata(self):
+        original = (self.root / self.old).read_text()
+        write(self.root, self.old, original.replace(f'metadata:\n  background: "a@{self.c1}"', 'metadata: unavailable'))
+        commit(self.root, 'metadata가 문자열인 스킬')
+        r = kq.evaluate([self.root])
+        self.assertIn('배경 없는 스킬', [c for n, c in r['checks'] if n.id == 'do-b'])
+        self.assertEqual(r['bumps'], [])
+        write(self.root, self.old, original)
+        commit(self.root, 'metadata를 다시 사전으로 쓴다')
+        self.assertEqual(kq.evaluate([self.root])['bumps'], [])
+
+    def test_unreviewed_pin_survives_move(self):
+        # 첫 판 조정은 스킬을 만든 본문이 있으므로 제외한다. 그 뒤 판만 올린 것은 이동 전후 모두 잡는다.
+        write(self.root, self.old, (self.root / self.old).read_text().replace(f'a@{self.c1}', f'a@{self.c2}'))
+        c3 = commit(self.root, '첫 판 조정')
+        write(self.root, self.old, (self.root / self.old).read_text().replace(f'a@{self.c2}', f'a@{c3}'))
+        c4 = commit(self.root, '검토 없이 판만 올린다')
+        self.assertEqual([(n.id, ids) for n, (_, ids) in kq.evaluate([self.root])['bumps']], [('do-b', ['a'])])
+        self.move()
+        self.assertEqual([(n.id, sha, ids) for n, (sha, ids) in kq.evaluate([self.root])['bumps']], [('do-b', c4, ['a'])])
+        write(self.root, self.shared, (self.root / self.shared).read_text().replace(f'a@{c3}', f'a@{c4}'))
+        commit(self.root, '이동 뒤에도 판만 올린다')
+        self.assertEqual([(n.id, ids) for n, (_, ids) in kq.evaluate([self.root])['bumps']], [('do-b', ['a'])])
 
 
 GOOD = """# 도메인 모델: 좋은 꼴

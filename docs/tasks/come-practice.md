@@ -54,7 +54,7 @@
 
 - 필요한 경로: `lib/content.ts`, `components/quiz.tsx`, `lib/server/learning-catalog.ts`, `content/pages.json`(연습 페이지, 원리 페이지 절, 허브 문구), `content/site.json`, `public/assets/og/titanic.png`, 테스트.
 - 살펴보되 고치지 않을 것: 정적 퀴즈의 정답 서버 이관, 연습 페이지의 풀이 기록.
-- 구현에 넘길 것: 이 계약, `.claude/skills/web-app-implementation/SKILL.md`, 위 배경 모델. 기존 `choose`·`produce`의 동작이 달라지거나 기존 검사가 깨지면 멈추고 보고한다.
+- 구현에 넘길 것: 이 계약, `shared-skills/web-app-implementation/SKILL.md`, 위 배경 모델. 기존 `choose`·`produce`의 동작이 달라지거나 기존 검사가 깨지면 멈추고 보고한다.
 
 ## 사람이 정할 질문
 

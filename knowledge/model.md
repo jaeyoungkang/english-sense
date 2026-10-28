@@ -7,7 +7,7 @@ kind: primitive
 # 모델
 
 이 문서는 프로젝트가 지식 체계를 구축한다는 것이 무엇인지와, 지식 체계를 이루는 모델이 무엇이고, 무엇으로 이루어지고,
-어디에 담기고, 어떻게 키우는지를 담는다. 모델을 고치는 절차는 `.claude/skills/model-update/SKILL.md`에 있다.
+어디에 담기고, 어떻게 키우는지를 담는다. 모델을 고치는 절차는 `shared-skills/model-update/SKILL.md`에 있다.
 
 ## 지식 체계
 

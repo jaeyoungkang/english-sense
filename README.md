@@ -32,7 +32,8 @@ npm run dev
 개발 화면은 http://localhost:3000/ 에서 연다. 해설을 실행하려면 `.dev.vars`의 `ANTHROPIC_API_KEY`를 채운다.
 키가 없어도 콘텐츠와 문제는 사용할 수 있다. API와 횟수 제한은 `npm run preview`의 Workers 런타임에서 확인한다.
 `next dev`는 같은 Worker 안의 Durable Object를 실행하지 못하므로 이 환경에서 해설 API의 성공을 보장하지 않는다. `.dev.vars`는 git으로 추적하지 않는다.
-Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 스킬을 읽는다.
+프로젝트 공용 스킬의 정본은 `shared-skills/`다. Claude Code의 `.claude/skills`와 Codex의 `.agents/skills`는 모두
+`../shared-skills`를 가리키는 링크이며 같은 스킬을 읽는다.
 
 ## 구조
 
@@ -60,7 +61,7 @@ Claude Code는 `.claude/skills/`, Codex는 `.agents/skills` 링크에서 같은 
 | `worker.ts` | OpenNext 요청 처리와 Durable Object 내보내기 |
 | `public/assets/` | 아이콘·공유 이미지와 표현의 감각 이미지 |
 | `wrangler.jsonc`, `open-next.config.ts` | Cloudflare 바인딩과 빌드 설정 |
-| `knowledge/`, `.claude/skills/` | project-base 공통 모델과 스킬, 웹 영어 학습 모델 |
+| `knowledge/`, `shared-skills/` | project-base 공통 모델과 스킬, 웹 영어 학습 모델 |
 | `tests/` | API·요청 제한 검사와 실제 브라우저 검사 |
 
 기존 원리 페이지와 연습 주소를 유지한다. `/have.html` 같은 옛 주소는 해당 페이지로 영구 이동한다.
@@ -121,8 +122,8 @@ npm run deploy
 - [웹앱 UX 설계 모델](knowledge/domain/web-app-ux-design.md): 정보구조·맥락·상태·시각 위계·복구와 재개를 설명한다.
 - [웹앱 아키텍처 모델](knowledge/domain/web-app-architecture.md): 책임·상태·데이터·신뢰·실행 경계를 설명한다.
 - [Next.js 개발 모델](knowledge/domain/nextjs-development.md): App Router·컴포넌트·렌더링·변경·캐시의 실행 의미를 설명한다.
-- [기획 스킬](.claude/skills/web-app-planning/SKILL.md): 승인된 요구를 수용 조건·구조 영향·최소 구현 범위가 있는 작업 계약으로 만든다.
-- [구현 스킬](.claude/skills/web-app-implementation/SKILL.md): 미검증 가정을 실제 경계에서 확인하고 구현·실패·배포 결과를 연결한다.
+- [기획 스킬](shared-skills/web-app-planning/SKILL.md): 승인된 요구를 수용 조건·구조 영향·최소 구현 범위가 있는 작업 계약으로 만든다.
+- [구현 스킬](shared-skills/web-app-implementation/SKILL.md): 미검증 가정을 실제 경계에서 확인하고 구현·실패·배포 결과를 연결한다.
 
 [Lighthouse 조사](docs/research/lighthouse-methods.md)에는 원문 커밋과 실제 코드·테스트, 이 서비스에 옮긴 판단을 나눴다.
 계약부터 엔지니어링까지의 실제 추적은 [상세 조사](docs/research/lighthouse-contract-engineering.md)에 있다.

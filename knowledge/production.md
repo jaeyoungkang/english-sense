@@ -7,7 +7,7 @@ kind: primitive
 # 프로젝트를 진행하는 방식
 
 강PD와 AI 에이전트가 함께 프로덕트를 만들어 가는 방식이다. 프로젝트를 진행하는 일은 모델을 만들고 키우는 일과
-함께 간다. 모델이 무엇이고 어떻게 키우는지는 `knowledge/model.md`, 고치는 절차는 `.claude/skills/model-update/SKILL.md`에 있다.
+함께 간다. 모델이 무엇이고 어떻게 키우는지는 `knowledge/model.md`, 고치는 절차는 `shared-skills/model-update/SKILL.md`에 있다.
 이 문서는 프로젝트를 진행하는 동안 **언제** 모델을 돌아보는지와, 기반을 다루는 법을 담는다.
 
 ## 개념

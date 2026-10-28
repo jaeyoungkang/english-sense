@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 # 지식 체계의 품질을 잰다. 모델은 knowledge/domain/knowledge-quality.md이고, 이 스크립트는 그 규칙 1의 "기계가 다 재는 것"과
-# 규칙 2(경보)를, 보고의 꼴은 진단 스킬(.claude/skills/knowledge-diagnosis/SKILL.md) 4단계를 옮긴다. 모델과 어긋나면 모델을 따른다.
-# 노드는 받은 저장소들의 knowledge/ 아래 머리표(id, kind)가 있는 문서와 .claude/skills/*/SKILL.md다. 이음은 모델 머리표의
+# 규칙 2(경보)를, 보고의 꼴은 진단 스킬(shared-skills/knowledge-diagnosis/SKILL.md) 4단계를 옮긴다. 모델과 어긋나면 모델을 따른다.
+# 노드는 받은 저장소들의 knowledge/ 아래 머리표(id, kind)가 있는 문서와 shared-skills/*/SKILL.md다.
+# .claude/skills와 .agents/skills도 읽되, 저장소 안에서 같은 파일을 가리키는 링크는 한 노드로 센다. 이음은 모델 머리표의
 # grafts_from(재료), 스킬 머리표의 metadata.background(배경), 모델 본문이 다른 모델을 이름·id·경로로 가리키는 것(읽기)이다.
 # 고른 모델의 picked_from("<저장소>:<id>@<커밋>", 스킬은 metadata.picked_from)은 저장소를 건너 라이브러리의 원본을 가리키는 고른
 # 이음이다. 같은 저장소 안의 판과 따로 읽어, 순환·파급·깊이·낡음의 전파에 넣지 않고 밀린 변경과 고른 수로만 센다.
 # 경로 바로 앞에 저장소 이름을 적은 참조("project-base `knowledge/production.md`", knowledge/library.md 규칙 10)는 그 저장소에서
 # 찾는다. 함께 받은 저장소나 .git/base-sync/<저장소>에 받아 둔 사본을 쓰고, 둘 다 없으면 깨진 참조와 따로 센다.
-# 라이브러리가 자기 씨앗 표(.claude/skills/base-sync/project.md)에서 고르기로 적은 노드는 그 저장소 안에서 고립으로 세지 않는다.
+# 라이브러리가 자기 씨앗 표(base-sync/project.md)에서 고르기로 적은 노드는 그 저장소 안에서 고립으로 세지 않는다.
 # 쓰는 쪽이 고르기 전까지 라우팅 표에 없고 씨앗 스킬의 배경도 아니기 때문이다(knowledge/library.md 규칙 1).
 # 핵심 스킬은 AGENTS.md "상황별로 읽을 문서" 표가 가리키는 스킬이고, 줄 한도는 그 저장소의 knowledge/model.md(도메인 모델)와
 # knowledge/agents-md.md(다른 파일)에서 읽는다. 머리표는 줄 수에 세지 않는다. 낡음은 커밋한 기록으로 잰다.
 # knowledge/domain/의 모델은 골격(knowledge/model.md "도메인 모델 쓰는 법")을 검사하고 항목 단위 값(모델 관계 9~12)을 잰다.
 # --map은 품질 보고 대신 지식 지도(모델 관계 14)를 낸다. 노드를 씨앗, 고른 것, 이 저장소의 것으로 가르고(씨앗 표는 라이브러리의
-# .claude/skills/base-sync/project.md), 재료·배경·고른 이음과 계약(contracts/ 아래 파일)을 그린다.
+# base-sync/project.md), 재료·배경·고른 이음과 계약(contracts/ 아래 파일)을 그린다.
 # 뜻이 같은 중복, 모순, 그릇된 길, 근거에 맞는 강도, 비대의 판정, 쓰임은 재지 않는다. 그 결과는 이 보고에 더한다.
 # Python 3 표준 라이브러리만 쓴다. 아무것도 막지 않고, 잴 수 있으면 0으로 끝난다.
 # 쓰는 법: python3 scripts/knowledge-quality.py [<저장소> ...] [--out <파일>]   (저장소를 주지 않으면 지금 저장소)
@@ -30,6 +31,7 @@ REVIEWED = re.compile(r'다시 보|닿지 않')
 PIN_LINE = r'(grafts_from|background):'
 LINKED = ('graft', 'background')  # 순환·파급·깊이·낡음의 전파를 재는 이음
 LONG = 3.0  # 긴 항목으로 볼 선: 같은 종류 항목의 중앙값의 배수(모델 쟁점, 잠정)
+SKILL_ROOTS = ('shared-skills', '.claude/skills', '.agents/skills')
 
 
 def front(text):
@@ -188,6 +190,7 @@ class Repo:
         self.name = self.root.name
         self.head = self.git('rev-parse', '--short', 'HEAD') or '(커밋 없음)'
         self.files = set((self.git('ls-files') or '').splitlines())
+        self._text = {}
         self._body = {}
         self._subst = {}
 
@@ -198,17 +201,36 @@ class Repo:
     def commit(self, sha):
         return self.git('rev-parse', '--verify', '-q', f'{sha}^{{commit}}') if sha else None
 
+    def history_paths(self, rel):
+        # 호스트 폴더에서 shared-skills로 옮긴 스킬은 옛 판의 경로도 읽는다. 모델의 경로는 그대로 둔다.
+        rel = real_rel(self, rel)
+        for base in SKILL_ROOTS:
+            if rel.startswith(base + '/') and rel.endswith('/SKILL.md'):
+                tail = rel[len(base) + 1:]
+                return tuple(dict.fromkeys((rel,) + tuple(f'{root}/{tail}' for root in SKILL_ROOTS)))
+        return (rel,)
+
+    def text_at(self, rev, rel):
+        if (rev, rel) not in self._text:
+            self._text[rev, rel] = None
+            for path in self.history_paths(rel):
+                r = subprocess.run(['git', '-C', str(self.root), 'show', f'{rev}:{path}'], capture_output=True, text=True)
+                if r.returncode == 0:
+                    self._text[rev, rel] = r.stdout
+                    break
+        return self._text[rev, rel]
+
     def body_at(self, rev, rel):
         if (rev, rel) not in self._body:
-            r = subprocess.run(['git', '-C', str(self.root), 'show', f'{rev}:{rel}'], capture_output=True, text=True)
-            self._body[rev, rel] = front(r.stdout)[1] if r.returncode == 0 else None
+            text = self.text_at(rev, rel)
+            self._body[rev, rel] = front(text)[1] if text is not None else None
         return self._body[rev, rel]
 
     def substantive(self, rel, *rev):
-        # rev 범위에서 rel을 바꾼 커밋 가운데 머리표만 고친 것을 뺀 커밋. 새 것부터 낸다. 범위를 읽지 못하면 None.
+        # rev 범위에서 본문을 바꾼 커밋. 머리표만 바꾸거나 호스트 경로에서 정본으로 옮기기만 한 커밋은 뺀다.
         key = (rel, rev)
         if key not in self._subst:
-            log = self.git('log', '--format=%H', *rev, '--', rel)
+            log = self.git('log', '--format=%H', *rev, '--', *self.history_paths(rel))
             self._subst[key] = None if log is None else [
                 c for c in log.split() if self.body_at(c, rel) != self.body_at(f'{c}^', rel)]
         return self._subst[key]
@@ -254,18 +276,34 @@ class Node:
         return self.key.replace('skill:', '')
 
 
+def real_rel(repo, rel):
+    # 베이스의 호스트별 경로 처리: 저장소 안의 심볼릭 링크만 정본 경로로 옮긴다.
+    p = repo.root / rel
+    if not p.exists():
+        return rel
+    try:
+        return str(p.resolve().relative_to(repo.root.resolve()))
+    except ValueError:
+        return rel
+
+
 def discover(repo):
-    nodes = []
+    nodes, seen = [], set()
     for p in sorted((repo.root / 'knowledge').rglob('*.md')):
         text = p.read_text(encoding='utf-8')
         meta, body = front(text)
         if isinstance(meta.get('id'), str) and isinstance(meta.get('kind'), str):
             nodes.append(Node(repo, str(p.relative_to(repo.root)), 'model', meta['id'], meta, text, body))
-    for p in sorted((repo.root / '.claude/skills').glob('*/SKILL.md')):
-        text = p.read_text(encoding='utf-8')
-        meta, body = front(text)
-        ident = meta.get('name') if isinstance(meta.get('name'), str) else p.parent.name
-        nodes.append(Node(repo, str(p.relative_to(repo.root)), 'skill', ident, meta, text, body))
+    for base in SKILL_ROOTS:
+        for p in sorted((repo.root / base).glob('*/SKILL.md')):
+            rel = real_rel(repo, str(p.relative_to(repo.root)))
+            if rel in seen:
+                continue
+            seen.add(rel)
+            text = p.read_text(encoding='utf-8')
+            meta, body = front(text)
+            ident = meta.get('name') if isinstance(meta.get('name'), str) else p.parent.name
+            nodes.append(Node(repo, rel, 'skill', ident, meta, text, body))
     return nodes
 
 
@@ -305,6 +343,9 @@ def resolve(repo, tok, here, by_rel):
     for c in cands:
         if c in by_rel:
             return by_rel[c]
+        actual = real_rel(repo, c)
+        if actual in by_rel:
+            return by_rel[actual]
     if '/' not in tok:
         hits = [r for r in by_rel if r.endswith('/' + tok)]
         if len(hits) == 1:
@@ -533,13 +574,21 @@ def unreviewed(n):
     # 본문을 고친 커밋이 없으면 검토 없이 올린 이음이다. 다시 보고 바꿀 것이 없었다고 커밋에 적었으면 뺀다.
     # 옛 판이 이 저장소의 커밋이 아니면(고를 때 라이브러리의 커밋을 이 저장소의 커밋으로 다시 적은 것) 올린 것이 아니라 세지 않는다.
     r = n.repo
-    c = r.git('log', '-1', '--format=%H', '-G', PIN_LINE, '--', n.rel)
+    # 이동 커밋도 -G에 걸리므로, 판 값 자체가 달라진 마지막 커밋을 찾는다.
+    c, meta = None, {}
+    for candidate in (r.git('log', '--format=%H', '-G', PIN_LINE, '--', *r.history_paths(n.rel)) or '').split():
+        before = front(r.text_at(f'{candidate}^', n.rel) or '')[0]
+        after = front(r.text_at(candidate, n.rel) or '')[0]
+        def pin_meta(value):
+            md = value.get('metadata') if isinstance(value.get('metadata'), dict) else {}
+            return value.get('grafts_from') if n.kind == 'model' else md.get('background')
+        if pin_meta(before) != pin_meta(after):
+            c, meta = candidate, before
+            break
     if not c or r.body_at(c, n.rel) != r.body_at(f'{c}^', n.rel):
         return None
     if REVIEWED.search(r.git('show', '-s', '--format=%B', c) or ''):
         return None
-    before = subprocess.run(['git', '-C', str(r.root), 'show', f'{c}^:{n.rel}'], capture_output=True, text=True).stdout
-    meta = front(before)[0]
     md = meta.get('metadata') if isinstance(meta.get('metadata'), dict) else {}
     old = dict(pins(meta.get('grafts_from') if n.kind == 'model' else md.get('background')))
     bumped = []
@@ -622,10 +671,11 @@ ORIGINS = (('seed', '씨앗'), ('picked', '고른 것'), ('unsure', '받은 것(
 
 
 def seed_table(root, lib):
-    # <root>/.claude/skills/base-sync/project.md의 "## <lib>에서 씨앗과 고르는 것" 절의 표(knowledge/library.md 규칙 1). 갈래 칸이
+    # 정본 또는 호스트 경로의 base-sync/project.md에 있는 "## <lib>에서 씨앗과 고르는 것" 절의 표(knowledge/library.md 규칙 1). 갈래 칸이
     # 씨앗이나 고르기인 행의 모델 칸과 스킬 칸에서 id를 읽어 {('model'|'skill', id): 갈래}를 낸다. 절이 없으면 None.
-    p = Path(root) / '.claude/skills/base-sync/project.md'
-    if not p.exists():
+    p = next((Path(root) / base / 'base-sync/project.md' for base in SKILL_ROOTS
+              if (Path(root) / base / 'base-sync/project.md').is_file()), None)
+    if p is None:
         return None
     part = re.split(rf'^## +{re.escape(lib)}{SEED_HEAD}\s*$', p.read_text(encoding='utf-8'), maxsplit=1, flags=re.M)
     if len(part) < 2:

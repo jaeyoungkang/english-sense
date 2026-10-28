@@ -11,7 +11,7 @@ kind: primitive
 ## 스킬과 모델
 
 스킬(skill)은 모델을 배경에 두고 한 종류의 일을 해내는 능력이다(`AGENTS.md` 철학 1). 모델의 한 종류가 아니다. 스킬
-문서(`.claude/skills/<이름>/SKILL.md`)는 그 능력을, 호스트가 그 일이 나타날 때 불러 쓸 수 있게 담는다. 상시 파일이
+문서(`shared-skills/<이름>/SKILL.md`)는 그 능력을, 호스트가 그 일이 나타날 때 불러 쓸 수 있게 담는다. 상시 파일이
 모든 일에 실리는 것과 달리, 스킬은 그 일이 올 때만 실린다. 그 일이 기대는 모델이 **배경 모델**(background model)이다.
 
 스킬과 모델은 이렇게 맞물린다.
@@ -103,6 +103,7 @@ kind: primitive
 
 ## 호스트별 경로
 
-- Claude Code는 `.claude/skills/<이름>/`, Codex는 `.agents/skills/<이름>/`에서 읽는다. 이 저장소는 `.claude/skills/`를
-  정본으로 둔다. Codex도 쓰면 `ln -s ../.claude/skills .agents/skills`로 링크한다.
+- 이 프로젝트의 스킬 정본은 `shared-skills/<이름>/`에 둔다. 라우팅 표와 문서는 정본 경로를 가리킨다.
+- Claude Code의 `.claude/skills`와 Codex의 `.agents/skills`는 모두 `../shared-skills`를 가리키는 심볼릭 링크다.
+  호스트마다 사본을 만들지 않는다. 같은 실제 파일을 가리키는 별칭은 같은 스킬 하나로 센다.
 - 스킬을 옮기거나 이름을 바꾸면 `AGENTS.md`의 행도 고친다(`knowledge/agents-md.md` 규칙 3).

@@ -55,6 +55,6 @@ kind: primitive
 원문 사실, 차용 판단과 이번 구현에서 관찰한 것은 `docs/research/lighthouse-methods.md`에서 구분한다.
 Lighthouse 기준은 `df85ac9a6f09c569d0e01b83ebdca4eebc996ea5`이며, 해당 저장소의 테스트를 이번에 실행하지 않았다.
 관계 1·4·5·7은 그 프로젝트의 절차에서 끌어낸 이식 가설이다. 관계 2·6은 이번 이관의 정적 자산 실패와 실제 브라우저 검사로도 관찰했으나 강PD의 학습 수행 기록은 아니다.
-W3C 상태 알림·초점 안내와 Playwright의 사용자 동작 검증 원칙은 같은 조사 문서에서 연결한다. 제작 절차는 `.claude/skills/web-app-planning/SKILL.md`와 `.claude/skills/web-app-implementation/SKILL.md`가 맡는다.
+W3C 상태 알림·초점 안내와 Playwright의 사용자 동작 검증 원칙은 같은 조사 문서에서 연결한다. 제작 절차는 `shared-skills/web-app-planning/SKILL.md`와 `shared-skills/web-app-implementation/SKILL.md`가 맡는다.
 서비스 정책·소유권·근거의 세부 연결과 원문에서 발견한 불일치는 `docs/research/lighthouse-contract-engineering.md`에 있다.
 관계 5의 소유권 기준과 관계 8은 같은 원문에서 이식한 가설이며 이 앱의 출시·개발 효과로 검증하지 않았다.

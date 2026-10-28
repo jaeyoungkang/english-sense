@@ -9,8 +9,8 @@
 - 작업이 이미 가리키는 계약 문서가 있으면 고친다. 이슈만 있거나 계약이 없으면 `docs/tasks/<과업>.md`에 계약 하나를
   둔다. 이슈는 계약을 연결하고, 수용 기준은 계약 문서가 소유한다. 기대와 결과를 이슈에 남기는 방법은
   `knowledge/production.md` "규칙"의 "일을 시작할 때"를 따른다.
-- 구현 인계는 `.claude/skills/web-app-implementation/SKILL.md`를 가리킨다. 아직 실행하지 않은 계약은 구현 완료로 보고하지 않는다.
-- 한국어 문안은 `.claude/skills/korean-prose/SKILL.md`로 다듬는다.
+- 구현 인계는 `shared-skills/web-app-implementation/SKILL.md`를 가리킨다. 아직 실행하지 않은 계약은 구현 완료로 보고하지 않는다.
+- 한국어 문안은 `shared-skills/korean-prose/SKILL.md`로 다듬는다.
 - UX·디자인 판단은 `knowledge/domain/web-app-ux-design.md`, 현재 디자인은 `docs/ux-design.md`,
   현재 콘텐츠·대화 계약은 `docs/tasks/content-chat-workspace.md`, 이전 문서·스택은 `docs/tasks/document-workspace.md`, 기존 퀴즈 계약은 `docs/tasks/quiz-artifacts.md`와 이전 `docs/tasks/learning-workspace.md`에서 읽는다. 이전 시안의 범위는 `docs/tasks/ux-redesign.md`에 있다. 시각 선택은 강PD의 사용·선호로 확인하기 전까지 제안이다.
 - Lighthouse의 계약·정책·소유권·코드·검사 상세 추적과 발견한 불일치는 `docs/research/lighthouse-contract-engineering.md`에 있다.

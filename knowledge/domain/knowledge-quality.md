@@ -8,7 +8,7 @@ kind: primitive
 
 지식 체계와 그것을 배경에 둔 스킬이 제 일을 하는지 진단하는 법이다. 품질의 차원은 정보 품질 연구(Wang & Strong, ISO/IEC 25012)에서 빌렸다.
 기반을 점검할 때(`knowledge/production.md`), 베이스와 동기화한 뒤, 모델을 고치기 전에 어디부터 볼지 정할 때 쓴다. 모델을 키우는 법은 `knowledge/model.md`가 맡는다. 진단하는 순서와 판정을 묻는
-방식은 `.claude/skills/knowledge-diagnosis/SKILL.md`에 있다.
+방식은 `shared-skills/knowledge-diagnosis/SKILL.md`에 있다.
 
 ## 개념
 
@@ -164,7 +164,7 @@ kind: primitive
   쓰이지 않는 개념은 개념 칸의 괄호 앞 이름이 개념 절 밖 본문에 글자 그대로 나오는지로 찾는다. 이 다섯은 2026-10-25 강PD가 잠정으로 승인했다.
   (잠정)
 - 규칙 1의 판정을 묻는 방식, 규칙 3의 순서와 결정 지점, 옛 규칙 5(보고의 꼴)는 2026-10-26 진단 스킬
-  (`.claude/skills/knowledge-diagnosis/SKILL.md`)로 옮겼다. #18에서 판정자 둘이 모두 진단하는 일의 순서로 판정했고, 강PD가 스킬을
+  (`shared-skills/knowledge-diagnosis/SKILL.md`)로 옮겼다. #18에서 판정자 둘이 모두 진단하는 일의 순서로 판정했고, 강PD가 스킬을
   만들기로 정했다(project-base #18, #27). 옛 관계 9는 같은 때 네 항목(관계 9~12)으로 나눴고, 옛 관계 10, 11은 13, 14가 됐다.
 - 출처: 강PD와의 논의(2026-10-24, 워크스페이스 저장소 판 `71f91b2`). 갈래는 정합, 신선도, 쓰임, 중복과 비대, 의존성 맵에서 출발했다.
   맥락 없는 리더 일곱의 지식 지도 평가(과제 넷, 모양과 품질 셋)와 game-base 그래프의 측정(노드 35, 이음 58)이 근거다. 정보 품질 틀

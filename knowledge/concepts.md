@@ -39,7 +39,7 @@ kind: primitive
 | 호스트 | host | 에이전트를 실행하는 도구. Claude Code, Codex 같은 것이다 | `knowledge/skills.md` |
 | LLM | LLM | 에이전트를 움직이는 언어 모델. 지식인 "모델"과 구별한다 | `knowledge/concepts.md` |
 | 세션 | session | 호스트를 한 번 연 것 | `knowledge/concepts.md` |
-| 스킬 | skill | 모델을 배경에 두고 한 종류의 일을 해내는 능력. 모델의 한 종류가 아니다. 그 일을 어떤 순서로 하고 어디서 무엇을 정하는지를 `.claude/skills/`에 담아, 호스트가 그 일이 나타날 때 불러 쓰게 한다 | `knowledge/skills.md` |
+| 스킬 | skill | 모델을 배경에 두고 한 종류의 일을 해내는 능력. 모델의 한 종류가 아니다. 그 일을 어떤 순서로 하고 어디서 무엇을 정하는지를 `shared-skills/`에 담아, 호스트가 그 일이 나타날 때 불러 쓰게 한다 | `knowledge/skills.md` |
 | 상시 파일 | always-loaded file | 세션마다 자동으로 로드되는 파일. `AGENTS.md`, `CLAUDE.md` | `knowledge/agents-md.md` |
 | 라우팅 표 | routing table | `AGENTS.md`의 "상황별로 읽을 문서" 표. 상황에 맞는 문서를 가리킨다 | `knowledge/agents-md.md` |
 | 도메인 모델 | domain model | 한 분야가 어떻게 돌아가는지 설명하는 모델. 개념·관계·규칙·한계와 출처로 쓴다. `knowledge/domain/`이 담는다 | `knowledge/model.md` |
