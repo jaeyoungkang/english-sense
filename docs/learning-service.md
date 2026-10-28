@@ -39,5 +39,9 @@ AI는 이야기·카드에서는 사용자가 설명 요청이나 질문을 보�
 come 유닛 개방과 정본 진도 연결은 아직 없다.
 미전송 초안을 자동 제출하거나 AI의 설명을 강PD의 배움으로 확정하지 않는다. 브라우저 임시 기록은 개인 서버 기록이나 정본을 대신하지 않는다.
 
+2026-10-28 강PD는 문장 해설기(`/ask/`)의 요청과 결과도 기록으로 남기고 결과에 추가 질문할 수 있게 하도록 정했다.
+요청 문장·모드·해설 전문과 이어 묻는 질답·초안을 요청별로 연결하며 새 해설로 지난 결과를 덮지 않는다.
+브라우저 복원 사본·내보내기와 서버 보관의 차이를 표시한다. 보관 범위 선택과 실제 검증은 `docs/tasks/ask-conversations.md`가 소유한다.
+
 제작 판단은 `knowledge/domain/web-app-production.md`, 구조 판단은 `knowledge/domain/web-app-architecture.md`,
 Next.js 구현 판단은 `knowledge/domain/nextjs-development.md`를 따른다. 이 문서의 약속을 고칠 때는 강PD와 합의한다.

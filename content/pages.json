@@ -22,7 +22,7 @@
       },
       {
         "kind": "html",
-        "html": "<section aria-labelledby=\"about-h\">\n    <h2 id=\"about-h\">해설은 어떻게 만드나</h2>\n    <p class=\"muted\">해설은 이 사이트의 감각 사전(표제어 30개: 불변화사 12, 기본동사 14, 잇는 말 4)을 바탕으로 Anthropic의 Claude가 만듭니다. 넣은 문장은 해설을 만드는 데만 쓰고 저장하지 않습니다.</p>\n  </section>"
+        "html": "<section aria-labelledby=\"about-h\">\n    <h2 id=\"about-h\">해설은 어떻게 만드나</h2>\n    <p class=\"muted\">해설은 이 사이트의 감각 사전(표제어 30개: 불변화사 12, 기본동사 14, 잇는 말 4)을 바탕으로 Anthropic의 Claude가 만듭니다. 요청한 문장과 해설, 이어 묻는 질답은 이 브라우저에 임시 보관합니다. 기록을 내려받아 별도로 보관할 수 있습니다. 개인 서버 보관과 다른 기기 동기화는 아직 제공하지 않습니다.</p>\n  </section>"
       }
     ]
   },

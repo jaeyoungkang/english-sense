@@ -1,14 +1,6 @@
 import prompt from "./prompt.json";
-
-export interface Explanation {
-  english: string;
-  korean: string;
-  picture: string;
-  headwords: { word: string; in_sentence: string; image: string; nuance: string }[];
-  contrasts: { kind: "영어식" | "한국어식 직역" | "라틴어 계열"; text: string; note: string }[];
-  alternatives: string[];
-  note: string;
-}
+import { isExplanation, type Explanation } from "../ask-contract";
+export { isExplanation, type Explanation } from "../ask-contract";
 
 export interface QuotaNamespace {
   idFromName(name: string): unknown;
@@ -35,7 +27,6 @@ const providerError = "해설을 만들지 못했습니다. 잠시 뒤 다시 �
 const malformed = "해설을 읽지 못했습니다. 다시 시도해 주세요.";
 const maxBodyBytes = 8 * 1024;
 const maxResponseBytes = 256 * 1024;
-const explanationKeys = ["english", "korean", "picture", "headwords", "contrasts", "alternatives", "note"];
 
 export class ApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
@@ -50,21 +41,6 @@ function json(value: unknown, status = 200, headers?: HeadersInit): Response {
 
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function exactKeys(value: Record<string, unknown>, keys: string[]): boolean {
-  return Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key));
-}
-
-function strings(value: Record<string, unknown>, keys: string[]): boolean {
-  return keys.every((key) => typeof value[key] === "string");
-}
-
-export function isExplanation(value: unknown): value is Explanation {
-  if (!record(value) || !exactKeys(value, explanationKeys) || !strings(value, ["english", "korean", "picture", "note"])) return false;
-  if (!Array.isArray(value.headwords) || !value.headwords.every((item) => record(item) && exactKeys(item, ["word", "in_sentence", "image", "nuance"]) && strings(item, ["word", "in_sentence", "image", "nuance"]))) return false;
-  if (!Array.isArray(value.contrasts) || !value.contrasts.every((item) => record(item) && exactKeys(item, ["kind", "text", "note"]) && strings(item, ["kind", "text", "note"]) && ["영어식", "한국어식 직역", "라틴어 계열"].includes(item.kind as string))) return false;
-  return Array.isArray(value.alternatives) && value.alternatives.every((item) => typeof item === "string");
 }
 
 async function readBounded(body: ReadableStream<Uint8Array> | null, max: number): Promise<string> {

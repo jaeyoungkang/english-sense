@@ -117,6 +117,41 @@
 .ask-workspace .ask-error > p:first-child { white-space: pre-wrap; }
 .ask-workspace .ask-error > p + p { margin-top: 12px; font-size: 12px; }
 
+/* Each result keeps its requests and conversation; the sample never enters this archive. */
+.ask-workspace .ask-archive { padding: 24px; border-top: 1px solid var(--ask-line); }
+.ask-workspace .ask-archive-heading { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: space-between; }
+.ask-workspace .ask-archive-heading h2 { font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1.7; }
+.ask-workspace .ask-archive-heading h2 span { margin-left: 6px; color: var(--ask-muted); font-weight: 400; font-size: 11px; }
+.ask-workspace .ask-archive-heading button, .ask-workspace .ask-store-warning button, .ask-workspace .ask-error button, .ask-workspace .ask-turn-state button { padding: 8px 10px; border: 1px solid #c8d4ba; background: #f5f8f0; color: var(--ask-green); font: inherit; font-size: 11px; }
+.ask-workspace .ask-storage-fact, .ask-workspace .ask-archive-note { margin-block: 10px; font-size: 11px; line-height: 1.9; color: var(--ask-muted); }
+.ask-workspace .ask-store-warning { margin-block: 14px; padding: 12px; border-left: 2px solid #a26647; background: #fbf5ef; color: #79452c; font-size: 12px; }
+.ask-workspace .ask-store-warning button { margin: 8px 8px 0 0; }
+.ask-workspace .ask-archive ol { list-style: none; padding: 0; margin: 16px 0 0; max-height: 470px; overflow-y: auto; }
+.ask-workspace .ask-archive li { border-bottom: 1px solid var(--ask-line); }
+.ask-workspace .ask-archive li button { display: grid; gap: 6px; width: 100%; padding: 14px 12px; border: 0; border-left: 2px solid transparent; background: transparent; color: var(--ask-ink); text-align: left; }
+.ask-workspace .ask-archive li button[aria-pressed="true"] { border-left-color: var(--ask-green); background: #f0f5e9; }
+.ask-workspace .ask-history-meta, .ask-workspace .ask-history-status { font-size: 10px; line-height: 1.8; color: var(--ask-muted); }
+.ask-workspace .ask-history-text { font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.ask-workspace .ask-history-text[lang="en"] { font: 17px/1.7 var(--f-en, Georgia, serif); word-break: normal; }
+.ask-workspace .ask-result-jump { min-height: 44px; padding-block: 10px; font-size: 12px; text-decoration: none; color: var(--ask-green); }
+.ask-workspace .ask-followups { display: block; padding: 26px 28px; border-top: 1px solid var(--ask-line); }
+.ask-workspace .ask-followups>h2 { font-size: 16px; margin: 0 0 12px; }
+.ask-workspace .ask-followup-guide { font-size: 12px; color: var(--ask-muted); }
+.ask-workspace .ask-conversation { list-style: none; margin: 24px 0; padding: 0; }
+.ask-workspace .ask-conversation>li { margin: 0 0 28px; padding-top: 16px; border-top: 1px solid var(--ask-line); }
+.ask-workspace .ask-user-turn, .ask-workspace .ask-assistant-turn, .ask-workspace .ask-turn-state { padding: 14px 16px; margin-bottom: 12px; }
+.ask-workspace .ask-user-turn { background: #f1f5e9; border-left: 2px solid #bccbac; }
+.ask-workspace .ask-assistant-turn { padding-left: 0; }
+.ask-workspace .ask-user-turn>p:not(.ask-turn-label), .ask-workspace .ask-assistant-turn>p:not(.ask-turn-label) { white-space: pre-wrap; line-height: 2; overflow-wrap: anywhere; }
+.ask-workspace .ask-turn-label { margin-bottom: 8px; color: var(--ask-muted); font-size: 10px; }
+.ask-workspace .ask-turn-state { font-size: 12px; color: var(--ask-muted); background: #faf8f0; }
+.ask-workspace .ask-followup-form { margin-top: 24px; border-top: 1px solid var(--ask-line); padding-top: 20px; }
+.ask-workspace .ask-followup-form textarea { min-height: 112px; }
+@media (max-width: 479px) {
+  .ask-workspace .ask-archive, .ask-workspace .ask-followups { padding: 22px 16px; }
+  .ask-workspace .ask-user-turn, .ask-workspace .ask-assistant-turn, .ask-workspace .ask-turn-state { padding-inline: 12px; }
+}
+
 @keyframes ask-wait { 50% { opacity: .3; } }
 @media (prefers-reduced-motion: reduce) { .ask-workspace .ask-waiting-mark { animation: none; } }
 @media (max-width: 919px) {
