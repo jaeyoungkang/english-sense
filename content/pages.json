@@ -377,7 +377,7 @@
       },
       {
         "kind": "html",
-        "html": "<section aria-labelledby=\"ref-h\">\n    <h2 id=\"ref-h\">가는데도 come이라고 한다</h2>\n    <p>come은 '말하는 사람 쪽으로 오는' 말이 아니라 <b>기준점으로 다가오는</b> 말입니다. 기준점은 말하는 사람이 있는 곳일 수도, 듣는 사람이 가는 곳일 수도 있습니다. 엄마가 부르면 나는 엄마 쪽으로 가는데도 <span class=\"en\">I'm coming!</span>이라고 합니다. 기준점이 부르는 사람이 있는 곳이기 때문입니다. 대상은 사람이 아니어도 됩니다.</p>\n    <div class=\"pair\">\n      <div class=\"row\"><p class=\"en\">I'm coming!</p><p class=\"muted\">기준점은 나를 부른 사람. 내가 그쪽으로 다가간다. <span class=\"en\">I'm going!</span>은 걸리는 예입니다. go는 기준점에서 멀어지는 그림이기 때문입니다.</p></div>\n      <div class=\"row\"><p class=\"en\">Come out!</p><p class=\"muted\">기준점은 문 밖에 선 말하는 사람. 안에 있는 사람이 그쪽으로 다가온다.</p></div>\n      <div class=\"row\"><p class=\"en\">The barking came from a distance.</p><p class=\"muted\">기준점은 듣는 사람들. 멀리서 들리는 짖는 소리가 일행 쪽으로 다가온다.</p></div>\n    </div>\n    <p class=\"muted\">대상이 기준점 쪽으로 다가오면 come이고, 멀어지면 <a href=\"/go/\">go</a>입니다.</p>\n  </section>\n\n  <section aria-labelledby=\"true-h\">\n    <h2 id=\"true-h\">다가와 닿으면 제자리가 된다</h2>\n    <p>기준점이 '있어야 할 상태'일 때도 있습니다. 꿈이 이루어지는 것은 있어야 할 곳에 다다르는 일이라 좋은 쪽으로 들립니다. 그래서 <span class=\"en\">The dream came true</span>라고 하고, <span class=\"en\">The dream went true</span>라고 하지 않습니다. go는 정상 상태에서 멀어지는 말이라 반대 그림이 됩니다.</p>\n  </section>\n\n  <section aria-labelledby=\"back-h\">\n    <h2 id=\"back-h\">come은 돌아온다는 뜻이 아니다</h2>\n    <p>come 자체에는 돌아간다는 뜻이 없습니다. 기준점으로 다가오는 말이고, <span class=\"en\">back</span>이 떠났던 곳으로를 더합니다. 그래서 <span class=\"en\">Come out!</span>은 돌아오지 않아도 씁니다.</p>\n    <div class=\"pair\">\n      <div class=\"row\"><p class=\"en\">When are you coming back?</p><p class=\"muted\">떠난 사람이 언제 말하는 사람 쪽으로 다시 다가오는지 묻는다.</p></div>\n      <div class=\"row\"><p class=\"en\">Come back to bed, William.</p><p class=\"muted\">방 안의 말하는 사람 쪽, 제자리인 침대로 돌아오라는 말.</p></div>\n      <div class=\"row\"><p class=\"en\">Come out!</p><p class=\"muted\">back이 없다. 돌아오는 것이 아니라 밖의 말하는 사람 쪽으로 나오는 것.</p></div>\n    </div>\n  </section>\n\n  <section aria-labelledby=\"with-h\">\n    <h2 id=\"with-h\">come with, go with, accompany</h2>\n    <p><span class=\"en\">come with us</span>는 우리 쪽으로 와서 합류하라는 말입니다. <span class=\"en\">go with</span>는 같이 간다는 일상의 말입니다. <span class=\"en\">accompany</span>는 곁에서 동행하는 격식 있는 말이라, 급한 장면에서 아이가 쓰면 무겁게 들립니다. <span class=\"en\">go with</span>를 격식 있게 바꾼 말에 가깝습니다.</p>\n    <div class=\"cmp\"><table>\n      <thead><tr><th>문장</th><th>그림</th></tr></thead>\n      <tbody>\n        <tr><td><span class=\"en\">Tell them to come with us.</span></td><td>우리 쪽으로 와서 합류하라</td></tr>\n        <tr><td><span class=\"en\">Tell them to go with us.</span></td><td>같이 간다는 일상의 말</td></tr>\n        <tr><td><span class=\"en\">Tell them to accompany us.</span></td><td>곁에서 동행한다. 격식 있고 무겁다</td></tr>\n      </tbody>\n    </table></div>\n  </section>\n\n  <section aria-labelledby=\"updown-h\">\n    <h2 id=\"updown-h\">come out과 come up</h2>\n    <p>come 뒤의 말이 오는 길을 싣습니다. <span class=\"en\">come out</span>은 안에서 밖으로 나오는 길을, <span class=\"en\">come up</span>은 올라오는 길을 싣습니다. 보트 갑판은 복도보다 위에 있어서 <span class=\"en\">come up to the boat deck</span>이라고 합니다.</p>\n  </section>\n\n  <section aria-labelledby=\"cmp-h\">\n    <h2 id=\"cmp-h\">같은 장면, 세 가지 문장</h2>\n    <p>한국어를 그대로 옮기면 동사가 어긋나고, <em>approach</em>, <em>return</em> 같은 라틴어 계열 낱말을 고르면 안내문 말투가 됩니다. 영어 화자는 come 하나에 방향을 붙입니다.</p>\n    <div class=\"cmp\"><table>\n      <thead><tr><th>장면</th><th>한국어식 직역</th><th>라틴어 계열</th><th>영어식</th></tr></thead>\n      <tbody>\n        <tr><td>(부르는 사람에게) 갈게!</td><td><span class=\"en\">I'm going!</span></td><td><span class=\"en\">I'm approaching!</span></td><td><span class=\"en\">I'm coming!</span></td></tr>\n        <tr><td>언제 돌아와?</td><td><span class=\"en\">When is your returning?</span></td><td><span class=\"en\">When will you return?</span></td><td><span class=\"en\">When are you coming back?</span></td></tr>\n      </tbody>\n    </table></div>\n  </section>\n\n<nav class=\"pager\" aria-label=\"앞뒤 표제어\"><a class=\"prev\" href=\"/go/\"><span class=\"k\">앞 표제어</span><span class=\"en\">go</span></a></nav>"
+        "html": "<section aria-labelledby=\"ref-h\">\n    <h2 id=\"ref-h\">가는데도 come이라고 한다</h2>\n    <p>come은 '말하는 사람 쪽으로 오는' 말이 아니라 <b>기준점으로 다가오는</b> 말입니다. 기준점은 말하는 사람이 있는 곳일 수도, 듣는 사람이 가는 곳일 수도 있습니다. 엄마가 부르면 나는 엄마 쪽으로 가는데도 <span class=\"en\">I'm coming!</span>이라고 합니다. 기준점이 부르는 사람이 있는 곳이기 때문입니다. 대상은 사람이 아니어도 됩니다.</p>\n    <div class=\"pair\">\n      <div class=\"row\"><p class=\"en\">I'm coming!</p><p class=\"muted\">기준점은 나를 부른 사람. 내가 그쪽으로 다가간다. <span class=\"en\">I'm going!</span>은 걸리는 예입니다. go는 기준점에서 멀어지는 그림이기 때문입니다.</p></div>\n      <div class=\"row\"><p class=\"en\">Come out!</p><p class=\"muted\">기준점은 문 밖에 선 말하는 사람. 안에 있는 사람이 그쪽으로 다가온다.</p></div>\n      <div class=\"row\"><p class=\"en\">The barking came from a distance.</p><p class=\"muted\">기준점은 듣는 사람들. 멀리서 들리는 짖는 소리가 일행 쪽으로 다가온다.</p></div>\n    </div>\n    <p class=\"muted\">대상이 기준점 쪽으로 다가오면 come이고, 멀어지면 <a href=\"/go/\">go</a>입니다.</p>\n  </section>\n\n  <section aria-labelledby=\"true-h\">\n    <h2 id=\"true-h\">다가와 닿으면 제자리가 된다</h2>\n    <p>기준점이 '있어야 할 상태'일 때도 있습니다. 꿈이 이루어지는 것은 있어야 할 곳에 다다르는 일이라 좋은 쪽으로 들립니다. 그래서 <span class=\"en\">The dream came true</span>라고 하고, <span class=\"en\">The dream went true</span>라고 하지 않습니다. go는 정상 상태에서 멀어지는 말이라 반대 그림이 됩니다.</p>\n  </section>\n\n  <section aria-labelledby=\"back-h\">\n    <h2 id=\"back-h\">come은 돌아온다는 뜻이 아니다</h2>\n    <p>come 자체에는 돌아간다는 뜻이 없습니다. 기준점으로 다가오는 말이고, <span class=\"en\">back</span>이 떠났던 곳으로를 더합니다. 그래서 <span class=\"en\">Come out!</span>은 돌아오지 않아도 씁니다.</p>\n    <div class=\"pair\">\n      <div class=\"row\"><p class=\"en\">When are you coming back?</p><p class=\"muted\">떠난 사람이 언제 말하는 사람 쪽으로 다시 다가오는지 묻는다.</p></div>\n      <div class=\"row\"><p class=\"en\">Come back to bed, William.</p><p class=\"muted\">방 안의 말하는 사람 쪽, 제자리인 침대로 돌아오라는 말.</p></div>\n      <div class=\"row\"><p class=\"en\">Come out!</p><p class=\"muted\">back이 없다. 돌아오는 것이 아니라 밖의 말하는 사람 쪽으로 나오는 것.</p></div>\n    </div>\n  </section>\n\n  <section aria-labelledby=\"with-h\">\n    <h2 id=\"with-h\">come with, go with, accompany</h2>\n    <p><span class=\"en\">come with us</span>는 우리 쪽으로 와서 합류하라는 말입니다. <span class=\"en\">go with</span>는 같이 간다는 일상의 말입니다. <span class=\"en\">accompany</span>는 곁에서 동행하는 격식 있는 말이라, 급한 장면에서 아이가 쓰면 무겁게 들립니다. <span class=\"en\">go with</span>를 격식 있게 바꾼 말에 가깝습니다.</p>\n    <div class=\"cmp\"><table>\n      <thead><tr><th>문장</th><th>그림</th></tr></thead>\n      <tbody>\n        <tr><td><span class=\"en\">Tell them to come with us.</span></td><td>우리 쪽으로 와서 합류하라</td></tr>\n        <tr><td><span class=\"en\">Tell them to go with us.</span></td><td>같이 간다는 일상의 말</td></tr>\n        <tr><td><span class=\"en\">Tell them to accompany us.</span></td><td>곁에서 동행한다. 격식 있고 무겁다</td></tr>\n      </tbody>\n    </table></div>\n  </section>\n\n  <section aria-labelledby=\"updown-h\">\n    <h2 id=\"updown-h\">come out과 come up</h2>\n    <p>come 뒤의 말이 오는 길을 싣습니다. <span class=\"en\">come out</span>은 안에서 밖으로 나오는 길을, <span class=\"en\">come up</span>은 올라오는 길을 싣습니다. 보트 갑판은 복도보다 위에 있어서 <span class=\"en\">come up to the boat deck</span>이라고 합니다.</p>\n  </section>\n\n  <section aria-labelledby=\"cmp-h\">\n    <h2 id=\"cmp-h\">같은 장면, 세 가지 문장</h2>\n    <p>한국어를 그대로 옮기면 동사가 어긋나고, <em>approach</em>, <em>return</em> 같은 라틴어 계열 낱말을 고르면 안내문 말투가 됩니다. 영어 화자는 come 하나에 방향을 붙입니다.</p>\n    <div class=\"cmp\"><table>\n      <thead><tr><th>장면</th><th>한국어식 직역</th><th>라틴어 계열</th><th>영어식</th></tr></thead>\n      <tbody>\n        <tr><td>(부르는 사람에게) 갈게!</td><td><span class=\"en\">I'm going!</span></td><td><span class=\"en\">I'm approaching!</span></td><td><span class=\"en\">I'm coming!</span></td></tr>\n        <tr><td>언제 돌아와?</td><td><span class=\"en\">When is your returning?</span></td><td><span class=\"en\">When will you return?</span></td><td><span class=\"en\">When are you coming back?</span></td></tr>\n      </tbody>\n    </table></div>\n  </section>\n\n  <section aria-labelledby=\"learner-h\" class=\"learner\">\n    <h2 id=\"learner-h\">실제로 걸렸던 곳</h2>\n    <p class=\"muted\">한국인 학습자가 이 감각을 처음 연습하며 남긴 말입니다.</p>\n    <div class=\"quote\"><q>come 은 대상기준으로 원래자리로 돌아가라는 말을 할때쓴다.</q><span class=\"note\">기준점이 무엇이었는지 보지 않고 말해 본 답입니다. 대상을 기준으로 본 것은 맞습니다. 다만 '원래 자리로 돌아간다'는 come이 아니라 <span class=\"en\">back</span>의 뜻입니다. come은 대상이 기준점으로 다가오는 말입니다.</span></div>\n    <div class=\"quote\"><q>Where you come from?</q><span class=\"note\">빈칸 넣기의 첫 답입니다. <span class=\"en\">come from</span>의 짝은 처음부터 맞았고 did만 빠졌습니다. 한 번 짚자 <span class=\"en\">Where did you come from?</span>으로 스스로 고쳤습니다. did는 이 장면에 어디서 출발해 왔는지를, <span class=\"en\">Where do you come from?</span>은 출신을 묻습니다.</span></div>\n    <div class=\"quote\"><q>Put on a life belt and come out to the board. now.</q><span class=\"note\">빈칸 넣기의 첫 답입니다. put on과 come의 선택은 처음부터 맞았습니다. 보트 갑판은 위라 come out이 아니라 <span class=\"en\">come up</span>이고, board는 deck, now는 <span class=\"en\">at once</span>로 고쳐 <span class=\"en\">Put on a life belt at once and come up to the deck.</span>이 됐습니다.</span></div>\n  </section>\n\n<section aria-labelledby=\"practice-h\">\n    <h2 id=\"practice-h\">책 장면으로 연습하기</h2>\n    <p>원서의 실제 장면에서 세 문장 가운데 가장 영어다운 것을 고르고, 책의 빈칸을 직접 채워 봅니다.</p>\n    <div class=\"links\"><a class=\"link-card\" href=\"/practice/titanic/come/\"><span class=\"t\"><i>Tonight on the Titanic</i> 장면으로 come 연습하기</span><span class=\"s\">매직트리하우스 17권 · 고르기 5 · 빈칸 넣기 2</span></a></div>\n  </section>\n\n<nav class=\"pager\" aria-label=\"앞뒤 표제어\"><a class=\"prev\" href=\"/go/\"><span class=\"k\">앞 표제어</span><span class=\"en\">go</span></a></nav>"
       }
     ]
   },
@@ -483,7 +483,7 @@
     "parts": [
       {
         "kind": "html",
-        "html": "<header class=\"hero\">\n  <span class=\"eyebrow\">영어 기본동사 · 불변화사 · 잇는 말</span>\n  <h1>뜻을 외우지 말고, 그림으로 잡는 영어 감각</h1>\n  <p class=\"lede\">have, get, be는 뜻이 수십 개라고들 합니다. 그런데 영어 화자에게 이 동사들은 저마다 그림 하나입니다. 이 사이트는 표제어마다 그 그림을 보여 주고, 같은 말을 세 가지로 쓴 문장을 견주며 영어다운 표현을 가려내는 감각을 익히게 합니다.</p>\n  <div class=\"actions\"><a class=\"btn\" href=\"/have/\">have부터 읽기</a><a class=\"btn ghost\" href=\"#words\">표제어 보기</a></div>\n</header>\n\n<section aria-labelledby=\"sense-h\">\n  <h2 id=\"sense-h\">감각을 셋으로 본다</h2>\n  <div class=\"three\">\n    <div class=\"row\"><h3>이미지</h3><p class=\"muted\">무엇이 어디에 있고, 어느 쪽으로 움직이고, 어떤 경계를 넘는지.</p></div>\n    <div class=\"row\"><h3>뉘앙스</h3><p class=\"muted\">말의 무게와 거리, 일상의 결인지 격식의 결인지.</p></div>\n    <div class=\"row\"><h3>예시</h3><p class=\"muted\">영어 화자의 귀에 자연스러운 예와 걸리는 예.</p></div>\n  </div>\n  <p>그리고 같은 장면을 세 가지로 말한 문장을 견줍니다.</p>\n  <div class=\"compare\">\n    <div class=\"row\"><span><span class=\"tag ko-k\">한국어식 직역</span></span><p class=\"en\">There is not much time to us.</p><p class=\"muted\">한국어 '우리에게 시간이 없다'를 그대로 옮긴 문장.</p></div>\n    <div class=\"row\"><span><span class=\"tag la-k\">라틴어 계열</span></span><p class=\"en\">Our time is limited.</p><p class=\"muted\">격식 있는 낱말을 써서 한 발 떨어져 들리는 문장.</p></div>\n    <div class=\"row win\"><span><span class=\"tag en-k\">영어식</span></span><p class=\"en\">We don't have much time.</p><p class=\"muted\">영어 화자가 실제로 쓰는 문장.</p></div>\n  </div>\n</section>\n\n<section aria-labelledby=\"words\">\n  <h2 id=\"words\">표제어</h2>\n  <p>먼저 기본동사 14개를 다룹니다. 그림이 맞닿은 동사끼리 짝을 지어 돕니다. on, out, up 같은 불변화사와 to, of 같은 잇는 말은 동사와 함께 나올 때 익힙니다.</p>\n  <div class=\"grp\"><p class=\"gh\"><span class=\"num\">①</span> 있음과 들어섬</p><div class=\"vcs\"><a class=\"vc\" href=\"/have/\"><span class=\"w en\">have</span><span class=\"pic\">영역 안에 놓여 있다</span><span class=\"st\">읽기</span></a><a class=\"vc\" href=\"/get/\"><span class=\"w en\">get</span><span class=\"pic\">경계를 넘어 들어선다</span><span class=\"st\">읽기</span></a><a class=\"vc\" href=\"/be/\"><span class=\"w en\">be</span><span class=\"pic\">장소·모습에 놓여 있다</span><span class=\"st\">읽기</span></a></div></div>\n<div class=\"grp\"><p class=\"gh\"><span class=\"num\">②</span> 멀어짐과 다가옴</p><div class=\"vcs\"><a class=\"vc\" href=\"/go/\"><span class=\"w en\">go</span><span class=\"pic\">기준점에서 멀어진다</span><span class=\"st\">읽기</span></a><a class=\"vc\" href=\"/come/\"><span class=\"w en\">come</span><span class=\"pic\">기준점으로 다가온다</span><span class=\"st\">읽기</span></a></div></div>\n<div class=\"grp\"><p class=\"gh\"><span class=\"num\">③</span> 놓기, 집기, 건네기</p><div class=\"vcs\"><div class=\"vc\"><span class=\"w en\">put</span><span class=\"pic\">손으로 옮겨 놓는다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">take</span><span class=\"pic\">손을 뻗어 집어 든다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">give</span><span class=\"pic\">상대의 손으로 넘긴다</span><span class=\"st\">준비 중</span></div></div></div>\n<div class=\"grp\"><p class=\"gh\"><span class=\"num\">④</span> 붙들기와 버티기</p><div class=\"vcs\"><div class=\"vc\"><span class=\"w en\">hold</span><span class=\"pic\">쥐고 붙들어 둔다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">keep</span><span class=\"pic\">힘을 견디며 붙들어 둔다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">set</span><span class=\"pic\">제자리에 앉혀 놓는다</span><span class=\"st\">준비 중</span></div></div></div>\n<div class=\"grp\"><p class=\"gh\"><span class=\"num\">⑤</span> 방식과 눈길과 만들기</p><div class=\"vcs\"><div class=\"vc\"><span class=\"w en\">run</span><span class=\"pic\">빨리 달린다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">look</span><span class=\"pic\">눈길을 보낸다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">make</span><span class=\"pic\">전에 없던 것을 만든다</span><span class=\"st\">준비 중</span></div></div></div>\n</section>\n\n<section aria-labelledby=\"how-h\">\n  <h2 id=\"how-h\">이렇게 익힙니다</h2>\n  <ol class=\"steps\">\n    <li><b>표제어 페이지</b>에서 그 말의 이미지, 뉘앙스, 예시를 읽고, 쓰임 그림을 눌러 봅니다.</li>\n    <li><b>책 장면 연습</b>에서 세 문장 가운데 가장 영어다운 것을 고르고, 고른 까닭을 감각의 말로 말해 봅니다.</li>\n    <li>마지막에는 <b>직접 영어로 써 보고</b>, 모범 답과 견줍니다.</li>\n    <li>읽다가 걸린 문장은 <a href=\"/ask/\">해설기</a>에 넣어 봅니다.</li>\n  </ol>\n</section>\n\n<section aria-labelledby=\"practice-h\">\n  <h2 id=\"practice-h\">책 장면으로 연습하기</h2>\n  <p>영어 원서의 실제 장면으로 만든 문제입니다. 책은 계속 늘어납니다.</p>\n  <div class=\"links\"><a class=\"link-card\" href=\"/practice/titanic/\"><span class=\"t\"><i>Tonight on the Titanic</i></span><span class=\"s\">Magic Tree House #17 · 매직트리하우스 17권 · 1912년 타이타닉에 내린 잭과 애니가 3등실 남매를 구명보트로 데려가는 이야기</span><span class=\"s\">연습할 표제어: have, get, be, go</span></a></div>\n</section>\n\n<section aria-labelledby=\"tool-h\">\n  <h2 id=\"tool-h\">내 문장으로 해 보기</h2>\n  <p>읽다가 걸린 영어 문장이나, 영어로 하고 싶은 한국어 문장을 넣어 보십시오. 같은 감각 사전으로 풀어 드립니다.</p>\n  <div class=\"actions\"><a class=\"btn\" href=\"/ask/\">영어 감각 해설기 열기</a></div>\n</section>\n\n<section aria-labelledby=\"next-h\">\n  <h2 id=\"next-h\">앞으로 다룰 것</h2>\n  <ol class=\"steps\">\n    <li><b>기본동사 14개</b>: 지금 하고 있습니다.</li>\n    <li><b>섞어 풀기</b>: on, out, up, over 같은 불변화사와 to, at, of, as를 동사와 섞어 풉니다.</li>\n    <li><b>더 많은 책</b>: 다른 원서의 장면으로 연습을 넓힙니다.</li>\n    <li><b>어순</b>: 아는 것은 앞에, 새것은 뒤에. 동사 자리에 오면 동사로 들리는 영어의 감각을 따로 다룹니다.</li>\n  </ol>\n</section>"
+        "html": "<header class=\"hero\">\n  <span class=\"eyebrow\">영어 기본동사 · 불변화사 · 잇는 말</span>\n  <h1>뜻을 외우지 말고, 그림으로 잡는 영어 감각</h1>\n  <p class=\"lede\">have, get, be는 뜻이 수십 개라고들 합니다. 그런데 영어 화자에게 이 동사들은 저마다 그림 하나입니다. 이 사이트는 표제어마다 그 그림을 보여 주고, 같은 말을 세 가지로 쓴 문장을 견주며 영어다운 표현을 가려내는 감각을 익히게 합니다.</p>\n  <div class=\"actions\"><a class=\"btn\" href=\"/have/\">have부터 읽기</a><a class=\"btn ghost\" href=\"#words\">표제어 보기</a></div>\n</header>\n\n<section aria-labelledby=\"sense-h\">\n  <h2 id=\"sense-h\">감각을 셋으로 본다</h2>\n  <div class=\"three\">\n    <div class=\"row\"><h3>이미지</h3><p class=\"muted\">무엇이 어디에 있고, 어느 쪽으로 움직이고, 어떤 경계를 넘는지.</p></div>\n    <div class=\"row\"><h3>뉘앙스</h3><p class=\"muted\">말의 무게와 거리, 일상의 결인지 격식의 결인지.</p></div>\n    <div class=\"row\"><h3>예시</h3><p class=\"muted\">영어 화자의 귀에 자연스러운 예와 걸리는 예.</p></div>\n  </div>\n  <p>그리고 같은 장면을 세 가지로 말한 문장을 견줍니다.</p>\n  <div class=\"compare\">\n    <div class=\"row\"><span><span class=\"tag ko-k\">한국어식 직역</span></span><p class=\"en\">There is not much time to us.</p><p class=\"muted\">한국어 '우리에게 시간이 없다'를 그대로 옮긴 문장.</p></div>\n    <div class=\"row\"><span><span class=\"tag la-k\">라틴어 계열</span></span><p class=\"en\">Our time is limited.</p><p class=\"muted\">격식 있는 낱말을 써서 한 발 떨어져 들리는 문장.</p></div>\n    <div class=\"row win\"><span><span class=\"tag en-k\">영어식</span></span><p class=\"en\">We don't have much time.</p><p class=\"muted\">영어 화자가 실제로 쓰는 문장.</p></div>\n  </div>\n</section>\n\n<section aria-labelledby=\"words\">\n  <h2 id=\"words\">표제어</h2>\n  <p>먼저 기본동사 14개를 다룹니다. 그림이 맞닿은 동사끼리 짝을 지어 돕니다. on, out, up 같은 불변화사와 to, of 같은 잇는 말은 동사와 함께 나올 때 익힙니다.</p>\n  <div class=\"grp\"><p class=\"gh\"><span class=\"num\">①</span> 있음과 들어섬</p><div class=\"vcs\"><a class=\"vc\" href=\"/have/\"><span class=\"w en\">have</span><span class=\"pic\">영역 안에 놓여 있다</span><span class=\"st\">읽기</span></a><a class=\"vc\" href=\"/get/\"><span class=\"w en\">get</span><span class=\"pic\">경계를 넘어 들어선다</span><span class=\"st\">읽기</span></a><a class=\"vc\" href=\"/be/\"><span class=\"w en\">be</span><span class=\"pic\">장소·모습에 놓여 있다</span><span class=\"st\">읽기</span></a></div></div>\n<div class=\"grp\"><p class=\"gh\"><span class=\"num\">②</span> 멀어짐과 다가옴</p><div class=\"vcs\"><a class=\"vc\" href=\"/go/\"><span class=\"w en\">go</span><span class=\"pic\">기준점에서 멀어진다</span><span class=\"st\">읽기</span></a><a class=\"vc\" href=\"/come/\"><span class=\"w en\">come</span><span class=\"pic\">기준점으로 다가온다</span><span class=\"st\">읽기</span></a></div></div>\n<div class=\"grp\"><p class=\"gh\"><span class=\"num\">③</span> 놓기, 집기, 건네기</p><div class=\"vcs\"><div class=\"vc\"><span class=\"w en\">put</span><span class=\"pic\">손으로 옮겨 놓는다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">take</span><span class=\"pic\">손을 뻗어 집어 든다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">give</span><span class=\"pic\">상대의 손으로 넘긴다</span><span class=\"st\">준비 중</span></div></div></div>\n<div class=\"grp\"><p class=\"gh\"><span class=\"num\">④</span> 붙들기와 버티기</p><div class=\"vcs\"><div class=\"vc\"><span class=\"w en\">hold</span><span class=\"pic\">쥐고 붙들어 둔다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">keep</span><span class=\"pic\">힘을 견디며 붙들어 둔다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">set</span><span class=\"pic\">제자리에 앉혀 놓는다</span><span class=\"st\">준비 중</span></div></div></div>\n<div class=\"grp\"><p class=\"gh\"><span class=\"num\">⑤</span> 방식과 눈길과 만들기</p><div class=\"vcs\"><div class=\"vc\"><span class=\"w en\">run</span><span class=\"pic\">빨리 달린다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">look</span><span class=\"pic\">눈길을 보낸다</span><span class=\"st\">준비 중</span></div><div class=\"vc\"><span class=\"w en\">make</span><span class=\"pic\">전에 없던 것을 만든다</span><span class=\"st\">준비 중</span></div></div></div>\n</section>\n\n<section aria-labelledby=\"how-h\">\n  <h2 id=\"how-h\">이렇게 익힙니다</h2>\n  <ol class=\"steps\">\n    <li><b>표제어 페이지</b>에서 그 말의 이미지, 뉘앙스, 예시를 읽고, 쓰임 그림을 눌러 봅니다.</li>\n    <li><b>책 장면 연습</b>에서 세 문장 가운데 가장 영어다운 것을 고르고, 고른 까닭을 감각의 말로 말해 봅니다.</li>\n    <li>마지막에는 <b>직접 영어로 써 보고</b>, 모범 답과 견줍니다.</li>\n    <li>읽다가 걸린 문장은 <a href=\"/ask/\">해설기</a>에 넣어 봅니다.</li>\n  </ol>\n</section>\n\n<section aria-labelledby=\"practice-h\">\n  <h2 id=\"practice-h\">책 장면으로 연습하기</h2>\n  <p>영어 원서의 실제 장면으로 만든 문제입니다. 책은 계속 늘어납니다.</p>\n  <div class=\"links\"><a class=\"link-card\" href=\"/practice/titanic/\"><span class=\"t\"><i>Tonight on the Titanic</i></span><span class=\"s\">Magic Tree House #17 · 매직트리하우스 17권 · 1912년 타이타닉에 내린 잭과 애니가 3등실 남매를 구명보트로 데려가는 이야기</span><span class=\"s\">연습할 표제어: have, get, be, go, come</span></a></div>\n</section>\n\n<section aria-labelledby=\"tool-h\">\n  <h2 id=\"tool-h\">내 문장으로 해 보기</h2>\n  <p>읽다가 걸린 영어 문장이나, 영어로 하고 싶은 한국어 문장을 넣어 보십시오. 같은 감각 사전으로 풀어 드립니다.</p>\n  <div class=\"actions\"><a class=\"btn\" href=\"/ask/\">영어 감각 해설기 열기</a></div>\n</section>\n\n<section aria-labelledby=\"next-h\">\n  <h2 id=\"next-h\">앞으로 다룰 것</h2>\n  <ol class=\"steps\">\n    <li><b>기본동사 14개</b>: 지금 하고 있습니다.</li>\n    <li><b>섞어 풀기</b>: on, out, up, over 같은 불변화사와 to, at, of, as를 동사와 섞어 풉니다.</li>\n    <li><b>더 많은 책</b>: 다른 원서의 장면으로 연습을 넓힙니다.</li>\n    <li><b>어순</b>: 아는 것은 앞에, 새것은 뒤에. 동사 자리에 오면 동사로 들리는 영어의 감각을 따로 다룹니다.</li>\n  </ol>\n</section>"
       }
     ]
   },
@@ -501,7 +501,7 @@
     "parts": [
       {
         "kind": "html",
-        "html": "<header class=\"hero\">\n  <span class=\"eyebrow\">책 장면 연습</span>\n  <h1>책 장면으로 연습하기</h1>\n  <p class=\"lede\">표제어 페이지에서 그림을 잡았다면, 영어 원서의 실제 장면에서 연습합니다. 장면마다 같은 말을 세 가지로 쓴 문장을 견주고, 가장 영어다운 것을 고른 뒤 직접 써 봅니다.</p>\n</header>\n\n<section aria-labelledby=\"books-h\">\n  <h2 id=\"books-h\">책</h2>\n  <div class=\"links\"><a class=\"link-card\" href=\"/practice/titanic/\"><span class=\"t\"><i>Tonight on the Titanic</i></span><span class=\"s\">Magic Tree House #17 · 매직트리하우스 17권 · 1912년 타이타닉에 내린 잭과 애니가 3등실 남매를 구명보트로 데려가는 이야기</span><span class=\"s\">연습할 표제어: have, get, be, go</span></a></div>\n  <p class=\"note\">책은 계속 늘어납니다.</p>\n</section>"
+        "html": "<header class=\"hero\">\n  <span class=\"eyebrow\">책 장면 연습</span>\n  <h1>책 장면으로 연습하기</h1>\n  <p class=\"lede\">표제어 페이지에서 그림을 잡았다면, 영어 원서의 실제 장면에서 연습합니다. 장면마다 같은 말을 세 가지로 쓴 문장을 견주고, 가장 영어다운 것을 고른 뒤 직접 써 봅니다.</p>\n</header>\n\n<section aria-labelledby=\"books-h\">\n  <h2 id=\"books-h\">책</h2>\n  <div class=\"links\"><a class=\"link-card\" href=\"/practice/titanic/\"><span class=\"t\"><i>Tonight on the Titanic</i></span><span class=\"s\">Magic Tree House #17 · 매직트리하우스 17권 · 1912년 타이타닉에 내린 잭과 애니가 3등실 남매를 구명보트로 데려가는 이야기</span><span class=\"s\">연습할 표제어: have, get, be, go, come</span></a></div>\n  <p class=\"note\">책은 계속 늘어납니다.</p>\n</section>"
       }
     ]
   },
@@ -1152,6 +1152,240 @@
     ]
   },
   {
+    "path": "practice/titanic/come/",
+    "title": "매직트리하우스 17권 타이타닉 장면으로 연습하는 영어 come | 영어 감각",
+    "description": "매직트리하우스(Magic Tree House) 17권 Tonight on the Titanic의 장면으로 영어 come의 감각을 연습하는 원서 읽기 문제. 고르기 다섯 문제, 빈칸 넣기 두 문제.",
+    "menu": "practice",
+    "crumbs": [
+      [
+        "연습",
+        "/practice/"
+      ],
+      [
+        "Tonight on the Titanic",
+        "/practice/titanic/"
+      ],
+      [
+        "come",
+        null
+      ]
+    ],
+    "og": "titanic",
+    "parts": [
+      {
+        "kind": "html",
+        "html": "<header class=\"hero\">\n  <span class=\"eyebrow\">책 장면 연습 · Magic Tree House #17</span>\n  <h1>매직트리하우스 타이타닉 장면으로 연습하는 come</h1>\n  <p class=\"lede\">매직트리하우스 17권 <i>Tonight on the Titanic</i>을 영어 원서로 읽고 있다면, 책 속 장면 그대로 come의 감각을 연습할 수 있습니다. 장면마다 세 문장 가운데 영어 화자가 실제로 쓰는 문장을 고르고, 마지막에는 책의 빈칸을 직접 채워 봅니다.</p>\n  <div class=\"sense\">\n    <p><b>come의 그림</b>대상이 기준점(말하는 사람, 듣는 사람, 그들의 집, 있어야 할 상태)으로 다가와 닿는다. 자세한 설명은 <a href=\"/come/\">come의 감각</a>에 있습니다.</p>\n    <p><b>줄거리</b>장면이 낯설면 <a href=\"/practice/titanic/\">이 책의 줄거리</a>를 먼저 읽으십시오.</p>\n  </div>\n</header>"
+      },
+      {
+        "kind": "quiz",
+        "questions": [
+          {
+            "type": "choose",
+            "ch": 5,
+            "scene": "3등실 복도 끝에 물이 차오른다. 닫힌 문 안에 아이들이 있다. 애니가 문 밖에서 외친다.",
+            "who": "애니",
+            "ask": "'나와!'를 가장 영어답게 외친 것은?",
+            "opts": [
+              {
+                "t": "Exit the room!",
+                "k": "la",
+                "why": "exit는 '나가다'를 뜻하는 라틴어 계열의 격식 있는 말이라, 물이 차오르는 복도에서 외치는 말로는 딱딱합니다. 문 밖의 애니 쪽으로 다가오는 움직임도 보이지 않습니다."
+              },
+              {
+                "t": "Go out!",
+                "k": "ko",
+                "why": "'나와'를 go로 옮겼습니다. 이 장면의 기준점은 문 밖에 선 애니이고, 안에 있는 아이들이 애니 쪽으로 다가옵니다. 그래서 영어 화자는 come을 고릅니다."
+              },
+              {
+                "t": "Come out!",
+                "k": "en",
+                "why": "애니가 서 있는 문 밖이 기준점입니다. 안에 있는 사람이 애니 쪽으로 다가오고, out이 안에서 밖으로 나오는 길을 싣습니다."
+              }
+            ],
+            "feel": "애니가 서 있는 문 밖이 기준점입니다. 안에 있는 사람이 애니 쪽으로 다가옵니다."
+          },
+          {
+            "type": "choose",
+            "ch": 5,
+            "scene": "윌리엄이 문을 열고 테디를 끌어안는다. 방 안에서 누나 루시가 부른다.",
+            "who": "루시",
+            "ask": "'윌리엄, 침대로 돌아와'를 가장 영어답게 말한 것은?",
+            "opts": [
+              {
+                "t": "Come back to bed, William.",
+                "k": "en",
+                "why": "루시가 있는 방 안이 기준점입니다. come은 윌리엄이 루시 쪽으로 다가오는 움직임이고, back이 떠났던 곳, 곧 제자리인 침대로를 더합니다."
+              },
+              {
+                "t": "Return to bed, William.",
+                "k": "la",
+                "why": "return은 '돌아가다'를 뜻하는 라틴어 계열의 말입니다. 틀린 말은 아니지만 안내 방송처럼 들려, 누나가 동생을 부르는 말로는 딱딱합니다."
+              },
+              {
+                "t": "Come again to the bed, William.",
+                "k": "ko",
+                "why": "'다시 와'를 come again으로 옮겼습니다. again은 같은 행동을 한 번 더 한다는 말이라, Come again tomorrow는 내일 또 오라는 말이 됩니다. 떠났던 곳으로 돌아온다는 뜻은 back이 싣습니다. 불가능한 문장은 아니지만 이 장면에는 덜 맞습니다. 감각 사전 밖의 설명입니다."
+              }
+            ],
+            "feel": "루시가 있는 방 안이 기준점입니다. 윌리엄이 제자리인 침대로 돌아옵니다."
+          },
+          {
+            "type": "choose",
+            "ch": 7,
+            "scene": "루시와 윌리엄이 구명보트에 오른다. 애니가 작별 인사를 하자 루시가 놀란다.",
+            "who": "루시",
+            "ask": "'너희는 안 와?'를 가장 영어답게 물은 것은?",
+            "opts": [
+              {
+                "t": "You're not going?",
+                "k": "ko",
+                "why": "'안 가?'를 그대로 옮겼습니다. going도 쓸 수 있지만 보트를 타고 떠나는 행동에 초점이 가고, 루시 쪽으로 합류할 줄 알았다는 그림은 빠집니다. 감각 사전 밖의 설명입니다."
+              },
+              {
+                "t": "You're not coming?",
+                "k": "en",
+                "why": "루시가 탈 보트가 기준점입니다. 잭과 애니가 그쪽으로 다가오지 않느냐고 묻는 말입니다."
+              },
+              {
+                "t": "You're not accompanying us?",
+                "k": "la",
+                "why": "accompany는 곁에서 동행하는 격식 있는 말입니다. 놀란 아이가 하는 말로는 무겁고, 기준점으로 다가오는 그림도 없습니다."
+              }
+            ],
+            "feel": "루시가 탈 보트가 기준점입니다. 잭과 애니가 그쪽으로 다가오지 않느냐고 묻습니다."
+          },
+          {
+            "type": "choose",
+            "ch": 5,
+            "scene": "잭이 루시에게 배가 가라앉고 있다고 알린다. 부모님께 알리고 함께 가자고 한다.",
+            "who": "잭",
+            "ask": "'부모님께 우리랑 같이 가자고 말해'를 가장 영어답게 말한 것은?",
+            "opts": [
+              {
+                "t": "Get your parents and tell them to come with us.",
+                "k": "en",
+                "why": "잭과 애니가 기준점입니다. come with us는 부모님이 이 사람들 쪽으로 와서 합류하라는 말입니다."
+              },
+              {
+                "t": "Get your parents and tell them to accompany us.",
+                "k": "la",
+                "why": "accompany는 곁에서 동행하는 격식 있는 말이라, 급한 장면에서 아이가 쓰면 무겁습니다. 기준점으로 다가오는 그림도 없습니다."
+              },
+              {
+                "t": "Get your parents and tell them to go together with us.",
+                "k": "ko",
+                "why": "'함께 가자'를 따라 옮겼습니다. go with는 같이 간다는 일상의 말이지만, 잭과 애니 쪽으로 와서 합류하라는 그림은 come with가 싣습니다. 감각 사전 밖의 설명입니다."
+              }
+            ],
+            "feel": "잭과 애니가 기준점입니다. 부모님이 이 사람들 쪽으로 다가와 함께합니다."
+          },
+          {
+            "type": "choose",
+            "ch": 9,
+            "scene": "배가 기울어 잭과 애니가 난간을 붙들고 있다. 잃어버린 테디가 짖는 소리가 멀리서 들린다.",
+            "who": "서술자",
+            "ask": "짖는 소리를 말한 문장으로 가장 영어다운 것은?",
+            "opts": [
+              {
+                "t": "The barking originated from a distance.",
+                "k": "la",
+                "why": "originate는 '비롯하다'를 뜻하는 격식 있는 말입니다. 소리가 어디서 비롯됐는지 출처를 설명할 뿐이라 다가오는 움직임이 없습니다."
+              },
+              {
+                "t": "The barking came from a distance.",
+                "k": "en",
+                "why": "잭과 애니가 기준점입니다. 움직이는 것은 짖는 소리이고, 멀리서 이 사람들 쪽으로 다가옵니다. 눈에 보이지 않는 소리도 대상이 됩니다."
+              },
+              {
+                "t": "The barking was heard from far.",
+                "k": "ko",
+                "why": "'멀리서 들렸다'를 그대로 옮겼습니다. 소리가 기준점으로 다가오는 움직임이 보이지 않습니다."
+              }
+            ],
+            "feel": "잭과 애니가 기준점입니다. 짖는 소리가 멀리서 이 사람들 쪽으로 다가옵니다."
+          },
+          {
+            "type": "fill",
+            "ch": 1,
+            "who": "잭",
+            "ask": "빈칸에 들어갈 잭의 말을 come으로 써 보십시오.",
+            "before": [
+              "Sitting in the corner was a small dog. He looked like a terrier puppy. He had scruffy light brown fur. He stared sadly at Jack and Annie.",
+              "\"Oh,\" whispered Annie."
+            ],
+            "blank": "\"(          )\" said Jack.",
+            "after": [
+              "Annie patted the dog's head. He wagged his tail.",
+              "\"He's so cute,\" she said. \"He looks like a little teddy bear. Hi, Teddy.\""
+            ],
+            "hintKo": "너 어디서 왔니?",
+            "hintVerb": "come",
+            "hintWords": [
+              "where",
+              "did"
+            ],
+            "answer": "Where did you come from?",
+            "book": "Where did you come from?",
+            "feel": "잭이 있는 나무 집이 기준점입니다. 강아지가 어딘가에서 이쪽으로 다가왔습니다. from이 어디서 출발했는지를 싣습니다.",
+            "fixes": [
+              [
+                "Where you come from? → Where did you come from?",
+                "come from의 짝과 감각은 처음부터 맞았고, did가 하나 빠졌습니다. 강아지는 이미 와 있으니 지난 일이라 did를 씁니다. did는 이 장면에 어디서 출발해 왔는지를, Where do you come from?은 출신을 묻습니다. 의문문에 do·did를 쓰는 까닭은 감각 사전에 없습니다."
+              ]
+            ]
+          },
+          {
+            "type": "fill",
+            "ch": 4,
+            "who": "흰 제복의 승무원",
+            "ask": "빈칸에 들어갈 승무원의 말을 come으로 써 보십시오.",
+            "before": [
+              "\"That means the front of the ship is already sinking,\" he said.",
+              "Just then a man in a white uniform came down the hall. He knocked on the doors."
+            ],
+            "blank": "\"(          ),\" he called.",
+            "after": [
+              "Men and women stumbled out of their rooms. They wore elegant robes made of shiny cloth and velvet.",
+              "\"What's going on?\" a woman asked."
+            ],
+            "hintKo": "당장 구명조끼를 입고 보트 갑판으로 올라오세요",
+            "hintVerb": "come",
+            "hintWords": [
+              "put on",
+              "life belts",
+              "at once",
+              "the boat deck"
+            ],
+            "answer": "Put on your life belts at once and come up to the boat deck.",
+            "book": "Put on your life belts at once and come up to the boat deck.",
+            "feel": "승무원이 사람들을 이끌어 모을 보트 갑판이 기준점입니다. 사람들이 말하는 사람 쪽으로 다가옵니다. up이 위로 가는 길을, to가 끝점을 싣습니다.",
+            "fixes": [
+              [
+                "come out → come up",
+                "보트 갑판은 복도보다 위에 있습니다. come out은 안에서 밖으로 나오는 길을, come up은 올라오는 길을 싣습니다."
+              ],
+              [
+                "to the board → to the deck",
+                "배의 갑판은 board가 아니라 deck입니다."
+              ],
+              [
+                "now → at once",
+                "at once는 한 시점을 짚어 미루지 않고 곧바로 하라는 말입니다. all at once는 한꺼번에입니다. 감각 사전의 at(한 점을 짚는다)에서 끌어낸 작업자의 해석이라 사전 밖의 설명입니다."
+              ]
+            ]
+          }
+        ],
+        "book": "17권",
+        "done": "come의 그림은 하나입니다. 기준점으로 다가오는 움직임.",
+        "description": "책의 장면에서 그대로 가져온 문제입니다. 고르기 다섯 문제, 빈칸 넣기 두 문제입니다. 책을 읽은 뒤에 풀면 장면이 바로 떠오릅니다."
+      },
+      {
+        "kind": "html",
+        "html": "<section aria-labelledby=\"back-h\"><h2 id=\"back-h\">더 읽기</h2><div class=\"links\"><a class=\"link-card\" href=\"/come/\"><span class=\"t\">come의 감각</span><span class=\"s\">쓰임 그림, 헷갈리는 곳, 실제로 걸렸던 곳</span></a><a class=\"link-card\" href=\"/practice/titanic/\"><span class=\"t\">이 책으로 연습할 다른 표제어</span><span class=\"s\">Tonight on the Titanic</span></a></div></section>\n\n<p class=\"note\">장면과 짧은 인용은 Mary Pope Osborne, <i>Magic Tree House #17: Tonight on the Titanic</i>에서 빌렸습니다. 문제의 오답 선택지와 설명은 학습용으로 새로 썼습니다.</p>"
+      }
+    ]
+  },
+  {
     "path": "practice/titanic/have/",
     "title": "매직트리하우스 17권 타이타닉 장면으로 연습하는 영어 have | 영어 감각",
     "description": "매직트리하우스(Magic Tree House) 17권 Tonight on the Titanic의 장면으로 영어 have의 감각을 연습하는 원서 읽기 문제. 고르기 다섯 문제, 쓰기 두 문제.",
@@ -1360,7 +1594,7 @@
   {
     "path": "practice/titanic/",
     "title": "매직트리하우스 17권 타이타닉 줄거리와 영어 감각 연습 | 영어 감각",
-    "description": "매직트리하우스(Magic Tree House) 17권 Tonight on the Titanic의 줄거리와, 책 속 장면으로 have, get, be, go의 감각을 연습하는 영어 원서 읽기 문제.",
+    "description": "매직트리하우스(Magic Tree House) 17권 Tonight on the Titanic의 줄거리와, 책 속 장면으로 have, get, be, go, come의 감각을 연습하는 영어 원서 읽기 문제.",
     "menu": "practice",
     "crumbs": [
       [
@@ -1376,7 +1610,7 @@
     "parts": [
       {
         "kind": "html",
-        "html": "<header class=\"hero\">\n  <span class=\"eyebrow\">책 장면 연습 · Magic Tree House #17</span>\n  <h1>매직트리하우스 17권 Tonight on the Titanic</h1>\n  <p class=\"lede\">매직트리하우스(Magic Tree House) 17권 <i>Tonight on the Titanic</i>의 줄거리와, 이 책의 장면으로 영어 기본동사의 감각을 연습하는 문제를 모았습니다.</p>\n</header>\n\n  <section aria-labelledby=\"book-h\">\n    <h2 id=\"book-h\">어떤 이야기인가</h2>\n    <p class=\"muted\">Mary Pope Osborne, 1999년. 10장, 약 70쪽. 국내 번역판은 『마법의 시간여행』 시리즈입니다.</p>\n    <p>비 오는 밤, 잭과 애니 남매는 나무 집에서 마법에 걸린 강아지 테디를 만나 1912년의 타이타닉에 내립니다. 배가 빙산에 부딪혀 가라앉는 동안 둘은 3등실의 빨간 머리 남매 윌리엄과 루시를 구명보트로 데려가고, 루시에게서 아버지의 은시계를 선물로 받습니다. 테디의 짖는 소리를 따라 나무 집을 찾아 집으로 돌아오니, 시계는 배가 가라앉은 2시 20분에 멈춰 있습니다.</p>\n  </section>\n\n<section aria-labelledby=\"units-h\">\n  <h2 id=\"units-h\">이 책으로 연습하는 표제어</h2>\n  <div class=\"links\"><a class=\"link-card\" href=\"/practice/titanic/have/\"><span class=\"t\"><span class=\"en\">have</span> 연습</span><span class=\"s\">영역 안에 놓여 있다 · 고르기 5 · 쓰기 2</span></a><a class=\"link-card\" href=\"/practice/titanic/get/\"><span class=\"t\"><span class=\"en\">get</span> 연습</span><span class=\"s\">경계를 넘어 들어선다 · 고르기 5 · 쓰기 2</span></a><a class=\"link-card\" href=\"/practice/titanic/be/\"><span class=\"t\"><span class=\"en\">be</span> 연습</span><span class=\"s\">장소·모습에 놓여 있다 · 고르기 6 · 쓰기 3</span></a><a class=\"link-card\" href=\"/practice/titanic/go/\"><span class=\"t\"><span class=\"en\">go</span> 연습</span><span class=\"s\">기준점에서 멀어진다 · 고르기 5 · 쓰기 2</span></a></div>\n</section>\n\n<p class=\"note\">장면과 짧은 인용은 Mary Pope Osborne, <i>Magic Tree House #17: Tonight on the Titanic</i>에서 빌렸습니다.</p>"
+        "html": "<header class=\"hero\">\n  <span class=\"eyebrow\">책 장면 연습 · Magic Tree House #17</span>\n  <h1>매직트리하우스 17권 Tonight on the Titanic</h1>\n  <p class=\"lede\">매직트리하우스(Magic Tree House) 17권 <i>Tonight on the Titanic</i>의 줄거리와, 이 책의 장면으로 영어 기본동사의 감각을 연습하는 문제를 모았습니다.</p>\n</header>\n\n  <section aria-labelledby=\"book-h\">\n    <h2 id=\"book-h\">어떤 이야기인가</h2>\n    <p class=\"muted\">Mary Pope Osborne, 1999년. 10장, 약 70쪽. 국내 번역판은 『마법의 시간여행』 시리즈입니다.</p>\n    <p>비 오는 밤, 잭과 애니 남매는 나무 집에서 마법에 걸린 강아지 테디를 만나 1912년의 타이타닉에 내립니다. 배가 빙산에 부딪혀 가라앉는 동안 둘은 3등실의 빨간 머리 남매 윌리엄과 루시를 구명보트로 데려가고, 루시에게서 아버지의 은시계를 선물로 받습니다. 테디의 짖는 소리를 따라 나무 집을 찾아 집으로 돌아오니, 시계는 배가 가라앉은 2시 20분에 멈춰 있습니다.</p>\n  </section>\n\n<section aria-labelledby=\"units-h\">\n  <h2 id=\"units-h\">이 책으로 연습하는 표제어</h2>\n  <div class=\"links\"><a class=\"link-card\" href=\"/practice/titanic/have/\"><span class=\"t\"><span class=\"en\">have</span> 연습</span><span class=\"s\">영역 안에 놓여 있다 · 고르기 5 · 쓰기 2</span></a><a class=\"link-card\" href=\"/practice/titanic/get/\"><span class=\"t\"><span class=\"en\">get</span> 연습</span><span class=\"s\">경계를 넘어 들어선다 · 고르기 5 · 쓰기 2</span></a><a class=\"link-card\" href=\"/practice/titanic/be/\"><span class=\"t\"><span class=\"en\">be</span> 연습</span><span class=\"s\">장소·모습에 놓여 있다 · 고르기 6 · 쓰기 3</span></a><a class=\"link-card\" href=\"/practice/titanic/go/\"><span class=\"t\"><span class=\"en\">go</span> 연습</span><span class=\"s\">기준점에서 멀어진다 · 고르기 5 · 쓰기 2</span></a><a class=\"link-card\" href=\"/practice/titanic/come/\"><span class=\"t\"><span class=\"en\">come</span> 연습</span><span class=\"s\">기준점으로 다가온다 · 고르기 5 · 빈칸 넣기 2</span></a></div>\n</section>\n\n<p class=\"note\">장면과 짧은 인용은 Mary Pope Osborne, <i>Magic Tree House #17: Tonight on the Titanic</i>에서 빌렸습니다.</p>"
       }
     ]
   }

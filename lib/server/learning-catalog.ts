@@ -13,8 +13,10 @@ const slots: Record<LearningQuestionId, number> = {
 function questions(): QuizQuestion[] {
   const page = (pageData as ContentPage[]).find((page) => page.path === source.path.slice(1));
   const quiz = page?.parts.find((part): part is QuizContent => part.kind === "quiz");
-  if (!quiz || quiz.questions.length !== LEARNING_QUESTION_IDS.length) throw new Error("learning_catalog_unavailable");
-  return quiz.questions;
+  /** 이 서버 정본은 고르기·쓰기 문항만 안다. 빈칸 넣기(`fill`)는 정적 연습 페이지의 것이라 걸러 낸다. */
+  const list = quiz?.questions.filter((question): question is QuizQuestion => question.type !== "fill");
+  if (!list || list.length !== LEARNING_QUESTION_IDS.length) throw new Error("learning_catalog_unavailable");
+  return list;
 }
 
 async function contentVersion(): Promise<string> {
