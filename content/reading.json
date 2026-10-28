@@ -388,7 +388,7 @@
           ],
           "answer": 0,
           "explain": "out은 안에 감춰져 있던 것이 밖으로 드러나는 그림이다. find는 찾는 것, find out은 몰랐던 사실이 드러나 알게 되는 것이다.",
-          "basis": "감각 사전 out"
+          "basis": "감각 사전 out(이미지: 안에 있던 것이 밖으로 드러남). find out은 사전 줄에 없고 보강 1(입자 감각)의 out 줄에 있음"
         },
         {
           "id": "bus-dog-sense-2",
