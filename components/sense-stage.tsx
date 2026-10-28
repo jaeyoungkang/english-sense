@@ -4,12 +4,12 @@ import { useState } from "react";
 import type { StageContent, Zone } from "@/lib/content";
 
 function SceneDiagram({ word, zone }: { word: StageContent["word"]; zone: Zone }) {
-  const title = { have: "주어와 그 영역 안에 놓인 것", get: "경계 밖에서 안으로 들어서는 그림", be: "주어가 장소나 모습 안에 놓여 있는 그림", go: "기준점에서 바깥으로 멀어지는 그림" }[word];
+  const title = { have: "주어와 그 영역 안에 놓인 것", get: "경계 밖에서 안으로 들어서는 그림", be: "주어가 장소나 모습 안에 놓여 있는 그림", go: "기준점에서 바깥으로 멀어지는 그림", come: "대상이 기준점으로 다가와 닿는 그림" }[word];
   const arrowId = `sense-arrow-${word}`;
   const itemWidth = Math.max(80, (zone.item?.length || 0) * 7.6 + 28);
   return <svg viewBox="0 0 260 220" role="img" aria-labelledby={`zone-svg-${word}`}>
     <title id={`zone-svg-${word}`}>{title}</title>
-    {(word === "get" || word === "go") && <defs><marker id={arrowId} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--accent)" /></marker></defs>}
+    {(word === "get" || word === "go" || word === "come") && <defs><marker id={arrowId} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--accent)" /></marker></defs>}
     {word === "have" && <>
       <circle cx="130" cy="110" r="98" fill="var(--zone)" stroke="var(--accent)" strokeWidth="2" strokeDasharray="6 6" />
       <circle cx="130" cy="110" r="26" fill="var(--accent)" />
@@ -37,6 +37,14 @@ function SceneDiagram({ word, zone }: { word: StageContent["word"]; zone: Zone }
       <text x="165" y="96" textAnchor="middle" fontFamily="Newsreader, Georgia, serif" fontSize="15" fill="var(--fg)">{zone.b}</text>
       <circle cx="222" cy="110" r="24" fill="var(--accent)" />
       <text x="222" y="115" textAnchor="middle" fontFamily="Newsreader, Georgia, serif" fontSize="13" fontWeight="600" fill="var(--on-accent)">{zone.a}</text>
+    </>}
+    {word === "come" && <>
+      <circle cx="182" cy="110" r="58" fill="var(--zone)" stroke="var(--accent)" strokeWidth="2" strokeDasharray="6 6" />
+      <text x="182" y="114" textAnchor="middle" fontFamily="IBM Plex Sans KR, sans-serif" fontSize="12" fill="var(--muted)">기준점</text>
+      <circle cx="38" cy="110" r="24" fill="var(--accent)" />
+      <text x="38" y="115" textAnchor="middle" fontFamily="Newsreader, Georgia, serif" fontSize="13" fontWeight="600" fill="var(--on-accent)">{zone.a}</text>
+      <path d="M70 110 L116 110" stroke="var(--accent)" strokeWidth="2.5" markerEnd={`url(#${arrowId})`} />
+      <text x="93" y="96" textAnchor="middle" fontFamily="Newsreader, Georgia, serif" fontSize="15" fill="var(--fg)">{zone.b}</text>
     </>}
     <text x="130" y={word === "have" ? 196 : word === "get" ? 208 : 204} textAnchor="middle" fontFamily="IBM Plex Sans KR, sans-serif" fontSize="12" fill="var(--muted)">{word === "have" ? "영역: " : ""}{zone.k}</text>
   </svg>;

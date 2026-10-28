@@ -1,5 +1,5 @@
 /** Public reference shapes only; answer-bearing page data stays on the server. */
-export const REFERENCE_IDS = ["have", "get", "be", "go"] as const;
+export const REFERENCE_IDS = ["have", "get", "be", "go", "come"] as const;
 export type ReferenceId = typeof REFERENCE_IDS[number];
 
 export type ReferenceZone = {

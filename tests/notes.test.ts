@@ -180,6 +180,6 @@ test("the blocks of every lesson are public text only", async () => {
   assert.equal(have.kind, "scene");
   if (have.kind === "scene") {
     const blocks = haveBlocks(have, REFERENCE_IDS.map(id => ({ id, title: id, sense: "s", description: `${id} description`, href: "/", zones: [{ k: "z", ex: "ex", ctx: "ctx", lis: "lis" }] })));
-    assert.ok(Object.keys(blocks).every(key => /^(have-titanic-have-\d-(ask|scene|source|o\d+)|mat-(have|get|be|go)-(desc|z0-(ex|ctx|lis)))$/.test(key)), Object.keys(blocks).join());
+    assert.ok(Object.keys(blocks).every(key => /^(have-titanic-have-\d-(ask|scene|source|o\d+)|mat-(have|get|be|go|come)-(desc|z0-(ex|ctx|lis)))$/.test(key)), Object.keys(blocks).join());
   }
 });

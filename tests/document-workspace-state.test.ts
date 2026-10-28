@@ -62,6 +62,15 @@ test("document references are real, unique additions and reopening keeps their o
   assert.equal(addReference(first, "unknown" as ReferenceId, null), first);
 });
 
+test("come is a valid fifth reference and its outline anchor is restored", () => {
+  let state = checked(createDocumentState());
+  state = checked(addReference(state, "come", "card-two"));
+  assert.deepEqual(state.references.map(item => item.id), ["have", "come"]);
+  assert.equal(state.expandedReferenceId, "come");
+  assert.equal(state.readingAnchor, referenceOutlineId("come"));
+  assert.deepEqual(restoreDocumentState(JSON.stringify(state)), { state, recovered: false });
+});
+
 test("the full document inserts references at their existing addition anchors without projecting learning events", async () => {
   const artifacts = await documentArtifacts();
   let state = checked(createDocumentState());
@@ -144,11 +153,11 @@ test("untrusted UI records recover from malformed, duplicate, unknown and imposs
     { ...initial, references: [{ id: "get", afterEventId: null }] },
     { ...initial, references: [{ id: "have", afterEventId: "card-one" }] },
     { ...initial, references: [...initial.references, { id: "have", afterEventId: null }] },
-    { ...initial, references: [...initial.references, { id: "come", afterEventId: null }] },
+    { ...initial, references: [...initial.references, { id: "put", afterEventId: null }] },
     { ...initial, references: [...initial.references, { id: "get", afterEventId: [] }] },
     { ...initial, expandedReferenceId: "get" }, { ...initial, expandedReferenceId: {} },
     { ...initial, readingAnchor: [] }, { ...initial, readingAnchor: "javascript:alert(1)" },
-    { ...initial, readingAnchor: "reference-come" },
+    { ...initial, readingAnchor: "reference-put" },
     { ...initial, references: [...initial.references, { id: "get", afterEventId: "" }] },
     { ...initial, references: [...initial.references, { id: "get", afterEventId: "event with spaces" }] },
     { ...initial, extra: "unrecognized UI field" },

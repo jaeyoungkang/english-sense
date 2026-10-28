@@ -9,7 +9,7 @@ export type ProduceQuestion = QuestionBase & { type: "produce"; answer: string; 
 export type QuizQuestion = ChooseQuestion | ProduceQuestion;
 export type QuizContent = { kind: "quiz"; questions: QuizQuestion[]; book: string; done: string; description: string };
 export type Zone = { k: string; ex: string; ctx: string; lis: string; subj?: string; item?: string; a?: string; b?: string };
-export type StageContent = { kind: "stage"; word: "have" | "get" | "be" | "go"; zones: Zone[]; heading: string; description: string };
+export type StageContent = { kind: "stage"; word: "have" | "get" | "be" | "go" | "come"; zones: Zone[]; heading: string; description: string };
 export type StudyPart =
   | { kind: "reading-list" } | { kind: "reading"; id: string }
   | { kind: "prep-list" } | { kind: "prep-work"; id: string } | { kind: "prep-unit"; id: string; unit: number };

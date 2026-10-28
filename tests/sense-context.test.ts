@@ -224,8 +224,8 @@ test("have requests are byte-identical to before this change", async () => {
     await handleLearningChat(post({ lessonId: ARTIFACT_LESSON_ID, questionId: id, contentVersion: target.contentVersion, artifactId: "a-1", ...base, initialAttempt: attempt }), env, { fetch: fetcher });
   }
   assert.equal(bodies.length, 8);
-  // 이 변경 전(main 545e205)에 같은 입력으로 얻은 본문 8개의 SHA-256
-  assert.equal(createHash("sha256").update(bodies.join("\n")).digest("hex"), "ab01b90a30a89aa713e9c12ff83534845ed2f0b7aedbb2159a5f4bcb0b47446e");
+  // 이 변경 전(main 545e205)에 같은 입력으로 얻은 본문 8개의 SHA-256. 감각 사전의 go·come 줄에 "대상이"를 더한 변경(study-and-learn 정본)만 반영해 다시 얻었다.
+  assert.equal(createHash("sha256").update(bodies.join("\n")).digest("hex"), "d79c4ec7b440879f4ea937f32f0c4357e66f83d454f91a6f9c1dd762d6810a68");
   for (const body of bodies) assert.ok(!body.includes("일반 영어 학습 도구가 아닙니다") && !body.includes("서버가 고른 표제어"));
 });
 

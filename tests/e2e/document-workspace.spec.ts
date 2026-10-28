@@ -70,13 +70,14 @@ test("the outline follows actual document additions while reopening references p
   const secondId = await second.getAttribute("data-artifact-id");
   await addReference(page, "be");
   await addReference(page, "go");
-  const expectedOrder = ["reference-have", `artifact-${firstId}`, "reference-get", `artifact-${secondId}`, "reference-be", "reference-go", ...initial.slice(3)];
+  await addReference(page, "come");
+  const expectedOrder = ["reference-have", `artifact-${firstId}`, "reference-get", `artifact-${secondId}`, "reference-be", "reference-go", "reference-come", ...initial.slice(3)];
   expect(await bodyOrder(page)).toEqual(expectedOrder);
   expect(await outlineHrefs(page)).toEqual(expectedOrder.map(id => `#doc-${id}`));
-  expect(await stack(page).locator("[data-reference-id]").evaluateAll(nodes => nodes.map(node => node.getAttribute("data-reference-id")))).toEqual(["go", "be", "get", "have"]);
-  await expect(stack(page).getByRole("button", { name: "go 감각 자료 접기", exact: true })).toHaveAttribute("aria-expanded", "true");
+  expect(await stack(page).locator("[data-reference-id]").evaluateAll(nodes => nodes.map(node => node.getAttribute("data-reference-id")))).toEqual(["come", "go", "be", "get", "have"]);
+  await expect(stack(page).getByRole("button", { name: "come 감각 자료 접기", exact: true })).toHaveAttribute("aria-expanded", "true");
   await expect(stack(page).locator('[data-reference-id] button[aria-expanded="true"]')).toHaveCount(1);
-  for (const [id, sense] of [["have", "내 영역 안에 놓여 있다"], ["get", "경계를 넘어 들어선다"], ["be", "이미 거기 놓여 있다"], ["go", "기준점에서 멀어진다"]]) await expect(reference(page, id)).toContainText(sense);
+  for (const [id, sense] of [["have", "내 영역 안에 놓여 있다"], ["get", "경계를 넘어 들어선다"], ["be", "이미 거기 놓여 있다"], ["go", "기준점에서 멀어진다"], ["come", "기준점으로 다가온다"]]) await expect(reference(page, id)).toContainText(sense);
   await expect.poll(async () => page.evaluate(key => localStorage.getItem(key), learningKey)).not.toBeNull();
   const learningBeforeReopen = await page.evaluate(key => localStorage.getItem(key), learningKey);
   await stack(page).getByRole("button", { name: "have 감각 자료 펼치기", exact: true }).click();

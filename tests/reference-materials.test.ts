@@ -5,10 +5,10 @@ import type { ContentPage, StageContent } from "../lib/content";
 import { REFERENCE_IDS } from "../lib/reference-materials";
 import { getPublicReferenceMaterials } from "../lib/server/reference-materials";
 
-test("four reference materials project only their published sense stage and heading text", () => {
+test("five reference materials project only their published sense stage and heading text", () => {
   const materials = getPublicReferenceMaterials();
   assert.deepEqual(materials.map((material) => material.id), REFERENCE_IDS);
-  assert.deepEqual(materials.map((material) => material.sense), ["내 영역 안에 놓여 있다", "경계를 넘어 들어선다", "이미 거기 놓여 있다", "기준점에서 멀어진다"]);
+  assert.deepEqual(materials.map((material) => material.sense), ["내 영역 안에 놓여 있다", "경계를 넘어 들어선다", "이미 거기 놓여 있다", "기준점에서 멀어진다", "기준점으로 다가온다"]);
   for (const material of materials) {
     const page = (pageData as ContentPage[]).find((page) => page.path === `${material.id}/`)!;
     const stage = page.parts.find((part): part is StageContent => part.kind === "stage")!;
