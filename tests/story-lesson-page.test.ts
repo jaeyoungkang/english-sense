@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getPublicLesson, getStoryLessonLinks } from "../lib/server/lesson-catalog";
-import { getStudyListing, getStudySource } from "../lib/server/study-source";
+import { getStudyListing, getStudySource, studyPages } from "../lib/server/study-source";
+import { getStoryAdjacentLinks, getStoryPublicGuide, STORY_PUBLIC_GUIDES } from "../lib/story-lesson";
 import { clockLabel, pairStories } from "../lib/study-content";
 
 const { reading } = getStudySource();
@@ -61,4 +62,35 @@ test("the reading clock label and the paired-story lookup work on summaries as w
   assert.equal(clockLabel(180), "3:00");
   const summaries = getStudyListing().reading;
   assert.deepEqual(pairStories(summaries, "wonder", 3).map(story => story.id), ["prep-wonder-3"]);
+});
+
+test("all 15 stories are published without draft tags, have Article SEO metadata and sense/story navigation, and leak no secrets", () => {
+  assert.equal(reading.stories.length, 15);
+  assert.ok(reading.stories.every(story => story.draft === false), "all 15 stories are published");
+  assert.equal(STORY_PUBLIC_GUIDES.length, 15);
+  const pages = studyPages();
+  const guidesWire = JSON.stringify(STORY_PUBLIC_GUIDES);
+  const pagesWire = JSON.stringify(pages);
+  for (const [index, story] of reading.stories.entries()) {
+    const guide = getStoryPublicGuide(story.id);
+    assert.ok(guide, `guide for ${story.id}`);
+    assert.ok(guide.subtitleKo.length > 0 && guide.synopsisKo.length > 0 && guide.focusKo.length > 0);
+    assert.ok(guide.senseGuides.length >= 1);
+    const nav = getStoryAdjacentLinks(story.id);
+    assert.equal(Boolean(nav.prev), index > 0);
+    assert.equal(Boolean(nav.next), index + 1 < reading.stories.length);
+    const page = pages.find(p => p.path === `reading/${story.id}/`);
+    assert.ok(page, `studyPage for ${story.id}`);
+    assert.equal(page.ld, "article");
+    assert.ok(!page.title.includes("초안"));
+    assert.ok(page.title.includes(guide.subtitleKo));
+    assert.ok(page.description.includes(guide.synopsisKo));
+    for (const question of story.questions) {
+      for (const value of [question.explain, ...(question.basis ? [question.basis] : [])]) {
+        const secret = secretOf(story, value);
+        assert.ok(!guidesWire.includes(secret), `${question.id} guide secret`);
+        assert.ok(!pagesWire.includes(secret), `${question.id} page secret`);
+      }
+    }
+  }
 });

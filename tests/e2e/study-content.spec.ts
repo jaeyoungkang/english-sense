@@ -33,14 +33,16 @@ test("reading and prep pages are public, linked from the menu, in the sitemap an
   for (const path of paths) expect(xml).toContain(`https://english.artificialmind.kr/${path}`);
 });
 
-test("a story is hidden until start, hidden again for the questions, and keeps its reading time", async ({ page }) => {
+test("a story shows the body and questions open from the start, and optional timed reading covers the body for recall", async ({ page }) => {
   const story = reading.stories.find(s => s.id === "green-umbrella")!;
   const firstLine = story.paragraphs[0].map(p => p.text).join("");
   await page.goto(`/reading/${story.id}/`);
-  await expect(page.locator(".lw-toolbar .draft-tag")).toHaveText("초안");
-  await expect(page.getByText(firstLine)).toHaveCount(0);
+  await expect(page.locator(".lw-toolbar .draft-tag")).toHaveCount(0);
+  await expect(page.getByText(firstLine)).toBeVisible();
+  await expect(page.getByRole("form", { name: "문제 1 첫 답" })).toBeVisible();
   await page.getByRole("button", { name: "읽기 시작" }).click();
   await expect(page.getByText(firstLine)).toBeVisible();
+  await expect(page.getByRole("form", { name: "문제 1 첫 답" })).toHaveCount(0);
   // The default level is 보통, so the first limit is its own, not the old fixed 3:00.
   await expect(page.getByRole("timer")).toContainText(new RegExp(`남은 시간 (${clockLabel(levelLimitSeconds(story.words, "normal"))}|${clockLabel(levelLimitSeconds(story.words, "normal") - 1)}|${clockLabel(levelLimitSeconds(story.words, "normal") - 2)})`));
   await page.getByRole("button", { name: "다 읽었습니다", exact: true }).click();
@@ -80,7 +82,7 @@ test("unit cards show their source line, and once opened by a first answer wheth
   await expect(first.locator(".cl-count")).toContainText("영화 전체");
 });
 
-test("the reading list separates paired stories by work and marks every story as a draft", async ({ page }) => {
+test("the reading list separates paired stories by work and shows no draft tags on published stories", async ({ page }) => {
   await page.goto("/reading/");
   const plain = page.locator("section", { has: page.locator("#stories-h") });
   await expect(plain.locator(".link-card")).toHaveCount(reading.stories.filter(s => !s.pair).length);
@@ -88,8 +90,8 @@ test("the reading list separates paired stories by work and marks every story as
   await expect(paired.locator(".link-card")).toHaveCount(reading.stories.filter(s => s.pair).length);
   await expect(paired.locator("#paired-wonder-h")).toContainText("Wonder");
   await expect(paired.getByRole("link", { name: /Leaving in June/ })).toContainText("유닛 3");
-  const drafts = reading.stories.filter(s => s.draft).length;
-  await expect(page.locator(".link-card .draft-tag")).toHaveCount(drafts);
+  expect(reading.stories.every(s => !s.draft)).toBe(true);
+  await expect(page.locator(".link-card .draft-tag")).toHaveCount(0);
 });
 
 test("a paired story links to its unit and links each expression question to its card", async ({ page }) => {

@@ -503,8 +503,10 @@ export function usePersonalRecordSync<S extends ScopedRecordState>({
 
 export function PersonalRecordSyncBar({
   sync,
+  hideConnectWhenBrowserTemp = false,
 }: {
   sync: ReturnType<typeof usePersonalRecordSync<any>>;
+  hideConnectWhenBrowserTemp?: boolean;
 }) {
   const {
     syncStatus,
@@ -519,6 +521,10 @@ export function PersonalRecordSyncBar({
     resolveConflict,
     retrySync,
   } = sync;
+
+  if (hideConnectWhenBrowserTemp && syncStatus === "browser-temp") {
+    return null;
+  }
 
   const unavailableMaterials = envelope
     ? Object.values(envelope.materialSnapshots).filter(snap => !snap.available)

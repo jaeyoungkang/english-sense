@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { StudyPart } from "@/lib/content";
+import { getStoryPublicGuide } from "@/lib/story-lesson";
 import { clockLabel, getWork, unitPath, workLabel } from "@/lib/study-content";
 import { levelLimitSeconds } from "@/lib/reading-level";
 import { StoryRecordNote } from "@/components/story-record-note";
@@ -16,8 +17,10 @@ function DraftTag() {
 }
 
 function StoryLink({ story, label }: { story: ReadingSummaryStory; label?: string }) {
+  const guide = getStoryPublicGuide(story.id);
   return <a className="link-card" href={`/reading/${story.id}/`}>
-    <span className="t"><span className="en">{story.title}</span> {story.draft && <DraftTag />}</span>
+    <span className="t"><span className="en">{story.title}</span>{guide ? ` · ${guide.subtitleKo}` : ""} {story.draft && <DraftTag />}</span>
+    {guide && <span className="s">{guide.synopsisKo}</span>}
     <span className="s">{label ? `${label} · ` : ""}{story.words}낱말 · 제한 시간 {clockLabel(levelLimitSeconds(story.words, "fast"))}~{clockLabel(levelLimitSeconds(story.words, "relaxed"))}(수준 선택) · 문제 {story.questionCount}개</span>
     <StoryRecordNote storyId={story.id} words={story.words} className="s lw-list-record" />
   </a>;
@@ -26,11 +29,12 @@ function StoryLink({ story, label }: { story: ReadingSummaryStory; label?: strin
 function ReadingList({ reading, prep }: StudyListing) {
   const plain = reading.stories.filter(story => !story.pair);
   const paired = prep.works.map(work => ({ work, stories: reading.stories.filter(story => story.pair?.work === work.id) })).filter(group => group.stories.length);
+  const hasDraft = reading.stories.some(story => story.draft);
   return <>
     <header className="hero">
-      <span className="eyebrow">시간 제한 읽기</span>
-      <h1>읽고, 가리고, 떠올리기</h1>
-      <p className="lede">쉬운 영어로 쓴 짧은 이야기를 정한 시간 안에 읽습니다. 다 읽으면 본문을 가리고 내용과 표현의 감각을 묻는 문제를 풉니다. 다시 읽기보다 읽은 것을 꺼내 볼 때 오래 남습니다.</p>
+      <span className="eyebrow">영어 읽기 · 감각 훈련</span>
+      <h1>이야기로 읽고, 퀴즈로 감각 익히기</h1>
+      <p className="lede">쉬운 영어로 쓴 짧은 이야기 15편을 읽고 내용과 표현 감각을 묻는 7개 문제를 풉니다. 바로 내려가 읽고 풀어도 되고, 시간을 재어 읽은 뒤 본문을 가리고 기억으로 풀어 볼 수도 있습니다.</p>
     </header>
     <section aria-labelledby="stories-h">
       <h2 id="stories-h">이야기</h2>
@@ -47,7 +51,7 @@ function ReadingList({ reading, prep }: StudyListing) {
         })}</div>
       </section>)}
     </section>}
-    <p className="note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>
+    {hasDraft && <p className="note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>}
   </>;
 }
 

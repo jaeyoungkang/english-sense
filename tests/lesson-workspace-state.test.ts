@@ -237,22 +237,29 @@ test("reading events are validated for shape, uniqueness and the deadline", asyn
   assert.equal(variant([{ ...start, extra: 1 }, end]), false);
 });
 
-test("a story question needs the reading to end first, both when answering and when asking", async () => {
+test("a story question is open before timed reading, locked while timed reading is in progress, and open again after it ends", async () => {
   const doc = await story();
   assert.ok(doc.kind === "story");
   let state = checked(registerLessonArtifact(createLessonState(doc), doc, doc.questions[0].questionId));
   const id = state.artifacts[0].artifactId;
+  assert.equal(lessonAccess(state, doc, state.artifacts[0]), "open");
+  const openAnswered = checked(submitLessonAttempt(state, doc, id, { kind: "choose", choice: 2 }));
+  assert.equal(openAnswered.events[0].kind, "initial");
+  state = checked(startReading(state, doc, T0));
   assert.equal(lessonAccess(state, doc, state.artifacts[0]), "reading-not-ended");
   assert.throws(() => submitLessonAttempt(state, doc, id, { kind: "choose", choice: 0 }), /읽기를 마친/);
   assert.throws(() => beginLessonTurn(state, doc, id, turn("t1")), /읽기를 마친/);
   assert.throws(() => buildLessonCheckRequest(state, doc, id, "r1"), /읽기를 마친/);
-  state = checked(endReading(startReading(state, doc, T0), T0 + 1));
+  state = checked(endReading(state, T0 + 1));
   assert.equal(lessonAccess(state, doc, state.artifacts[0]), "open");
   state = checked(submitLessonAttempt(state, doc, id, { kind: "choose", choice: 0 }));
-  // a record that answered before its reading ended is not one this app wrote
+  // a record that answered while its timed reading was still running (or ended before starting) is not one this app wrote
   const forged = copy(state);
   forged.events = [forged.events[1], forged.events[0], ...forged.events.slice(2)];
   assert.equal(isLessonState(forged), false);
+  const answeredDuringReading = copy(state);
+  answeredDuringReading.events = [state.events[0], state.events[2], state.events[1]];
+  assert.equal(isLessonState(answeredDuringReading), false);
 });
 
 test("a story answer is judged once, keeps its judgement, and cannot be revised", async () => {

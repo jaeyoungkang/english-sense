@@ -11,7 +11,7 @@ import { documentAnchorId } from "@/lib/document-workspace-state";
 import type { BrowserImportItem } from "@/lib/learner-record-contract";
 import { acceptLessonReply, beginLessonTurn, buildLessonCheckRequest, createLessonState, endReading, lessonAccess, projectLessonArtifacts, readingStatus, recoverLessonServerReply, registerLessonArtifact, retryLessonTurn, selectLessonQuestion, startReading, submitLessonAttempt, syncReading, type JudgementResponse, type LessonArtifact, type LessonEvent, type LessonReply, type LessonState } from "@/lib/lesson-workspace-state";
 import type { PublicStoryLesson, PublicStoryQuestion, StoryLessonLinks } from "@/lib/lesson-registry";
-import { optionLetter as letter, storyExplainRequestMessage } from "@/lib/story-lesson";
+import { getStoryAdjacentLinks, getStoryPublicGuide, optionLetter as letter, storyExplainRequestMessage } from "@/lib/story-lesson";
 import { defaultReadingLevel, levelLimitSeconds, readingFactsLine, readingLevels, type ReadingLevel } from "@/lib/reading-level";
 import { clockLabel } from "@/lib/study-content";
 import { Icon, WorkspaceFrame, useWorkspaceShell, type OutlineItem } from "@/components/workspace-shell";
@@ -87,11 +87,11 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   const answered = artifacts.filter(artifact => artifact.attempts.length > 0).length;
   const allAnswered = answered === artifacts.length;
   const oldVersion = record.artifacts.some(artifact => artifact.contentVersion !== lesson.contentVersion);
-  // Pen notes (a separate store, not the record). The story body shows only while it is being read or checked after all first answers;
-  // the questions show after the reading. A covered text is never shown through a note.
-  const bodyVisible = phase === "reading" || (phase === "ended" && peek && allAnswered);
+  // Pen notes (a separate store, not the record). The story body shows before a timed reading starts, while it is being read,
+  // or when checked after all first answers; while the body is covered (`ended && !(peek && allAnswered)`), body notes are redacted.
+  const bodyVisible = phase === "loading" || phase === "before" || phase === "reading" || (phase === "ended" && peek && allAnswered);
   const noteBlocks = useMemo(() => storyBlocks(lesson), [lesson]);
-  const notes = usePenNotes({ lessonId: lesson.lessonId, blocks: noteBlocks, hidden: block => (isStoryBodyKey(block) && !bodyVisible) || (isStoryQuestionKey(block) && phase !== "ended") });
+  const notes = usePenNotes({ lessonId: lesson.lessonId, blocks: noteBlocks, hidden: block => (isStoryBodyKey(block) && !bodyVisible) || (isStoryQuestionKey(block) && phase === "reading") });
   const sync = usePersonalRecordSync<LessonState>({
     scope: lesson.lessonId,
     contentVersion: lesson.contentVersion,
@@ -175,9 +175,12 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   const unresolved = !!selectedThread?.turns.some(turn => turn.status === "failed");
   const firstAttempt = selected?.attempts[0];
   const judging = selected ? judge.checks[selected.artifactId] : undefined;
+  const anyJudging = Object.values(judge.checks).some(item => item?.pending);
   const explained = !!selectedThread?.turns.some(turn => turn.origin === "submission");
   const inputMode = selected && selectedAccess === "open" ? "question" : "closed";
   const saveWarning = <SaveWarning store={store} />;
+  const guide = getStoryPublicGuide(lesson.lessonId);
+  const adjacent = getStoryAdjacentLinks(lesson.lessonId);
 
   const outline: OutlineItem[] = [{ id: "reading", title: lesson.title, label: "이야기 읽기" }, ...lesson.questions.map((question, index) => ({ id: `question-${question.questionId}`, title: `문제 ${index + 1}`, label: "이야기 아래 문제" }))];
   const optionTags = (artifact: LessonArtifact, index: number) => {
@@ -256,15 +259,17 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
       <p className="lw-reading-clock" aria-hidden="true">남은 시간 <b>{clockLabel(remainingSeconds ?? 0)}</b> · 지난 시간 <b>{clockLabel(elapsedSeconds ?? 0)}</b></p>
       {body}
       <div className="lw-reading-finish"><button type="button" className="lw-button" onClick={finishReading}>다 읽었으니 본문을 가립니다</button></div>
-    </> : <div className="lw-reading-gate">
-      <p>{lesson.words}낱말 · 문제 {lesson.questions.length}개</p>
-      <fieldset className="lw-level-choice"><legend>읽기 수준</legend>
-        {readingLevels.map(item => <label className="lw-level" key={item.id}><input type="radio" name="reading-level" value={item.id} checked={level === item.id} onChange={() => setLevel(item.id)} /><span><b>{item.label}</b> · 분당 {item.wordsPerMinute}낱말 · 제한 시간 <b>{clockLabel(levelLimitSeconds(lesson.words, item.id))}</b></span></label>)}
-      </fieldset>
-      <p className="lw-form-note">수준은 시간 제한만 바꿉니다. 시작을 누르면 시간이 흐릅니다. 다 읽으면 본문이 가려지니 한 번에 집중해서 읽으십시오. 문제는 읽기를 마치면 열립니다.</p>
-      <button type="button" className="lw-button lw-primary" onClick={startClock} disabled={!hydrated || now === null}>읽기 시작</button>
-      <CoveredNotes isBody={isStoryBodyKey} />
-    </div>}
+    </> : <>
+      <div className="lw-reading-gate">
+        <p>{lesson.words}낱말 · 문제 {lesson.questions.length}개</p>
+        <fieldset className="lw-level-choice"><legend>읽기 수준 (선택: 시간 재어 읽고 본문 가리기)</legend>
+          {readingLevels.map(item => <label className="lw-level" key={item.id}><input type="radio" name="reading-level" value={item.id} checked={level === item.id} onChange={() => setLevel(item.id)} /><span><b>{item.label}</b> · 분당 {item.wordsPerMinute}낱말 · 제한 시간 <b>{clockLabel(levelLimitSeconds(lesson.words, item.id))}</b></span></label>)}
+        </fieldset>
+        <p className="lw-form-note">바로 아래 본문을 읽고 문제를 풀어도 되고, 수준을 골라 ‘읽기 시작’을 눌러 시간을 재어 읽은 뒤 본문을 가리고 기억으로 풀어 볼 수도 있습니다.</p>
+        <button type="button" className="lw-button lw-primary" onClick={startClock} disabled={!hydrated || now === null || anyJudging || busy}>읽기 시작</button>
+      </div>
+      {body}
+    </>}
   </>;
 
   /** A question in the document: the choices are picked here and the first answer is left here; the judgement follows right below. */
@@ -296,12 +301,13 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
     <button type="button" onClick={finishReading}>다 읽었습니다</button>
   </span> : null;
 
-  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<><span className="lw-story-word" lang="en">{lesson.title}</span>{lesson.draft && <span className="tag draft-tag">초안</span>}</>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} serverConnected={sync.isServerConnected} syncBar={<PersonalRecordSyncBar sync={sync} />} outline={outline}
+  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<><span className="lw-story-word" lang="en">{lesson.title}</span>{lesson.draft && <span className="tag draft-tag">초안</span>}</>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} serverConnected={sync.isServerConnected} syncBar={<PersonalRecordSyncBar sync={sync} hideConnectWhenBrowserTemp />} outline={outline}
     currentList={{ href: "/reading/", title: "이야기 전체 목록" }}
     toolbarActions={<>{timerControls}<span className="lw-sr-only" role="status">{announce}</span><NotesButton /></>}
-    toc={{ title: <>이야기 수업<br />학습 문서</>, lead: "이야기를 읽고, 본문을 가린 뒤 이어지는 문제를 풉니다.", summary: <><p>이야기 1개 · 문제 {lesson.questions.length}개</p>{answered > 0 && <p>첫 답을 남긴 문제 {answered}개</p>}<NotesFact /><p>문서 전체의 목차입니다. 문제는 원하는 순서로 풉니다.</p></> }}
+    toc={{ title: <>이야기 수업<br />학습 문서</>, lead: "이야기를 읽고 이어지는 문제를 풀거나, 시간을 재어 읽고 본문을 가린 뒤 기억으로 풉니다.", summary: <><p>이야기 1개 · 문제 {lesson.questions.length}개</p>{answered > 0 && <p>첫 답을 남긴 문제 {answered}개</p>}<NotesFact /><p>문서 전체의 목차입니다. 문제는 원하는 순서로 풉니다.</p></> }}
     referenceStack={null}
-    documentHeading={<><p>ENGLISH SENSE · TIMED READING</p><h2>읽고, 가리고, 떠올리기</h2><div><span>{lesson.draft ? "초안 · " : ""}{lesson.words}낱말 · 문제 {lesson.questions.length}개</span></div>
+    documentHeading={<><p>ENGLISH SENSE · STORY &amp; QUIZ</p><h2>{guide ? guide.subtitleKo : "읽고, 가리고, 떠올리기"}</h2><div><span>{lesson.draft ? "초안 · " : ""}{lesson.words}낱말 · 문제 {lesson.questions.length}개</span></div>
+      {guide && <p className="lw-story-synopsis">{guide.synopsisKo} {guide.focusKo}</p>}
       {links.pair && <p className="pair-note"><i>{links.pair.workTitle}</i> 유닛 {links.pair.unit} 표현으로 쓴 이야기입니다. <a href={links.pair.href}>유닛 {links.pair.unit} 카드 보기</a></p>}
       {lesson.draft && <p className="lw-draft-note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>}
       {oldVersion && <OldVersionNotice confirmMessage="이 이야기의 이 브라우저 기록(읽기·첫 답·판정·대화·초안)을 지우고 새 판으로 시작합니다. 되돌릴 수 없습니다. 계속합니까?" note="지우면 되돌릴 수 없습니다. 이 이야기의 기록 하나만 지우고 다른 수업은 그대로입니다." onRestart={startOver}>이 이야기가 고쳐져 자료 판이 바뀌었습니다. 옛 판으로 남긴 답과 대화는 읽기만 하고, 그 문제의 판정과 AI 전송은 막았습니다.</OldVersionNotice>}</>}
@@ -316,7 +322,21 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
       </div>
       {artifacts.map(questionSection)}
     </>}
-    documentEnd={<p className="lw-document-end">{lesson.title} 학습 문서 끝 · 문제 {lesson.questions.length}개 가운데 원하는 문제를 골라 풀 수 있습니다.</p>}
+    documentEnd={<>
+      {(guide?.senseGuides.length || links.pair) && <section className="lw-story-transfer" aria-labelledby="story-transfer-h">
+        <h2 id="story-transfer-h">이 이야기로 훈련하는 영어 감각</h2>
+        {guide && <p className="lw-form-note">{guide.focusKo}</p>}
+        <div className="links">
+          {links.pair && <a className="link-card" href={links.pair.href}><span className="t"><i>{links.pair.workTitle}</i> 유닛 {links.pair.unit} 사전 훈련 카드</span><span className="s">이 이야기에 쓰인 표현을 뜻과 힌트로 떠올려 빈칸에 채워 봅니다</span></a>}
+          {guide?.senseGuides.map(sense => <a className="link-card" key={sense.word} href={sense.href}><span className="t">{sense.label}</span><span className="s">기본동사 {sense.word}의 중심 그림과 장면 예문을 읽습니다</span></a>)}
+        </div>
+      </section>}
+      <nav className="lw-story-pager" aria-label="다른 이야기">
+        {adjacent.prev ? <a href={adjacent.prev.href}><span className="k">이전 이야기</span><span lang="en">{adjacent.prev.title}</span> · {adjacent.prev.subtitleKo}</a> : <a href="/reading/"><span className="k">목록</span>이야기 전체 목록</a>}
+        {adjacent.next ? <a className="next" href={adjacent.next.href}><span className="k">다음 이야기</span><span lang="en">{adjacent.next.title}</span> · {adjacent.next.subtitleKo}</a> : <a className="next" href="/reading/"><span className="k">목록</span>이야기 전체 목록</a>}
+      </nav>
+      <p className="lw-document-end">{lesson.title} 학습 문서 끝 · 문제 {lesson.questions.length}개 가운데 원하는 문제를 골라 풀 수 있습니다.</p>
+    </>}
     chat={{
       context: <><p className="lw-reading-context">입력 대상: <strong>{selected ? targetLabel(selected) : "아직 없음"}</strong>{selected && <span> · 문서에서 마지막으로 다룬 문제</span>}</p>
         {selected ? selectedAccess === "reading-not-ended" ? <p className="lw-target-question" lang="ko">읽기를 마치면 문제가 열립니다.</p> : <p className="lw-target-question" lang={langOf((selected.question as PublicStoryQuestion).question)}>{(selected.question as PublicStoryQuestion).question}</p>

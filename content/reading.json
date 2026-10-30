@@ -5,7 +5,7 @@
       "title": "The Green Umbrella",
       "words": 438,
       "limitSeconds": 180,
-      "draft": true,
+      "draft": false,
       "paragraphs": [
         [
           {
@@ -210,7 +210,7 @@
       "title": "Ticket",
       "words": 441,
       "limitSeconds": 180,
-      "draft": true,
+      "draft": false,
       "paragraphs": [
         [
           {
@@ -411,7 +411,7 @@
       "title": "Two Hands",
       "words": 549,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 0
@@ -675,7 +675,7 @@
       "title": "Night School",
       "words": 544,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 1
@@ -919,7 +919,7 @@
       "title": "Rush Hour",
       "words": 523,
       "limitSeconds": 180,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 2
@@ -1208,7 +1208,7 @@
       "title": "Leaving in June",
       "words": 547,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 3
@@ -1482,7 +1482,7 @@
       "title": "Ask Dude",
       "words": 529,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 4
@@ -1763,7 +1763,7 @@
       "title": "Bubbles",
       "words": 546,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 5
@@ -2032,7 +2032,7 @@
       "title": "Step, Step, Slide",
       "words": 500,
       "limitSeconds": 180,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 6
@@ -2286,7 +2286,7 @@
       "title": "The Volunteer",
       "words": 544,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 7
@@ -2525,7 +2525,7 @@
       "title": "Known for Something",
       "words": 525,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "wonder",
         "unit": 8
@@ -2779,7 +2779,7 @@
       "title": "Tuesday Again",
       "words": 530,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "groundhog-day",
         "unit": 0
@@ -3068,7 +3068,7 @@
       "title": "The Missing Pie",
       "words": 550,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "zootopia",
         "unit": 0
@@ -3387,7 +3387,7 @@
       "title": "No Stars",
       "words": 550,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "inside-out",
         "unit": 0
@@ -3681,7 +3681,7 @@
       "title": "The Seven O'Clock E-mails",
       "words": 550,
       "limitSeconds": 240,
-      "draft": true,
+      "draft": false,
       "pair": {
         "work": "the-intern",
         "unit": 0

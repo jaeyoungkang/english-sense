@@ -63,24 +63,34 @@ async function hit(page: Page, locator: Locator, name: string) {
 }
 const noOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
-test("a story is a workspace of eight document sections, hides the body before the start and closes its questions and input", async ({ page }) => {
+test("a story is a workspace of eight document sections, opens the body and questions from the start, and allows immediate solving or optional timed reading", async ({ page, request }) => {
+  const firstHtml = await (await request.get(`/reading/${story.id}/`)).text();
+  expect(firstHtml).toContain(bodyText(story));
+  expect(firstHtml).toContain('"@type":"Article"');
+  expect(firstHtml).not.toContain("초안");
   await open(page);
   await expect(page.locator(".lw-document-toc nav li")).toHaveCount(8);
   await expect(page.locator("[data-outline-id]")).toHaveCount(8);
   await expect(page.locator(".lw-document-toc nav li").nth(1)).toContainText("문제 1");
   // Story and questions are one document: no question kind is shown in the outline or in a section.
   await expect(page.locator(".lw-document-toc nav")).not.toContainText(/내용|표현의 감각|표현/);
-  await expect(page.getByText(bodyText(story))).toHaveCount(0);
+  await expect(page.getByText(bodyText(story))).toBeVisible();
   await expect(page.locator(".lw-reading-gate")).toContainText(`${story.words}낱말 · 문제 ${story.questions.length}개`);
-  await expect(page.locator(".lw-toolbar .draft-tag")).toHaveText("초안");
-  await expect(page.locator(".lw-story-question .lw-locked-note")).toHaveCount(7);
-  await expect(page.locator(".lw-question-options")).toHaveCount(0);
-  await expect(page.locator("#lw-message")).toHaveCount(0);
-  await expect(page.getByRole("form")).toHaveCount(0);
+  await expect(page.locator(".lw-toolbar .draft-tag")).toHaveCount(0);
+  await expect(page.locator(".lw-personal-sync")).toHaveCount(0);
+  await expect(page.locator(".lw-session-status")).not.toContainText("계정·개인 서버 저장 없음");
+  await expect(page.locator(".lw-story-form")).toHaveCount(7);
+  await expect(page.locator(".lw-story-question .lw-locked-note")).toHaveCount(0);
   await expect(page.getByRole("timer")).toHaveCount(0);
+  await expect(page.locator(".lw-story-transfer a[href='/go/']")).toBeVisible();
+  await expect(page.locator(".lw-story-transfer a[href='/come/']")).toBeVisible();
+  await expect(page.locator(".lw-story-pager a.next")).toHaveAttribute("href", "/reading/bus-dog/");
   // Opening and reading the whole document makes no event, answer or request.
   const opened = await record(page) as Rec | null;
   expect(opened === null || (opened.events.length === 0 && opened.artifacts.length === 0)).toBe(true);
+  // A visitor can answer immediately in open mode without starting the timer.
+  await answer(page, story, 1, story.questions[0].answer);
+  await expect(judgement(page, 1)).toContainText("정본 답과 같습니다.");
 });
 
 test("reading shows the body and the remaining time in the toolbar, then ends once by the learner and hides the body", async ({ page }) => {
@@ -406,7 +416,7 @@ test("a paired story links its unit and its expression question links its card a
   await open(page, paired.id);
   await expect(page.locator(".pair-note")).toContainText("Wonder 유닛 3 표현으로 쓴 이야기");
   await expect(page.locator(".pair-note a")).toHaveAttribute("href", "/prep/wonder/unit-3/");
-  await expect(page.locator(".lw-toolbar .draft-tag")).toHaveText("초안");
+  await expect(page.locator(".lw-toolbar .draft-tag")).toHaveCount(0);
   await page.locator(".lw-toolbar").getByRole("button", { name: "수업 목록", exact: true }).click();
   const listWindow = page.getByRole("dialog", { name: "수업 목록" });
   await expect(listWindow.getByRole("link", { name: "이야기 전체 목록" })).toHaveAttribute("href", "/reading/");

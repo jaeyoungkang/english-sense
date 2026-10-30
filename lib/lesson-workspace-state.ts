@@ -157,10 +157,11 @@ export function endReading(state: LessonState, now: number): LessonState {
   return { ...state, events: [...state.events, { id: newId(), kind: "reading-end", readingId: start.readingId, endedAt, by: "user", elapsedMs: endedAt - start.startedAt }] };
 }
 
-/** Story questions open after the reading ends. An artifact from another content version is read-only. */
+/** Story questions are open by default; while a timed reading is in progress (`start && !end`), questions wait until the reading ends. An artifact from another content version is read-only. */
 export function lessonAccess(state: LessonState, lesson: LessonDocument, artifact: LessonArtifact): LessonAccess {
   if (artifact.contentVersion !== lesson.contentVersion) return "old-version";
-  return lesson.kind === "story" && !readingOf(state).end ? "reading-not-ended" : "open";
+  const { start, end } = readingOf(state);
+  return lesson.kind === "story" && start && !end ? "reading-not-ended" : "open";
 }
 function liveArtifact(state: LessonState, lesson: LessonDocument, artifactId: string): LessonArtifact {
   sameLesson(state, lesson);
@@ -378,8 +379,8 @@ export function isLessonState(value: unknown): value is LessonState {
       ended = true;
       return raw.by === "time" ? raw.endedAt === deadline : Number(raw.endedAt) >= start.startedAt && Number(raw.endedAt) <= deadline;
     }
-    // A story question opens only after its reading ended; a record that answers earlier is not one this app wrote.
-    if (entry.kind === "story" && gated.includes(raw.kind as string) && !ended) return false;
+    // While a timed reading is in progress (`start && !ended`), a story question waits until the reading ends.
+    if (entry.kind === "story" && gated.includes(raw.kind as string) && start && !ended) return false;
     const artifact = artifacts.find(item => item.artifactId === raw.artifactId), count = seen.get(raw.artifactId as string);
     if (!artifact || !count) return false;
     if (raw.kind === "initial" || raw.kind === "revision") {

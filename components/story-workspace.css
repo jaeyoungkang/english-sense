@@ -20,3 +20,20 @@
 .lw-app .lw-story-form .lw-form-actions{margin-top:14px}
 .lw-app .lw-story-question .lw-judgement{margin-top:18px}
 .lw-app .lw-story-question .lw-judgement-status{margin-top:14px}
+.lw-app .lw-story-synopsis{margin:6px 0 0;font-size:14px;line-height:1.8;color:#3f4b35}
+.lw-app .lw-reading-gate{margin-bottom:18px}
+.lw-app .lw-story-transfer{margin-top:16px}
+.lw-app .lw-story-transfer>h2{font-size:15px;margin:0 0 6px}
+.lw-app .lw-story-transfer>.lw-form-note{margin:0 0 10px}
+.lw-app .lw-story-transfer .links{display:grid;gap:10px}
+.lw-app .lw-story-transfer .link-card{display:grid;gap:2px;padding:12px 14px;border:1px solid #d6dccb;border-radius:8px;background:#fbfcf6;color:#30352f;text-decoration:none;font-size:13px;min-height:44px}
+.lw-app .lw-story-transfer .link-card .s{font-size:11px;color:#59644f}
+.lw-app .lw-story-transfer .link-card:hover{border-color:#637d4b}
+.lw-app .lw-story-pager{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0 4px}
+.lw-app .lw-story-pager a{display:grid;padding:10px 14px;min-height:44px;border:1px solid #d6dccb;border-radius:8px;background:#fff;color:#30352f;text-decoration:none;font-size:12px;overflow-wrap:anywhere}
+.lw-app .lw-story-pager .k{font-size:10px;color:#59644f}
+.lw-app .lw-story-pager .next{text-align:right;grid-column:2}
+@media(max-width:640px){
+  .lw-app .lw-story-pager{grid-template-columns:1fr}
+  .lw-app .lw-story-pager .next{grid-column:1;text-align:left}
+}

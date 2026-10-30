@@ -1,6 +1,7 @@
 import readingData from "../../content/reading.json";
 import prepData from "../../content/prep.json";
 import type { ContentPage } from "../content";
+import { getStoryPublicGuide } from "../story-lesson";
 import { cardCount, minutesLabel, namelessSummary, unitPath, workLabel } from "../study-content";
 import { lessonListing, type LessonListing } from "../lesson-list";
 import type { PrepData, PrepSummary, ReadingData, ReadingSummary } from "../study-content-types";
@@ -32,16 +33,23 @@ export const getLessonListing = (): LessonListing => lessonListing(getStudyListi
 export function studyPages(): ContentPage[] {
   const pages: ContentPage[] = [{
     path: "reading/", menu: "reading", crumbs: [["읽기", null]], type: "website",
-    title: "시간 제한 읽기: 짧은 영어 이야기를 읽고 바로 퀴즈 | 영어 감각",
-    description: "쉬운 영어로 쓴 짧은 이야기를 정한 시간 안에 읽고, 본문을 가린 채 내용과 표현 감각을 묻는 퀴즈를 풉니다.",
+    title: "영어 읽기 이야기 · 퀴즈로 훈련하는 영어 감각 | 영어 감각",
+    description: "쉬운 영어로 쓴 짧은 이야기 15편을 읽고 7개 퀴즈를 풀며 기본동사(have·get·be·go·come) 감각과 원서·영화 표현을 훈련합니다. 바로 읽고 풀거나 시간을 재어 읽고 기억으로 풀어 볼 수 있습니다.",
     parts: [{ kind: "reading-list" }],
   }];
-  for (const story of reading.stories) pages.push({
-    path: `reading/${story.id}/`, menu: "reading", crumbs: [["읽기", "/reading/"], [story.title, null]],
-    title: `${story.title}${story.draft ? " (초안)" : ""}: ${minutesLabel(story.limitSeconds)} 안에 읽고 퀴즈 풀기 | 영어 감각`,
-    description: `${story.words}낱말 영어 이야기 ${story.title}를 ${minutesLabel(story.limitSeconds)} 안에 읽고 ${story.questions.length}문제로 확인합니다.`,
-    parts: [{ kind: "reading", id: story.id }],
-  });
+  for (const story of reading.stories) {
+    const guide = getStoryPublicGuide(story.id);
+    pages.push({
+      path: `reading/${story.id}/`, menu: "reading", crumbs: [["읽기", "/reading/"], [story.title, null]], ld: "article",
+      title: guide
+        ? `${story.title} (${guide.subtitleKo}) · 영어 읽기·퀴즈 | 영어 감각`
+        : `${story.title}${story.draft ? " (초안)" : ""}: ${minutesLabel(story.limitSeconds)} 안에 읽고 퀴즈 풀기 | 영어 감각`,
+      description: guide
+        ? `${guide.synopsisKo} ${guide.focusKo} (${story.words}낱말 · 퀴즈 ${story.questions.length}문항)`
+        : `${story.words}낱말 영어 이야기 ${story.title}를 읽고 ${story.questions.length}문제로 확인합니다.`,
+      parts: [{ kind: "reading", id: story.id }],
+    });
+  }
   pages.push({
     path: "prep/", menu: "prep", crumbs: [["사전 훈련", null]], type: "website",
     title: "책·영화 사전 훈련: 자주 나오는 표현을 미리 익히기 | 영어 감각",
