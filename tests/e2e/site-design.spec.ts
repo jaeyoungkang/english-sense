@@ -145,12 +145,24 @@ test("a real unsubmitted lesson question survives window use and a round trip to
   expect(requests).toEqual([]);
 });
 
-test("home page serves as the story-reading main hub with bidirectional prep unit links and story-first navigation", async ({ page }) => {
+test("home page serves as the story-reading main hub with category filter tabs, story card grid, and bidirectional prep unit links", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".public-app")).toBeVisible();
   await expect(page.locator("main h1")).toHaveText("이야기로 읽고, 퀴즈로 익히는 영어 감각");
   await expect(page.locator('main a.link-card[href^="/reading/"]')).toHaveCount(15);
   await expect(page.locator('main a.story-pair-unit-link[href^="/prep/"]')).toHaveCount(13);
+
+  // Category filter tabs filter the story card grid and return to all 15 stories
+  const filterGroup = page.getByRole("group", { name: "작품별 이야기 분류" });
+  await expect(filterGroup).toBeVisible();
+  await filterGroup.getByRole("button", { name: /입문·감각 이야기/ }).click();
+  await expect(page.locator('main a.link-card[href^="/reading/"]')).toHaveCount(2);
+  await filterGroup.getByRole("button", { name: /Wonder 시리즈/ }).click();
+  await expect(page.locator('main a.link-card[href^="/reading/"]')).toHaveCount(9);
+  await filterGroup.getByRole("button", { name: /영화 명장면/ }).click();
+  await expect(page.locator('main a.link-card[href^="/reading/"]')).toHaveCount(4);
+  await filterGroup.getByRole("button", { name: /전체 이야기/ }).click();
+  await expect(page.locator('main a.link-card[href^="/reading/"]')).toHaveCount(15);
 
   // Follow a paired prep unit link from the story hub, then jump back to its paired story from the unit page
   await page.locator('main a.story-pair-unit-link[href="/prep/wonder/unit-0/"]').click();
@@ -199,12 +211,10 @@ test("the explainer keeps its request identity and input through a mocked wait, 
   await expect(submit).toBeEnabled();
 });
 
-test("unknown addresses like /readings/ return 404 inside the unified public-app shell with navigation links", async ({ page, isMobile }) => {
+test("unknown addresses like /readings/ return 404 inside the unified public-app shell with navigation links", async ({ page }) => {
   const response = await page.goto("/readings/");
   expect(response?.status()).toBe(404);
   await expect(page.locator(".public-app")).toBeVisible();
-  await expect(page.locator(".public-outline")).toHaveCount(1);
-  if (!isMobile) await expect(page.locator(".public-outline")).toBeVisible();
   await expect(page.locator("main h1")).toHaveText("페이지를 찾을 수 없습니다");
   const readingLink = page.locator("main a[href='/reading/']").first();
   await expect(readingLink).toBeVisible();

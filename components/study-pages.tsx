@@ -1,11 +1,9 @@
 import { notFound } from "next/navigation";
 import type { StudyPart } from "@/lib/content";
-import { getStoryPublicGuide } from "@/lib/story-lesson";
-import { clockLabel, getWork, unitPath, workLabel } from "@/lib/study-content";
-import { levelLimitSeconds } from "@/lib/reading-level";
-import { StoryRecordNote } from "@/components/story-record-note";
+import { getWork, unitPath, workLabel } from "@/lib/study-content";
 import { ContinueReadingBanner } from "@/components/continue-reading-banner";
-import type { PrepSummary, ReadingSummary, ReadingSummaryStory } from "@/lib/study-content-types";
+import { StoryCatalogSection } from "@/components/story-catalog-tabs";
+import type { PrepSummary, ReadingSummary } from "@/lib/study-content-types";
 
 /**
  * 홈(`/`)과 목록 페이지(`/reading/`, `/prep/`, `/prep/<작품>/`)가 그리는 공개 요약.
@@ -14,94 +12,66 @@ import type { PrepSummary, ReadingSummary, ReadingSummaryStory } from "@/lib/stu
  */
 type StudyListing = { reading: ReadingSummary; prep: PrepSummary };
 
-function DraftTag() {
-  return <span className="tag draft-tag">초안</span>;
-}
-
-function StoryLink({ story, label }: { story: ReadingSummaryStory; label?: string }) {
-  const guide = getStoryPublicGuide(story.id);
-  return <a className="link-card" href={`/reading/${story.id}/`}>
-    <span className="t"><span className="en">{story.title}</span>{guide ? ` · ${guide.subtitleKo}` : ""} {story.draft && <DraftTag />}</span>
-    {guide && <span className="s">{guide.synopsisKo}</span>}
-    <span className="s">{label ? `${label} · ` : ""}{story.words}낱말 · 제한 시간 {clockLabel(levelLimitSeconds(story.words, "fast"))}~{clockLabel(levelLimitSeconds(story.words, "relaxed"))}(수준 선택) · 문제 {story.questionCount}개</span>
-    <StoryRecordNote storyId={story.id} words={story.words} className="s lw-list-record" />
-  </a>;
-}
-
-function StorySections({ reading, prep }: StudyListing) {
-  const plain = reading.stories.filter(story => !story.pair);
-  const paired = prep.works.map(work => ({ work, stories: reading.stories.filter(story => story.pair?.work === work.id) })).filter(group => group.stories.length);
-  const hasDraft = reading.stories.some(story => story.draft);
-  return <>
-    <section aria-labelledby="stories-h">
-      <h2 id="stories-h">입문·감각 이야기</h2>
-      <p className="muted">일상 장면 속에서 <span className="en">have, get, be, go, come</span>의 기본 감각을 자연스럽게 만나는 짧은 이야기입니다. 처음 방문했다면 여기서부터 읽어 보십시오.</p>
-      <div className="links">{plain.map(story => <StoryLink key={story.id} story={story} />)}</div>
-    </section>
-    {paired.length > 0 && <section aria-labelledby="paired-h">
-      <h2 id="paired-h">사전 훈련 짝 이야기 · 작품별 표현 읽기</h2>
-      <p className="muted">영어 원서·영화의 사전 훈련 유닛에서 뽑은 핵심 표현으로 새로 쓴 이야기입니다. 이야기를 바로 읽고 문제를 풀어도 되고, 짝 사전 훈련 유닛에서 빈칸 카드로 표현을 먼저 떠올려 본 뒤 읽어도 좋습니다.</p>
-      {paired.map(({ work, stories }) => <section key={work.id} aria-labelledby={`paired-${work.id}-h`}>
-        <h3 id={`paired-${work.id}-h`}><i>{work.title}</i> <span className="note">{workLabel(work)}</span></h3>
-        <div className="links">{stories.map(story => {
-          const unit = work.units.find(u => u.n === story.pair!.unit);
-          const pairHref = unitPath(work, story.pair!.unit);
-          return <div className="story-card-group" key={story.id}>
-            <StoryLink story={story} label={`유닛 ${story.pair!.unit}${unit ? ` · ${unit.when}` : ""} 짝`} />
-            <div className="story-pair-bar">
-              <a className="story-pair-unit-link" href={pairHref}>짝 사전 훈련: <i>{work.title}</i> 유닛 {story.pair!.unit}{unit ? ` · ${unit.when}` : ""}{unit ? ` 표현 카드 ${unit.cardCount}개 연습` : ""} <span aria-hidden="true">→</span></a>
-            </div>
-          </div>;
-        })}</div>
-      </section>)}
-    </section>}
-    {hasDraft && <p className="note">초안은 강PD가 아직 읽고 통과시키지 않은 이야기입니다. 어색한 영어가 섞여 있을 수 있습니다.</p>}
-  </>;
-}
-
 function ReadingList({ reading, prep }: StudyListing) {
   return <>
-    <header className="hero">
-      <span className="eyebrow">영어 읽기 · 감각 훈련</span>
+    <header className="hero hero-editorial">
+      <span className="eyebrow">STORY READING · 영어 읽기 · 감각 훈련</span>
       <h1>이야기로 읽고, 퀴즈로 감각 익히기</h1>
       <p className="lede">쉬운 영어로 쓴 짧은 이야기 15편을 읽고 내용과 표현 감각을 묻는 7개 문제를 풉니다. 바로 내려가 읽고 풀어도 되고, 시간을 재어 읽은 뒤 본문을 가리고 기억으로 풀어 볼 수도 있습니다.</p>
     </header>
-    <StorySections reading={reading} prep={prep} />
+    <StoryCatalogSection reading={reading} prep={prep} />
   </>;
 }
 
 function ReadingHub({ reading, prep }: StudyListing) {
   const totalUnits = prep.works.reduce((sum, work) => sum + work.units.length, 0);
   return <>
-    <header className="hero">
-      <span className="eyebrow">영어 이야기 읽기 · 감각 훈련</span>
-      <h1>이야기로 읽고, 퀴즈로 익히는 영어 감각</h1>
-      <p className="lede">쉬운 영어로 쓴 짧은 이야기 {reading.stories.length}편을 읽고 내용·감각·표현을 묻는 7개 문제를 풉니다. 바로 내려가 읽고 풀거나 시간을 재어 읽은 뒤 기억으로 풀어 볼 수 있고, 막히는 문장은 옆 대화창과 해설기에서 바로 물어봅니다.</p>
-      <div className="actions">
-        <a className="btn" href="/reading/green-umbrella/">첫 이야기 읽기: The Green Umbrella</a>
-        <a className="btn ghost" href="#stories-h">전체 이야기 {reading.stories.length}편</a>
-        <a className="btn ghost" href="/prep/">사전 훈련 카드 {totalUnits}유닛</a>
+    <header className="hero hero-home">
+      <div className="hero-home-inner">
+        <span className="eyebrow">ENGLISH SENSE · 영어 이야기 읽기 &amp; 감각 훈련</span>
+        <h1>이야기로 읽고, 퀴즈로 익히는 영어 감각</h1>
+        <p className="lede">쉬운 영어로 쓴 짧은 이야기 {reading.stories.length}편을 읽고 내용·감각·표현을 묻는 7개 문제를 풉니다. 바로 내려가 읽고 풀거나 시간을 재어 읽은 뒤 기억으로 풀어 볼 수 있고, 막히는 문장은 AI 튜터와 해설기에서 바로 물어봅니다.</p>
+        <div className="actions">
+          <a className="btn" href="/reading/green-umbrella/">첫 이야기 읽기: The Green Umbrella <span aria-hidden="true">→</span></a>
+          <a className="btn ghost" href="#stories-h">전체 이야기 {reading.stories.length}편</a>
+          <a className="btn ghost" href="/prep/">사전 훈련 카드 {totalUnits}유닛</a>
+          <a className="btn ghost" href="/ask/">AI 문장 해설기</a>
+        </div>
       </div>
     </header>
 
     <ContinueReadingBanner stories={reading.stories} />
 
-    <StorySections reading={reading} prep={prep} />
+    <StoryCatalogSection reading={reading} prep={prep} />
 
-    <section aria-labelledby="prep-h">
-      <h2 id="prep-h">책·영화 사전 훈련 카드</h2>
-      <p>원서나 영화를 보다가 모르는 표현이 쌓여 멈추지 않도록, 작품에 자주 되풀이되는 표현의 뜻과 감각을 먼저 익히고 빈칸을 채워 보는 카드 수업입니다. 각 유닛은 위 짝 이야기와 1:1로 이어집니다.</p>
-      <div className="links">{prep.works.map(work =>
-        <a className="link-card" key={work.id} href={`/prep/${work.id}/`}>
+    <section className="showcase-section" aria-labelledby="prep-h">
+      <div className="section-head">
+        <div>
+          <span className="section-eyebrow">VOCABULARY &amp; IDIOM PREP</span>
+          <h2 id="prep-h">책·영화 사전 훈련 카드</h2>
+        </div>
+        <p className="muted">원서나 영화를 보다가 모르는 표현이 쌓여 멈추지 않도록, 작품에 자주 되풀이되는 표현의 뜻과 감각을 먼저 익히고 빈칸을 채워 보는 카드 수업입니다. 각 유닛은 위 짝 이야기와 1:1로 이어집니다.</p>
+      </div>
+      <div className="links work-card-grid">{prep.works.map(work =>
+        <a className="link-card work-card" key={work.id} href={`/prep/${work.id}/`}>
+          <span className="story-card-badges">
+            <span className="story-badge-cat">{workLabel(work)}</span>
+            <span className="story-badge-meta">유닛 {work.units.length}개 · 표현 {work.cardCount}개</span>
+          </span>
           <span className="t"><i>{work.title}</i> <span className="note">{workLabel(work)}</span></span>
           <span className="s">{work.creator ? `${work.creator} · ` : ""}{work.year} · 유닛 {work.units.length}개 · 표현 {work.cardCount}개</span>
         </a>)}
       </div>
     </section>
 
-    <section aria-labelledby="words">
-      <h2 id="words">이야기 속 기본동사 감각 원리</h2>
-      <p>이야기와 문제에서 가장 자주 만나는 기본동사를 뜻 목록으로 외우지 않고, 영어 화자에게 보이는 <b>그림 하나(이미지 · 뉘앙스 · 예시)</b>로 잡습니다.</p>
+    <section className="showcase-section" aria-labelledby="words">
+      <div className="section-head">
+        <div>
+          <span className="section-eyebrow">CORE VERB SENSES</span>
+          <h2 id="words">이야기 속 기본동사 감각 원리</h2>
+        </div>
+        <p className="muted">이야기와 문제에서 가장 자주 만나는 기본동사를 뜻 목록으로 외우지 않고, 영어 화자에게 보이는 <b>그림 하나(이미지 · 뉘앙스 · 예시)</b>로 잡습니다.</p>
+      </div>
       <div className="grp"><p className="gh"><span className="num">①</span> 있음과 들어섬</p><div className="vcs"><a className="vc" href="/have/"><span className="w en">have</span><span className="pic">영역 안에 놓여 있다</span><span className="st">읽기</span></a><a className="vc" href="/get/"><span className="w en">get</span><span className="pic">경계를 넘어 들어선다</span><span className="st">읽기</span></a><a className="vc" href="/be/"><span className="w en">be</span><span className="pic">장소·모습에 놓여 있다</span><span className="st">읽기</span></a></div></div>
       <div className="grp"><p className="gh"><span className="num">②</span> 멀어짐과 다가옴</p><div className="vcs"><a className="vc" href="/go/"><span className="w en">go</span><span className="pic">기준점에서 멀어진다</span><span className="st">읽기</span></a><a className="vc" href="/come/"><span className="w en">come</span><span className="pic">기준점으로 다가온다</span><span className="st">읽기</span></a></div></div>
       <div className="grp"><p className="gh"><span className="num">③</span> 놓기, 집기, 건네기</p><div className="vcs"><div className="vc"><span className="w en">put</span><span className="pic">손으로 옮겨 놓는다</span><span className="st">준비 중</span></div><div className="vc"><span className="w en">take</span><span className="pic">손을 뻗어 집어 든다</span><span className="st">준비 중</span></div><div className="vc"><span className="w en">give</span><span className="pic">상대의 손으로 넘긴다</span><span className="st">준비 중</span></div></div></div>
@@ -109,24 +79,42 @@ function ReadingHub({ reading, prep }: StudyListing) {
       <div className="grp"><p className="gh"><span className="num">⑤</span> 방식과 눈길과 만들기</p><div className="vcs"><div className="vc"><span className="w en">run</span><span className="pic">빨리 달린다</span><span className="st">준비 중</span></div><div className="vc"><span className="w en">look</span><span className="pic">눈길을 보낸다</span><span className="st">준비 중</span></div><div className="vc"><span className="w en">make</span><span className="pic">전에 없던 것을 만든다</span><span className="st">준비 중</span></div></div></div>
     </section>
 
-    <section aria-labelledby="practice-h">
-      <h2 id="practice-h">책 장면으로 연습하기</h2>
-      <p>영어 원서의 실제 장면에서 한국어식 직역·라틴어 계열 낱말·영어 화자의 문장을 견주며 기본동사의 감각을 연습합니다.</p>
-      <div className="links">
-        <a className="link-card" href="/practice/have/">
+    <section className="showcase-section" aria-labelledby="practice-h">
+      <div className="section-head">
+        <div>
+          <span className="section-eyebrow">SCENE PRACTICE</span>
+          <h2 id="practice-h">책 장면으로 연습하기</h2>
+        </div>
+        <p className="muted">영어 원서의 실제 장면에서 한국어식 직역·라틴어 계열 낱말·영어 화자의 문장을 견주며 기본동사의 감각을 연습합니다.</p>
+      </div>
+      <div className="links story-card-grid">
+        <a className="link-card work-card" href="/practice/have/">
+          <span className="story-card-badges">
+            <span className="story-badge-cat">AI 대화형 작업 공간</span>
+            <span className="story-badge-meta">7문항 · 실시간 피드백</span>
+          </span>
           <span className="t"><i>Tonight on the Titanic</i> · <span className="en">have</span> 장면 작업 공간 (AI 피드백·대화)</span>
           <span className="s">감각 자료 스택과 7개 장면 문제를 한 문서에 펼쳐 놓고 AI 피드백과 질문을 이어 가는 대화형 작업 공간</span>
         </a>
-        <a className="link-card" href="/practice/titanic/">
+        <a className="link-card work-card" href="/practice/titanic/">
+          <span className="story-card-badges">
+            <span className="story-badge-cat">기본동사 5종 퀴즈</span>
+            <span className="story-badge-meta">have · get · be · go · come</span>
+          </span>
           <span className="t"><i>Tonight on the Titanic</i> 장면 퀴즈 모음</span>
           <span className="s">Magic Tree House #17 · 매직트리하우스 17권 · 연습할 표제어: have, get, be, go, come</span>
         </a>
       </div>
     </section>
 
-    <section aria-labelledby="how-h">
-      <h2 id="how-h">이렇게 익힙니다</h2>
-      <ol className="steps">
+    <section className="showcase-section" aria-labelledby="how-h">
+      <div className="section-head">
+        <div>
+          <span className="section-eyebrow">HOW IT WORKS</span>
+          <h2 id="how-h">이렇게 익힙니다</h2>
+        </div>
+      </div>
+      <ol className="steps steps-grid">
         <li><b>이야기 읽기</b>에서 짧은 영어 이야기를 읽고(또는 시간 제한 읽기로 기억을 시험하고) 내용·감각·표현 7문제를 풉니다.</li>
         <li><b>짝 사전 훈련 카드</b>에서 작품에 자주 나오는 핵심 표현을 뜻과 힌트로 먼저 떠올려 빈칸을 채웁니다.</li>
         <li><b>기본동사 표제어와 책 장면 연습</b>에서 <span className="en">have, get, be, go, come</span>의 중심 그림을 잡고 원서 장면으로 확인합니다.</li>
@@ -134,10 +122,13 @@ function ReadingHub({ reading, prep }: StudyListing) {
       </ol>
     </section>
 
-    <section aria-labelledby="tool-h">
-      <h2 id="tool-h">내 문장으로 해 보기</h2>
-      <p>이야기나 원서를 읽다가 걸린 영어 문장, 또는 영어로 말하고 싶은 한국어 문장을 넣어 보십시오. 같은 감각 사전으로 풀어 드립니다.</p>
-      <div className="actions"><a className="btn" href="/ask/">영어 감각 해설기 열기</a></div>
+    <section className="explainer-cta-banner" aria-labelledby="tool-h">
+      <div>
+        <span className="section-eyebrow">AI SENTENCE EXPLAINER</span>
+        <h2 id="tool-h">내 문장으로 해 보기</h2>
+        <p>이야기나 원서를 읽다가 걸린 영어 문장, 또는 영어로 말하고 싶은 한국어 문장을 넣어 보십시오. 같은 감각 사전으로 풀어 드립니다.</p>
+      </div>
+      <div className="actions"><a className="btn" href="/ask/">영어 감각 해설기 열기 <span aria-hidden="true">→</span></a></div>
     </section>
   </>;
 }
@@ -145,15 +136,19 @@ function ReadingHub({ reading, prep }: StudyListing) {
 function PrepList({ prep }: Pick<StudyListing, "prep">) {
   const groups = [["book", "책"], ["movie", "영화"]] as const;
   return <>
-    <header className="hero">
-      <span className="eyebrow">사전 훈련</span>
+    <header className="hero hero-editorial">
+      <span className="eyebrow">VOCABULARY PREP · 사전 훈련</span>
       <h1>보기 전에 자주 나오는 표현부터</h1>
       <p className="lede">재미있는 원서나 영화도 모르는 표현이 쌓이면 중간에 놓기 쉽습니다. 그 작품에서 자주 되풀이되는 표현을 세어 고르고, 뜻과 감각을 먼저 익힌 뒤 작품 문장의 빈칸을 채웁니다.</p>
     </header>
-    {groups.map(([kind, label]) => <section key={kind} aria-labelledby={`${kind}-h`}>
+    {groups.map(([kind, label]) => <section className="showcase-section" key={kind} aria-labelledby={`${kind}-h`}>
       <h2 id={`${kind}-h`}>{label}</h2>
-      <div className="links">{prep.works.filter(work => work.kind === kind).map(work =>
-        <a className="link-card" key={work.id} href={`/prep/${work.id}/`}>
+      <div className="links work-card-grid">{prep.works.filter(work => work.kind === kind).map(work =>
+        <a className="link-card work-card" key={work.id} href={`/prep/${work.id}/`}>
+          <span className="story-card-badges">
+            <span className="story-badge-cat">{label}</span>
+            <span className="story-badge-meta">유닛 {work.units.length}개 · 표현 {work.cardCount}개</span>
+          </span>
           <span className="t"><i>{work.title}</i></span>
           <span className="s">{work.creator ? `${work.creator} · ` : ""}{work.year} · 유닛 {work.units.length}개 · 표현 {work.cardCount}개</span>
         </a>)}
@@ -167,25 +162,29 @@ function PrepWorkPage({ id, prep, reading }: StudyListing & { id: string }) {
   const work = getWork(prep, id);
   if (!work) notFound();
   return <>
-    <header className="hero">
+    <header className="hero hero-editorial">
       <span className="eyebrow">{workLabel(work)} 사전 훈련</span>
       <h1><i>{work.title}</i></h1>
       <p className="lede">{work.creator ? `${work.creator}, ` : ""}{work.year}. {work.kind === "book"
         ? `책 전체에 자주 나오는 표현은 읽기 전에, 한 부에 몰린 표현은 그 부를 읽기 전에 익힙니다.`
         : `영화 대사에 자주 나오는 표현을 보기 전에 익히고 영어 자막으로 봅니다.`}</p>
     </header>
-    {work.parts && <section aria-labelledby="parts-h">
+    {work.parts && <section className="showcase-section" aria-labelledby="parts-h">
       <h2 id="parts-h">부와 화자</h2>
       <div className="cmp"><table><thead><tr><th scope="col">부</th><th scope="col">화자</th><th scope="col">낱말</th></tr></thead>
         <tbody>{work.parts.map(part => <tr key={part.n}><td>{part.n}부</td><td>{part.narrator}</td><td>{part.words.toLocaleString("ko-KR")}</td></tr>)}</tbody></table></div>
       <p className="note">부마다 화자가 바뀝니다. 부별 유닛은 그 부를 읽기 바로 전에 합니다.</p>
     </section>}
-    <section aria-labelledby="units-h">
+    <section className="showcase-section" aria-labelledby="units-h">
       <h2 id="units-h">유닛</h2>
-      <div className="links">{work.units.map(unit => {
+      <div className="links story-card-grid">{work.units.map(unit => {
         const pairs = reading.stories.filter(story => story.pair?.work === work.id && story.pair?.unit === unit.n);
         return <div className="story-card-group" key={unit.n}>
-          <a className="link-card" href={unitPath(work, unit.n)}>
+          <a className="link-card story-card" href={unitPath(work, unit.n)}>
+            <span className="story-card-badges">
+              <span className="story-badge-cat">유닛 {unit.n}</span>
+              <span className="story-badge-meta">표현 카드 {unit.cardCount}개</span>
+            </span>
             <span className="t">유닛 {unit.n} · {unit.when}</span>
             <span className="s">{unit.summary}</span>
           </a>

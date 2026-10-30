@@ -26,6 +26,7 @@ function sampleProbe(selector: string): Probe | null {
  */
 export function useReadingHold(changeKey: string, enabled: boolean, selector: string = SECTIONS) {
   const probe = useRef<Probe | null>(null), lastKey = useRef(changeKey), armed = useRef(false);
+  if (armed.current && lastKey.current !== changeKey && typeof document !== "undefined") probe.current = sampleProbe(selector);
   useEffect(() => {
     const sample = () => { probe.current = sampleProbe(selector); };
     sample(); window.addEventListener("scroll", sample, { passive: true }); window.addEventListener("resize", sample);

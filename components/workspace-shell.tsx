@@ -41,9 +41,10 @@ export function useWorkspaceShell(options: WorkspaceShellOptions) {
   const [documentState, setDocumentState] = useState<DocumentWorkspaceState>(() => createDocumentState(documentMode));
   const [documentReady, setDocumentReady] = useState(false);
   const [documentNotice, setDocumentNotice] = useState("");
-  const [layoutState, setLayoutState] = useState<WorkspaceLayoutState>(createLayoutState);
+  const [layoutState, setLayoutState] = useState<WorkspaceLayoutState>(() => ({ ...createLayoutState(), outlineCollapsed: true }));
   const [layoutReady, setLayoutReady] = useState(false);
   const [layoutNotice, setLayoutNotice] = useState("");
+  const [chatOpen, setChatOpen] = useState(false);
   const [unseen, setUnseen] = useState(false);
   const outlineOpen = !layoutState.outlineCollapsed;
   const restoredChat = useRef(false), restoringChat = useRef(false);
@@ -65,7 +66,7 @@ export function useWorkspaceShell(options: WorkspaceShellOptions) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKeys.layout), restored = restoreLayoutState(raw);
-      const state = (raw === null || restored.recovered) && !window.matchMedia("(min-width:1100px)").matches ? { ...restored.state, outlineCollapsed: true } : restored.state;
+      const state = (raw === null || restored.recovered) ? { ...restored.state, outlineCollapsed: true } : restored.state;
       stickToEnd.current = state.chatAtEnd; setLayoutState(state);
       if (restored.recovered) setLayoutNotice("레이아웃 설정만 기본값으로 복구했습니다. 학습과 자료 기록은 유지합니다.");
     } catch { setLayoutNotice("레이아웃 설정을 읽지 못했습니다. 학습 기록과 별도로 기본 배치를 사용합니다."); }
@@ -89,13 +90,14 @@ export function useWorkspaceShell(options: WorkspaceShellOptions) {
   }, [documentReady, layoutReady, hydrated, documentState.readingAnchor]);
   useEffect(() => {
     if (!hydrated) return;
+    if (documentMode === "references" && lastEventId !== null) setChatOpen(true);
     if (lastEvent.current !== null && lastEventId !== lastEvent.current) { if (stickToEnd.current && chatScroll.current) chatScroll.current.scrollTo({ top: chatScroll.current.scrollHeight, behavior: "instant" }); else setUnseen(true); }
     lastEvent.current = lastEventId;
-  }, [lastEventId, hydrated]);
+  }, [lastEventId, hydrated, documentMode]);
   useEffect(() => { if (dialog && modal.current) { returnFocus.current = document.activeElement as HTMLElement; modal.current.showModal(); } }, [dialog]);
 
   function closeDialog() { modal.current?.close(); setDialog(null); requestAnimationFrame(() => returnFocus.current?.focus({ preventScroll: true })); }
-  function goToEnd() { stickToEnd.current = true; setUnseen(false); requestAnimationFrame(() => { const element = chatScroll.current; if (element) { element.scrollTo({ top: element.scrollHeight, behavior: "instant" }); setLayoutState(previous => ({ ...previous, chatAtEnd: true, chatScrollTop: Math.max(0, element.scrollHeight - element.clientHeight) })); } }); }
+  function goToEnd() { if (documentMode === "references") setChatOpen(true); stickToEnd.current = true; setUnseen(false); requestAnimationFrame(() => { const element = chatScroll.current; if (element) { element.scrollTo({ top: element.scrollHeight, behavior: "instant" }); setLayoutState(previous => ({ ...previous, chatAtEnd: true, chatScrollTop: Math.max(0, element.scrollHeight - element.clientHeight) })); } }); }
   function captureChatReading(element: HTMLDivElement) {
     if (restoringChat.current) return;
     const atEnd = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
@@ -104,6 +106,7 @@ export function useWorkspaceShell(options: WorkspaceShellOptions) {
   }
   function setOutlineOpen(open: boolean) { setLayoutState(previous => ({ ...previous, outlineCollapsed: !open })); }
   function moveToChat(input = false) {
+    setChatOpen(true);
     const heading = document.getElementById("lw-chat-heading"), field = document.querySelector<HTMLElement>(".lw-chat-pane .lw-attempt-form input, .lw-chat-pane .lw-attempt-form textarea, #lw-message");
     if (!window.matchMedia("(min-width:1100px)").matches) heading?.scrollIntoView({ block: "start", behavior: "instant" });
     (input ? field : heading)?.focus({ preventScroll: true });
@@ -133,7 +136,7 @@ export function useWorkspaceShell(options: WorkspaceShellOptions) {
     if (dialog) closeDialog();
     jumpToOutline(referenceOutlineId(id), id);
   }
-  return { restoreSettled, documentState, setDocumentState, documentNotice, layoutState, layoutReady, layoutNotice, outlineOpen, dialog, setDialog, unseen, contentScroll, chatScroll, modal, outlineTrigger, closeDialog, goToEnd, captureChatReading, moveToChat, moveToContent, openOutline, closeOutline, jumpToOutline, addMaterial };
+  return { restoreSettled, documentState, setDocumentState, documentNotice, layoutState, layoutReady, layoutNotice, outlineOpen, chatOpen, setChatOpen, dialog, setDialog, unseen, contentScroll, chatScroll, modal, outlineTrigger, closeDialog, goToEnd, captureChatReading, moveToChat, moveToContent, openOutline, closeOutline, jumpToOutline, addMaterial };
 }
 export type WorkspaceShell = ReturnType<typeof useWorkspaceShell>;
 
@@ -183,11 +186,11 @@ export function WorkspaceFrame({ shell, lessonWord, toolbarActions, currentList,
   }, []);
   return <main id="main-content" className="lw-app lw-document-app lw-split-app" data-layout-ready={shell.layoutReady} onKeyDown={event => { if (event.key === "Escape" && !event.nativeEvent.isComposing && outlineOpen && !shell.dialog && (document.getElementById("lw-document-outline")?.contains(event.target as Node) || shell.outlineTrigger.current?.contains(event.target as Node))) { event.preventDefault(); shell.closeOutline(); } }} onInputCapture={event => { if (event.target instanceof HTMLTextAreaElement) event.target.setCustomValidity(""); }}>
     <header className="lw-toolbar"><div className="lw-lesson-title"><button className="lw-outline-toggle" type="button" ref={shell.outlineTrigger} aria-label={outlineOpen ? "목차 접기" : "목차 펼치기"} aria-expanded={outlineOpen} aria-controls="lw-document-outline" onClick={() => { if (outlineOpen) shell.closeOutline(); else shell.openOutline(); }}><span aria-hidden="true">≡</span><span>목차</span></button><a className="lw-mark" href="/" aria-label="영어 감각 홈">e.</a><h1>영어 감각 <span aria-hidden="true">/</span> <span className="lw-word">{lessonWord}</span></h1></div><SiteNavigation currentList={currentList} /><div className="lw-toolbar-actions">{toolbarActions}</div></header>
-    <div className="lw-session-status"><span className={save.failed ? "lw-save-failed" : ""} role="status">{save.text}</span>{serverConnected && <span>개인 서버 보관 연결됨</span>}</div>
-    <div className="lw-document-shell" data-outline-collapsed={layoutState.outlineCollapsed}><aside className={`lw-document-toc ${outlineOpen ? "lw-toc-open" : ""}`} id="lw-document-outline"><div className="lw-toc-title"><span>STUDY DOCUMENT</span><h2>{toc.title}</h2><p>{toc.lead}</p><button type="button" className="lw-mobile-toc-close" onClick={shell.closeOutline}>목차 닫기 <Icon kind="close" size={17} /></button></div><nav aria-label="학습 문서 목차"><ol>{outline.map((item, index) => <li key={item.id}><a href={`#${documentAnchorId(item.id)}`} aria-current={documentState.readingAnchor === item.id ? "location" : undefined} onClick={event => { event.preventDefault(); shell.jumpToOutline(item.id, item.referenceId); }}><span className="lw-outline-number">{String(index + 1).padStart(2, "0")}</span><span><small>{item.label}</small>{item.title}</span></a></li>)}</ol></nav><div className="lw-toc-foot">{toc.summary}{shell.documentNotice && <p role="status">{shell.documentNotice}</p>}{shell.layoutNotice && <p role="status">{shell.layoutNotice}</p>}</div></aside><div className="lw-document-main lw-split-panels"><section className="lw-content-pane" role="region" aria-label="학습 콘텐츠"><header className="lw-pane-header"><h2 id="lw-content-heading" tabIndex={-1}>콘텐츠 문서</h2><button type="button" onClick={() => shell.moveToChat()}>대화로 이동 <span aria-hidden="true">→</span></button></header>    {referenceStack}
+    <div className="lw-document-shell" data-outline-collapsed={layoutState.outlineCollapsed}><aside className={`lw-document-toc ${outlineOpen ? "lw-toc-open" : ""}`} id="lw-document-outline"><div className="lw-toc-title"><span>STUDY DOCUMENT</span><h2>{toc.title}</h2><p>{toc.lead}</p><button type="button" className="lw-mobile-toc-close" onClick={shell.closeOutline}>목차 닫기 <Icon kind="close" size={17} /></button></div><nav aria-label="학습 문서 목차"><ol>{outline.map((item, index) => <li key={item.id}><a href={`#${documentAnchorId(item.id)}`} aria-current={documentState.readingAnchor === item.id ? "location" : undefined} onClick={event => { event.preventDefault(); shell.jumpToOutline(item.id, item.referenceId); }}><span className="lw-outline-number">{String(index + 1).padStart(2, "0")}</span><span><small>{item.label}</small>{item.title}</span></a></li>)}</ol></nav><div className="lw-toc-foot">{toc.summary}{shell.documentNotice && <p role="status">{shell.documentNotice}</p>}{shell.layoutNotice && <p role="status">{shell.layoutNotice}</p>}</div></aside><div className="lw-document-main lw-split-panels" data-chat-open={shell.chatOpen}><section className="lw-content-pane" role="region" aria-label="학습 콘텐츠"><header className="lw-pane-header"><h2 id="lw-content-heading" tabIndex={-1}>콘텐츠 문서</h2><button type="button" onClick={() => shell.moveToChat()}>대화로 이동 <span aria-hidden="true">→</span></button></header>    {referenceStack}
 <div className="lw-content-scroll" ref={shell.contentScroll} onScroll={trackDocumentReading}><div className="lw-document-flow"><header className="lw-document-heading">{documentHeading}</header>{documentBody}{documentEnd}{syncBar}
-</div></div></section><section className="lw-chat-pane" role="region" aria-label="AI 대화"><header className="lw-pane-header"><h2 id="lw-chat-heading" tabIndex={-1}>AI와 함께 풀기</h2><button type="button" onClick={shell.moveToContent}>콘텐츠로 이동 <span aria-hidden="true">↗</span></button></header><div className="lw-input-context">{chat.context}</div><div className="lw-conversation-area"><div className="lw-transcript" ref={shell.chatScroll} onScroll={event => shell.captureChatReading(event.currentTarget)}><div className="lw-transcript-inner"><div className="lw-timeline" role="log" aria-label="학습 수행과 대화" aria-live="polite" aria-relevant="additions text">{chat.timeline}</div>      {chat.input}
+</div></div></section><section className="lw-chat-pane" role="region" aria-label="AI 대화"><header className="lw-pane-header"><h2 id="lw-chat-heading" tabIndex={-1}>AI와 함께 풀기</h2><div className="lw-pane-header-actions">{shell.chatOpen && <button type="button" className="lw-chat-fold" onClick={() => shell.setChatOpen(false)}>패널 접기</button>}<button type="button" onClick={shell.moveToContent}>콘텐츠로 이동 <span aria-hidden="true">↗</span></button></div></header><div className="lw-input-context">{chat.context}</div><div className="lw-conversation-area"><div className="lw-transcript" ref={shell.chatScroll} onScroll={event => shell.captureChatReading(event.currentTarget)}><div className="lw-transcript-inner"><div className="lw-timeline" role="log" aria-label="학습 수행과 대화" aria-live="polite" aria-relevant="additions text">{chat.timeline}</div>      {chat.input}
 </div></div><div className="lw-composer-area">{shell.unseen && <button className="lw-new-response" type="button" onClick={shell.goToEnd}>새 응답 보기 <span aria-hidden="true">↓</span></button>}<div className="lw-composer-inner">{chat.composer}</div></div></div></section></div></div>
+    <div className="lw-session-status"><span className={save.failed ? "lw-save-failed" : ""} role="status">{save.text}</span>{serverConnected && <span>개인 서버 보관 연결됨</span>}</div>
     {dialog && <dialog className="lw-dialog" ref={shell.modal} onCancel={event => { event.preventDefault(); shell.closeDialog(); }} aria-labelledby="lw-dialog-heading"><header><h2 id="lw-dialog-heading">{dialog.heading}</h2><button type="button" onClick={shell.closeDialog} aria-label="닫고 학습으로 돌아가기"><Icon kind="close" /></button></header><div className="lw-dialog-scroll">{dialog.body}</div></dialog>}
     {layer}
   </main>;

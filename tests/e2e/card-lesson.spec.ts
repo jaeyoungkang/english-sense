@@ -454,8 +454,7 @@ for (const [width, height] of [[1440, 900], [1100, 800], [390, 844], [320, 640]]
     expect(cards.length).toBe(22);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const toggle = page.getByRole("button", { name: /^목차 (접기|펼치기)$/ });
-    if (width >= 1100) await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    else if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+    if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
     await expect(page.getByRole("navigation", { name: "학습 문서 목차" }).getByRole("link")).toHaveCount(22);
     const last = page.getByRole("navigation", { name: "학습 문서 목차" }).getByRole("link").last();
     await last.scrollIntoViewIfNeeded();
