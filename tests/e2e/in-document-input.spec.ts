@@ -47,7 +47,7 @@ test("the first answer is made in the quiz itself and the AI feedback appears in
     requests.push(body);
     await route.fulfill({ json: reply(body, longFeedback("피드백")) });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   // Seven first-answer forms are in the document; the conversation has only the question box.
   await expect(page.locator(".lw-content-pane form[aria-label$='번 퀴즈 첫 답']")).toHaveCount(7);
   await expect(chatPane(page).locator("form")).toHaveCount(1);
@@ -88,7 +88,7 @@ test("a writing quiz is answered in the quiz and a revision is made there, apart
     requests.push(body);
     await route.fulfill({ json: reply(body, requests.length === 1 ? "검사용 쓰기 피드백" : "검사용 수정 뒤 응답") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   const writing = firstForm(page, 6);
   await writing.getByLabel("내가 쓴 영어 문장").fill("Browser test: I have a small light.");
   await writing.getByRole("button", { name: "내 답 제출하고 대화하기", exact: true }).click();
@@ -129,7 +129,7 @@ test("the conversation has the question box and one line per event, with the ful
     requests.push(body);
     await route.fulfill({ json: reply(body, requests.length === 1 ? "검사용 첫 피드백" : longFeedback("질문 응답"), requests.length === 1 ? "ai" : "guidance") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await answerChoice(page, 1, 0, "검사용 1번 첫 답");
   await expect(page.getByText("검사용 첫 피드백", { exact: true })).toBeVisible();
   await ask(page, "검사용 문서에서 다시 볼 질문입니다. 이 질문은 한 줄에 다 들어가지 않을 만큼 길게 씁니다.");
@@ -164,7 +164,7 @@ test("a response that arrives while another quiz is being worked on stays with i
     await new Promise<void>(resolve => { release = resolve; });
     await route.fulfill({ json: reply(body, "검사용 2번에 붙어야 하는 응답") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await answerChoice(page, 2, 2, "검사용 2번 첫 답");
   await expect.poll(() => !!release).toBe(true);
   await expect(card(page, 2).locator(".lw-doc-turn-status")).toContainText("응답을 기다리고 있습니다");
@@ -201,7 +201,7 @@ test("a reply that lands in a quiz above the reader does not move what the reade
     await new Promise<void>(resolve => { release = resolve; });
     await route.fulfill({ json: reply(body, longFeedback("위쪽 응답")) });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   // Safari has no scroll anchoring: turn it off so the page keeps no help from the browser.
   await page.addStyleTag({ content: "html,body,main,.lw-document-flow,.lw-content-pane,.lw-content-scroll{overflow-anchor:none !important}" });
   await answerChoice(page, 1, 0, "검사용 1번 첫 답");
@@ -225,7 +225,7 @@ test("the answer, the revision, the questions and the replies come back after a 
     requests.push(body);
     await route.fulfill({ json: reply(body, `검사용 복원 응답 ${requests.length}`) });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await answerChoice(page, 4, 2, "검사용 복원 4번 첫 답");
   await expect(page.getByText("검사용 복원 응답 1", { exact: true })).toBeVisible();
   await card(page, 4).getByRole("button", { name: "답을 고쳐 쓰기", exact: true }).click();
@@ -256,7 +256,7 @@ test("the answer, the revision, the questions and the replies come back after a 
   let fixtureCalls = 0;
   await fixturePage.route("**/api/learn-chat/**", async route => { fixtureCalls++; await route.abort(); });
   await fixturePage.addInitScript(({ key, value }) => { if (!sessionStorage.getItem("seeded")) { localStorage.setItem(key, value); sessionStorage.setItem("seeded", "yes"); } }, { key: storageKey, value: raw! });
-  await fixturePage.goto("/");
+  await fixturePage.goto("/practice/have/");
   await expect(fixturePage.locator(".lw-session-status")).not.toContainText("임시 기록 확인 중");
   expect(await summary(fixturePage)).toEqual(original);
   expect(fixtureCalls).toBe(0);
@@ -285,7 +285,7 @@ test("the home's first HTML, RSC data and client scripts carry no private text o
   expect(leaked).toEqual([]);
   // The seven first-answer forms are in the first HTML as plain markup.
   expect((html.match(/<form\b[^>]*aria-label="[1-7]번 퀴즈 첫 답"/g) || []).length).toBe(7);
-  await page.goto("/");
+  await page.goto("/practice/have/");
 });
 
 test("the quizzes, the forms and the question box are reachable without horizontal overflow at four widths", async ({ page }) => {
@@ -293,7 +293,7 @@ test("the quizzes, the forms and the question box are reachable without horizont
     const body = route.request().postDataJSON() as ArtifactLearningChatRequest;
     await route.fulfill({ json: reply(body, longFeedback("너비 검사")) });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await answerChoice(page, 1, 1, "검사용 너비 첫 답");
   await expect(card(page, 1).locator(".lw-assistant-message > p")).toContainText("끝말-너비 검사");
   for (const size of [{ width: 1440, height: 960 }, { width: 1100, height: 720 }, { width: 390, height: 844 }, { width: 320, height: 430 }]) {

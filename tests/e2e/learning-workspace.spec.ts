@@ -65,7 +65,7 @@ test("seven quiz artifacts retain targets, first answers, drafts, event order an
     if (body.message === "검사용 1번 지연 질문") await new Promise<void>(resolve => { releaseReply = resolve; });
     await route.fulfill({ json: reply(body, `검사용 모의 응답 ${number}`) });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await expect(page.locator(".lw-reference").getByAltText(/사람을 둘러싼 연두색 타원/)).toBeVisible();
   await expect(page.locator(".lw-reference .lw-sense-image img")).toHaveAttribute("src", "/assets/learning/have-sense.webp");
   await expect(page.getByRole("log", { name: "학습 수행과 대화" })).toHaveCount(1);
@@ -172,7 +172,7 @@ test("retry and cancellation retain the original target and reject a cancelled l
     }
     await route.fulfill({ json: reply(body, "검사용 현재 응답") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await submitFirstAnswer(page);
   await expect(page.getByText("검사용 일시 실패", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "같은 질문 다시 보내기" }).click();
@@ -200,7 +200,7 @@ test("image failure, blocked storage and IME input preserve the quiz and compose
   await page.route("**/assets/learning/have-sense.webp", route => route.abort());
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await expect(page.locator(".lw-reference").getByText("이미지 대신 감각 도식을 표시합니다.", { exact: true })).toBeVisible();
   const fallback = page.locator(".lw-reference .lw-image-fallback").getByRole("img");
   await expect(fallback).toBeVisible();
@@ -244,7 +244,7 @@ for (const version of [1, 2] as const) {
       const body = route.request().postDataJSON() as ArtifactLearningChatRequest;
       await route.fulfill({ json: reply(body, "검사용 이관 후 응답") });
     });
-    await page.goto("/");
+    await page.goto("/practice/have/");
     await openQuestionInput(page);
     await expect(page.getByLabel("이 장면에 대해 질문하기")).toHaveValue("이전 질문 초안");
     await expect.poll(async () => page.evaluate(key => localStorage.getItem(key) !== null, storageKey)).toBe(true);
@@ -283,7 +283,7 @@ test("restoring a v3 pending response preserves its input without automatically 
       await route.fulfill({ json: reply(body, "검사용 첫 응답") });
     } else await route.abort();
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await submitFirstAnswer(page);
   await expect(page.getByText("검사용 첫 응답", { exact: true })).toBeVisible();
   // Save a valid in-flight state from the UI, then reload before any reply is accepted.
@@ -314,7 +314,7 @@ test("reading earlier chat stays put on a new reply and the narrow flow keeps ma
     if (calls === quick + 2) await new Promise<void>(resolve => { releaseReply = resolve; });
     await route.fulfill({ json: reply(body, calls === 1 ? "검사용 긴 모의 응답\n".repeat(70) : calls === quick + 2 ? "검사용 읽기 중 새 응답" : `검사용 짧은 응답 ${calls}`) });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await submitFirstAnswer(page);
   await expect(page.locator(".lw-assistant-message")).toHaveCount(1);
   // The conversation holds one line per request and reply, so it needs many of them to be longer than its pane.
@@ -369,7 +369,7 @@ test("an archive missing its required events is rejected without replacing the v
   await seed(page, key, raw);
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await expect(page.getByText("임시 저장 실패 · 화면에 유지 중", { exact: true })).toBeVisible();
   await firstForm(page, 1).getByLabel("그 문장을 고른 까닭").fill("새 입력으로 원본을 덮어쓰지 않는 검사");
   expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe(raw);
@@ -384,7 +384,7 @@ test("a changed material version shows its original snapshot and prevents AI tra
     const body = route.request().postDataJSON() as ArtifactLearningChatRequest;
     await route.fulfill({ json: reply(body, "검사용 자료 판 변경 전 응답") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await submitFirstAnswer(page);
   await expect(page.getByText("검사용 자료 판 변경 전 응답", { exact: true })).toBeVisible();
   await page.evaluate(key => {
@@ -421,7 +421,7 @@ test("a migrated legacy group keeps a retried reply only at its later reply even
   await seed(page, key, raw);
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await page.getByText("이전 수행과 대화 읽기", { exact: true }).click();
   const originalGroup = page.locator(".lw-legacy-nested");
   await expect(originalGroup).toContainText("검사용 이전 미응답 질문");

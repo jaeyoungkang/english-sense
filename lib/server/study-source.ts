@@ -72,5 +72,11 @@ export function studyPages(): ContentPage[] {
       parts: [{ kind: "prep-unit", id: work.id, unit: unit.n }],
     });
   }
+  pages.push({
+    path: "practice/have/", menu: "practice", crumbs: [["연습", "/practice/"], ["have 장면 작업 공간", null]], og: "titanic",
+    title: "have 장면 작업 공간: 타이타닉 장면과 AI 피드백으로 익히는 have | 영어 감각",
+    description: "매직트리하우스 17권 Tonight on the Titanic의 실제 장면 7문제를 풀고, 감각 자료 스택을 참고하며 AI 피드백과 질문으로 영어 have의 영역 감각을 익히는 작업 공간입니다.",
+    parts: [{ kind: "scene-workspace" }],
+  });
   return pages;
 }

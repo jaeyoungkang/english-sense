@@ -10,7 +10,7 @@ export function SiteHeader({ menu }: { menu?: string }) {
 
 export function SiteOutline({ menu }: { menu?: string }) {
   return <aside className="public-outline"><p className="public-outline-label">ENGLISH SENSE</p><h2>학습 찾아보기</h2>
-    <nav aria-label="학습 분류"><a href="/">학습 노트 <span aria-hidden="true">↗</span></a>{[["practice", "/practice/", "장면 연습"], ["reading", "/reading/", "이야기 읽기"], ["prep", "/prep/", "책·영화 사전 훈련"], ["ask", "/ask/", "문장 해설기"]].map(([key, href, title]) => <a href={href} key={key} aria-current={key === menu ? "page" : undefined}>{title}</a>)}</nav>
+    <nav aria-label="학습 분류"><a href="/" aria-current={!menu ? "page" : undefined}>이야기 읽기 홈</a>{[["reading", "/reading/", "이야기 전체 목록"], ["prep", "/prep/", "책·영화 사전 훈련"], ["practice", "/practice/", "기본동사 장면 연습"], ["ask", "/ask/", "문장 해설기"]].map(([key, href, title]) => <a href={href} key={key} aria-current={key === menu ? "page" : undefined}>{title}</a>)}<a href="/practice/have/">have 장면 작업 공간 <span aria-hidden="true">↗</span></a></nav>
   </aside>;
 }
 

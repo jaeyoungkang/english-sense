@@ -67,7 +67,7 @@ test("wide content and chat remain readable together while long replies, retries
     if (requests.length === 3) await new Promise<void>(resolve => { release = resolve; });
     await route.fulfill({ json: response(body, longReply) });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await firstAnswer(page);
   await expect(page.locator(".lw-assistant-message > p")).toHaveText(longReply);
   await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-2"]').getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
@@ -155,7 +155,7 @@ test("outline collapse and independent reading positions restore without changin
     const body = route.request().postDataJSON() as ArtifactLearningChatRequest;
     await route.fulfill({ json: response(body, calls === 1 ? longReply : "검사용 짧은 응답") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await firstAnswer(page);
   await expect(page.locator(".lw-assistant-message > p")).toHaveText(longReply);
   await addGet(page);
@@ -218,7 +218,7 @@ test("the narrow document and chat flow supports submission and return navigatio
     await new Promise<void>(resolve => { release = resolve; });
     await route.fulfill({ json: response(body, longReply) });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await addGet(page);
   await expect(page.getByRole("tab")).toHaveCount(0);
   await firstAnswer(page);

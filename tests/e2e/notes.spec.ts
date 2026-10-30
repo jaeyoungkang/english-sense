@@ -17,7 +17,7 @@ async function openStory(page: Page, id = story.id) { await page.goto(`/reading/
 async function startReading(page: Page) { await page.getByRole("button", { name: "읽기 시작" }).click(); await expect(page.locator(".lw-story-body")).toBeVisible(); }
 async function endReading(page: Page) { await page.getByRole("button", { name: "다 읽었습니다", exact: true }).click(); await expect(page.locator(".lw-story-body")).toHaveCount(0); }
 async function openCard(page: Page) { await page.goto(CARD_PATH); await ready(page); }
-async function openHave(page: Page) { await page.goto("/"); await ready(page); await expect(page.getByRole("form", { name: "1번 퀴즈 첫 답" })).toBeVisible(); }
+async function openHave(page: Page) { await page.goto("/practice/have/"); await ready(page); await expect(page.getByRole("form", { name: "1번 퀴즈 첫 답" })).toBeVisible(); }
 
 /** Selects `length` characters of a block's text from `start` (the text nodes of the block, like the learner sees them) and returns the text. */
 async function select(page: Page, block: string, start: number, length: number, scroll = true) {

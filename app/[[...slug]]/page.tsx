@@ -42,13 +42,13 @@ function structuredData(page: ContentPage) {
 export default async function ContentRoute({ params }: Props) {
   const page = getPage((await params).slug);
   if (!page) notFound();
-  if (page.path === "") {
-    return <LearningWorkspace catalog={await getPublicLearningCatalog()} materials={getPublicReferenceMaterials()} />;
-  }
   const structured = structuredData(page).map((data, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />);
+  if (page.parts.some(part => part.kind === "scene-workspace")) {
+    return <>{structured}<LearningWorkspace catalog={await getPublicLearningCatalog()} materials={getPublicReferenceMaterials()} /></>;
+  }
   const story = page.parts.find((part): part is Extract<ContentPart, { kind: "reading" }> => part.kind === "reading");
   if (story) {
-    // 이야기 수업은 홈의 작업 공간과 같은 틀이다. 브라우저에는 공개 투영만 넘기고 정답·해설은 서버 정본에만 둔다.
+    // 이야기 수업은 작업 공간과 같은 틀이다. 브라우저에는 공개 투영만 넘기고 정답·해설은 서버 정본에만 둔다.
     const lesson = await getPublicLesson(story.id);
     if (lesson.kind !== "story") notFound();
     return <>{structured}<StoryWorkspace lesson={lesson} links={getStoryLessonLinks(story.id)} /></>;
@@ -69,7 +69,7 @@ export default async function ContentRoute({ params }: Props) {
         if (part.kind === "stage") return <SenseStage key={index} content={part} />;
         if (part.kind === "quiz") return <Quiz key={index} content={part} />;
         if (part.kind === "ask") return <Ask key={index} />;
-        if (part.kind === "reading") return null;
+        if (part.kind === "reading" || part.kind === "scene-workspace") return null;
         return <StudyPartView key={index} part={part} listing={getStudyListing()} />;
       })}
     </main><SiteFooter /></div></div></div>

@@ -282,12 +282,11 @@ test.describe("what this browser remembers, beside each story in the lists", () 
     // The home window shows the same note beside that story and nothing beside the others.
     const listed = await note.innerText();
     await page.goto("/");
-    await expect(page.locator(".lw-session-status")).not.toContainText("임시 기록 확인 중");
     const before = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map(name => [name, localStorage.getItem(name)])));
-    await page.locator(".lw-toolbar").getByRole("button", { name: "수업 목록", exact: true }).click();
+    await page.getByRole("navigation", { name: "사이트", exact: true }).getByRole("button", { name: "수업 목록", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "수업 목록" });
     await expect(dialog.locator("[data-story-record]")).toHaveCount(1);
-    await expect(noteOf(page, story.id)).toHaveText(listed);
+    await expect(dialog.locator(`[data-story-record="${story.id}"]`)).toHaveText(listed);
     await expect(dialog.getByRole("link", { name: story.title })).toHaveAttribute("href", `/reading/${story.id}/`);
     // Reading the record writes nothing.
     expect(await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map(name => [name, localStorage.getItem(name)])))).toEqual(before);
@@ -316,7 +315,7 @@ test.describe("what this browser remembers, beside each story in the lists", () 
     await expect(blocked.locator("[data-story-record]")).toHaveCount(0);
     // The home window as well.
     await blocked.goto("/");
-    await blocked.locator(".lw-toolbar").getByRole("button", { name: "수업 목록", exact: true }).click();
+    await blocked.getByRole("navigation", { name: "사이트", exact: true }).getByRole("button", { name: "수업 목록", exact: true }).click();
     await expect(blocked.getByRole("dialog", { name: "수업 목록" }).getByRole("link", { name: /Green Umbrella/ })).toBeVisible();
     await expect(blocked.locator("[data-story-record]")).toHaveCount(0);
     expect(errors).toEqual([]);

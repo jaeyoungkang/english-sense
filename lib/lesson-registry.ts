@@ -9,7 +9,7 @@ export type LessonKind = "scene" | "story" | "cards";
 
 /** 수업 하나의 식별과 문항 목록. 정답·해설을 담지 않으므로 브라우저 모듈도 import해도 된다. */
 export type LessonEntry =
-  | { lessonId: typeof ARTIFACT_LESSON_ID; kind: "scene"; path: "/"; questionIds: readonly string[] }
+  | { lessonId: typeof ARTIFACT_LESSON_ID; kind: "scene"; path: "/practice/have/"; questionIds: readonly string[] }
   | { lessonId: string; kind: "story"; path: string; storyId: string; questionIds: readonly string[] }
   | { lessonId: string; kind: "cards"; path: string; workId: string; unit: number; questionIds: readonly string[] };
 
@@ -20,7 +20,7 @@ export type LessonEntry =
  * 이야기·카드 목록(lesson-registry-data.ts)은 정본에서 만든다: `npx tsx scripts/generate-lesson-registry.ts`.
  */
 export const LESSONS: readonly LessonEntry[] = [
-  { lessonId: ARTIFACT_LESSON_ID, kind: "scene", path: "/", questionIds: LEARNING_QUESTION_IDS },
+  { lessonId: ARTIFACT_LESSON_ID, kind: "scene", path: "/practice/have/", questionIds: LEARNING_QUESTION_IDS },
   ...LESSON_DATA.stories.map(([storyId, ...questionIds]): LessonEntry => ({ lessonId: storyId, kind: "story", path: `/reading/${storyId}/`, storyId, questionIds })),
   ...LESSON_DATA.units.map(([workId, unit, ...questionIds]): LessonEntry => ({ lessonId: unitLessonId(workId, unit), kind: "cards", path: `/prep/${workId}/unit-${unit}/`, workId, unit, questionIds })),
 ];

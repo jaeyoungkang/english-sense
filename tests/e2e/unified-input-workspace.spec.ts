@@ -45,7 +45,7 @@ test("a question, the first answer and a revision are separate inputs: answer an
     requests.push(body);
     await route.fulfill({ json: response(body, body.initialAttempt ? `검사용 제출 뒤 피드백 ${requests.length}` : "검사용 무료 준비 안내", body.initialAttempt ? "ai" : "guidance") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await onlyInput(page, "initial");
   await expect(firstForm(page).locator('input[type="radio"]')).toHaveCount(3);
   await expect(card(page).getByRole("list", { name: "1번 퀴즈 보기", exact: true })).toHaveCount(0);
@@ -135,7 +135,7 @@ test("changing the input target and reloading preserves each draft without adopt
     if (requests.length === 2) await new Promise<void>(resolve => { release = resolve; });
     await route.fulfill({ json: response(body, requests.length === 1 ? "검사용 첫 피드백" : "검사용 재개 뒤 채택하지 않을 옛 응답") }).catch(() => {});
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await firstForm(page).locator('input[type="radio"]').nth(1).check();
   await firstForm(page).getByLabel("그 문장을 고른 까닭").fill("검사용 1번 첫 답");
   await firstForm(page).getByRole("button", { name: "내 답 제출하고 대화하기" }).click();
@@ -198,7 +198,7 @@ test("changing the input target and reloading preserves each draft without adopt
 test("the quiz inputs and the question box remain reachable with the document at wide and short narrow sizes", async ({ page }) => {
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   for (const size of [{ width: 1440, height: 960 }, { width: 1100, height: 720 }, { width: 390, height: 844 }, { width: 320, height: 430 }]) {
     await page.setViewportSize(size);
     await openFirstAnswerInput(page, 1);

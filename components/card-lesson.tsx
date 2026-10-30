@@ -335,7 +335,7 @@ export function CardLesson({ view }: { view: CardLessonView }) {
     toc={{ title: <>{lesson.work.title}{" "}<br />유닛 {lesson.unit.n}</>, lead: `${lesson.unit.when}에 익힐 표현을 카드마다 뜻과 힌트로 떠올려 빈칸을 채웁니다. 첫 답을 내면 카드가 열립니다.`, summary: <><p>카드 {cards.length}개{answered > 0 ? ` · 첫 답을 남긴 카드 ${answered}개` : ""}</p><NotesFact /><p>문서 전체의 목차입니다. 읽기와 풀이는 원하는 순서로 합니다.</p></> }}
     referenceStack={null}
     documentHeading={<><p>사전 훈련 · {lesson.work.kind === "book" ? "책" : "영화"}</p><h2>{lesson.unit.when}에 익힐 표현 {cards.length}개</h2><div><span><i>{lesson.work.title}</i> · 유닛 {lesson.unit.n}</span><span>{lesson.unit.summary}</span></div></>}
-    document={<><NotesBanner />{cards.map((card, index) => {
+    document={<><NotesBanner />{view.pairs.map(story => <p className="pair-note" key={story.id}>이 유닛의 표현으로 쓴 짝 이야기 · <a href={`/reading/${story.id}/`}>{story.title ? <span className="en">{story.title}</span> : "짝 이야기 읽기"} ({minutesLabel(story.limitSeconds)} · {story.words}낱말 · 문제 {story.questions}개) <span aria-hidden="true">→</span></a></p>)}{cards.map((card, index) => {
       const artifact = byQuestion.get(card.questionId)!, old = artifact.contentVersion !== lesson.contentVersion, opened = openedCardOf(artifact);
       const first = artifact.attempts[0], awaitingJudgement = !!first && !first.check;
       return <section className={`cl-card ${selectedId === card.questionId ? "cl-card-selected" : ""}`} data-outline-id={card.questionId} data-question-id={card.questionId} data-card-open={opened ? "true" : "false"} id={documentAnchorId(card.questionId)} tabIndex={-1} aria-labelledby={`${documentAnchorId(card.questionId)}-h`} key={card.questionId}>

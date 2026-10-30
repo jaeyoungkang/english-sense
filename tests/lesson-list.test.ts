@@ -34,11 +34,13 @@ test("the listing summary of the book and movie units has no cards: counts only"
   assert.deepEqual(listed.works.flatMap(work => work.units.map(unit => unit.cardCount)), prep.works.flatMap(work => work.units.map(unit => unit.cards.length)));
 });
 
-test("the list window draws a link for every story and unit and the two full lists", () => {
+test("the list window draws a link for every story and unit and the two full lists in story-first order", () => {
   const html = renderToStaticMarkup(createElement(LessonListDialog, { listing: getLessonListing() }));
   for (const entry of LESSONS.filter(item => item.kind !== "scene")) assert.ok(html.includes(`href="${entry.path}"`), entry.path);
-  assert.ok(html.includes('href="/reading/"') && html.includes('href="/prep/"'));
+  assert.ok(html.includes('href="/reading/"') && html.includes('href="/prep/"') && html.includes('href="/practice/have/"'));
   assert.equal((html.match(/draft-tag/g) ?? []).length, reading.stories.filter(story => story.draft).length);
   assert.match(html, /이야기 읽기 · 15편/);
   assert.match(html, /유닛 13개/);
+  assert.ok(html.indexOf('id="lw-lessons-stories"') < html.indexOf('id="lw-lessons-prep"'));
+  assert.ok(html.indexOf('id="lw-lessons-prep"') < html.indexOf('id="lw-lessons-scenes"'));
 });

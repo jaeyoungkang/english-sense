@@ -31,6 +31,7 @@ export function SiteNavigation({ currentList, currentPage }: { currentList?: { h
   if (!listing) return null;
   const close = () => setWindow(null);
   return <nav className="study-navigation" aria-label="사이트">
+    <a href="/reading/" aria-current={currentPage === "reading" ? "page" : undefined}>이야기 읽기</a>
     <button type="button" aria-label="수업 목록" aria-haspopup="dialog" onClick={() => setWindow("lessons")}>수업 목록</button>
     <button type="button" aria-label="감각 자료" aria-haspopup="dialog" onClick={() => setWindow("resources")}>감각 자료</button>
     <a href="/ask/" aria-current={currentPage === "ask" ? "page" : undefined}>문장 해설기 <span aria-hidden="true">↗</span></a>

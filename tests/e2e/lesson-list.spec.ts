@@ -7,7 +7,7 @@ const prep = prepJson as PrepData, reading = readingJson as ReadingData;
 const units = prep.works.flatMap(work => work.units.map(unit => `/prep/${work.id}/unit-${unit.n}/`));
 const stories = reading.stories.map(story => `/reading/${story.id}/`);
 const first = reading.stories[0];
-const toolbarButton = (page: Page) => page.locator(".lw-toolbar").getByRole("button", { name: "수업 목록", exact: true });
+const toolbarButton = (page: Page) => page.getByRole("navigation", { name: "사이트", exact: true }).getByRole("button", { name: "수업 목록", exact: true });
 const storage = (page: Page) => page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)])));
 
 test("the home first response has the toolbar item and no lesson data: no question ids, no answers, no open window", async ({ page }) => {
@@ -20,15 +20,13 @@ test("the home first response has the toolbar item and no lesson data: no questi
   expect(html).toContain(`/reading/${first.id}/`);
   expect(html).not.toMatch(/green-umbrella-content-1|wonder-0-01|prep-wonder-3-expression/);
   expect(html).not.toMatch(/\\"(answers|explain|basis)\\"|"(answers|explain|basis)"/);
-  await expect(page.locator(".lw-session-status")).not.toContainText("임시 기록 확인 중");
   await expect(toolbarButton(page)).toBeVisible();
 });
 
-test("the list window opens from the home toolbar with every story and unit at its existing address, and changes nothing in the have record", async ({ page }) => {
+test("the list window opens from the home toolbar with every story and unit at its existing address, and changes nothing in storage", async ({ page }) => {
   const requests: string[] = [];
   page.on("request", request => { if (request.url().includes("/api/")) requests.push(request.url()); });
   await page.goto("/");
-  await expect(page.locator(".lw-session-status")).not.toContainText("임시 기록 확인 중");
   const before = await storage(page);
   await toolbarButton(page).click();
   const dialog = page.getByRole("dialog", { name: "수업 목록" });
@@ -38,6 +36,7 @@ test("the list window opens from the home toolbar with every story and unit at i
   expect(hrefs.filter(href => /^\/prep\/[^/]+\/unit-\d+\/$/.test(href!))).toEqual(units);
   expect(hrefs.filter(href => /^\/practice\/titanic\/[^/]+\/$/.test(href!))).toEqual(["have", "get", "be", "go", "come"].map(word => `/practice/titanic/${word}/`));
   expect(hrefs).toContain("/practice/");
+  expect(hrefs).toContain("/practice/have/");
   expect(hrefs).toContain("/reading/");
   expect(hrefs).toContain("/prep/");
   expect(stories).toHaveLength(15);
@@ -80,7 +79,6 @@ test("at 390px and 320px the toolbar item is reachable and the window has no hor
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 700 });
     await page.goto("/");
-    await expect(page.locator(".lw-session-status")).not.toContainText("임시 기록 확인 중");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const button = toolbarButton(page);
     await button.scrollIntoViewIfNeeded();

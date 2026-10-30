@@ -3,7 +3,7 @@ import { pages } from "../../lib/server/site-pages";
 import ask from "../../content/ask.json";
 
 const words = ["have", "get", "be", "go", "come"];
-const publicPages = pages.filter(entry => entry.path && !entry.parts.some(part => part.kind === "reading" || part.kind === "prep-unit"));
+const publicPages = pages.filter(entry => !entry.parts.some(part => part.kind === "reading" || part.kind === "prep-unit" || part.kind === "scene-workspace"));
 const navigation = (page: Page) => page.getByRole("navigation", { name: "사이트", exact: true });
 const closeName = "닫고 학습으로 돌아가기";
 
@@ -20,9 +20,9 @@ function attribute(html: string, tag: "meta" | "link", key: string, value: strin
   }
 }
 
-test("all 49 public addresses retain their page metadata, structured data and sitemap entry", async ({ request }) => {
+test("all 50 public addresses retain their page metadata, structured data and sitemap entry", async ({ request }) => {
   test.setTimeout(120_000);
-  expect(pages).toHaveLength(49);
+  expect(pages).toHaveLength(50);
   const sitemap = await (await request.get("/sitemap.xml")).text();
   for (const entry of pages) {
     const response = await request.get(`/${entry.path}`);
@@ -50,7 +50,7 @@ test("all 49 public addresses retain their page metadata, structured data and si
 
 test("every redesigned public page opens the shared navigation without making a lesson record or API request", async ({ page }) => {
   test.setTimeout(120_000);
-  expect(publicPages).toHaveLength(20);
+  expect(publicPages).toHaveLength(21);
   const requests: string[] = [];
   page.on("request", request => { if (new URL(request.url()).pathname.startsWith("/api/")) requests.push(request.url()); });
   await page.route("**/api/**", route => route.abort());
@@ -59,6 +59,7 @@ test("every redesigned public page opens the shared navigation without making a 
     await expect(page.locator(".public-app")).toBeVisible();
     await expect(page.locator(".lw-session-status")).toHaveCount(0);
     const nav = navigation(page);
+    await expect(nav.getByRole("link", { name: "이야기 읽기" })).toHaveAttribute("href", "/reading/");
     await expect(nav.getByRole("link", { name: "문장 해설기" })).toHaveAttribute("href", "/ask/");
     await nav.getByRole("button", { name: "수업 목록", exact: true }).click();
     const lessons = page.getByRole("dialog", { name: "수업 목록", exact: true });
@@ -119,7 +120,7 @@ test("a real unsubmitted lesson question survives window use and a round trip to
   const requests: string[] = [];
   page.on("request", request => { if (new URL(request.url()).pathname.startsWith("/api/")) requests.push(request.url()); });
   await page.route("**/api/**", route => route.abort());
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await expect(page.locator(".lw-session-status")).not.toContainText("임시 기록 확인 중");
   const draft = "검증용 미전송 질문: 이 장면의 감각을 다시 살펴봅니다.";
   const field = page.getByLabel("이 장면에 대해 질문하기");
@@ -138,10 +139,26 @@ test("a real unsubmitted lesson question survives window use and a round trip to
   await navigation(page).getByRole("link", { name: "문장 해설기" }).click();
   await expect(page).toHaveURL(/\/ask\/$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/practice\/have\/$/);
   await expect(field).toHaveValue(draft);
   expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe(before);
   expect(requests).toEqual([]);
+});
+
+test("home page serves as the story-reading main hub with bidirectional prep unit links and story-first navigation", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".public-app")).toBeVisible();
+  await expect(page.locator("main h1")).toHaveText("이야기로 읽고, 퀴즈로 익히는 영어 감각");
+  await expect(page.locator('main a.link-card[href^="/reading/"]')).toHaveCount(15);
+  await expect(page.locator('main a.story-pair-unit-link[href^="/prep/"]')).toHaveCount(13);
+
+  // Follow a paired prep unit link from the story hub, then jump back to its paired story from the unit page
+  await page.locator('main a.story-pair-unit-link[href="/prep/wonder/unit-0/"]').click();
+  await expect(page).toHaveURL(/\/prep\/wonder\/unit-0\/$/);
+  const topPairLink = page.locator('.lw-document-flow > .pair-note a[href="/reading/prep-wonder-0/"]');
+  await expect(topPairLink).toBeVisible();
+  await topPairLink.click();
+  await expect(page).toHaveURL(/\/reading\/prep-wonder-0\/$/);
 });
 
 test("the explainer keeps its request identity and input through a mocked wait, success and usage-limit failure", async ({ page }) => {

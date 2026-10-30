@@ -32,7 +32,7 @@ async function readCard(page: Page, number: number) {
 test("all explanations and seven questions are readable before any answer without creating learning events", async ({ page }) => {
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
-  const navigation = await page.goto("/");
+  const navigation = await page.goto("/practice/have/");
   expect(navigation?.ok()).toBe(true);
   // Count actual server-rendered sections, excluding serialized catalog/RSC data.
   const initialHtml = await navigation!.text();
@@ -82,7 +82,7 @@ test("the seventh question can be answered first and the second can remain a dra
     requests.push(body);
     await route.fulfill({ json: { requestId: body.requestId, artifactId: body.artifactId, questionId: body.questionId, contentVersion: body.contentVersion, reply: "검사용 7번 먼저 풀기 피드백", mode: "ai" } });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await card(page, 7).getByRole("button", { name: "이 퀴즈에 질문하기", exact: true }).click();
   await expect(form(page, 7)).toBeVisible();
   await expect(page.getByRole("region", { name: "AI 대화", exact: true }).locator("form")).toHaveCount(1);
@@ -121,7 +121,7 @@ test("the wide document scrolls as a web page while chat stays alongside and a r
     await new Promise<void>(resolve => { release = resolve; });
     await route.fulfill({ json: { requestId: body.requestId, artifactId: body.artifactId, questionId: body.questionId, contentVersion: body.contentVersion, reply: "검사용 문서 읽기 중 준비 안내", mode: "guidance" } });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await stored(page);
   const documentBox = await page.locator(".lw-content-scroll").boundingBox();
   expect(documentBox!.height).toBeGreaterThan(900);

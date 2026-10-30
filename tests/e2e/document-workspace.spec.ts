@@ -56,7 +56,7 @@ test("the outline follows actual document additions while reopening references p
     const body = route.request().postDataJSON() as ArtifactLearningChatRequest;
     await route.fulfill({ json: response(body, "문서 화면 검사 모의 응답") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   const firstId = await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-1"]').getAttribute("data-artifact-id");
   const initial = ["reference-have", ...await page.locator(".lw-quiz-artifact").evaluateAll(nodes => nodes.map(node => `artifact-${node.getAttribute("data-artifact-id")}`))];
   expect(await bodyOrder(page)).toEqual(initial);
@@ -101,7 +101,7 @@ test("reading references and using the outline preserve quiz targets, drafts and
     if (body.message === "검사용 자료를 읽으며 묻는 1번 질문") await new Promise<void>(resolve => { release = resolve; });
     await route.fulfill({ json: response(body, requests.length === 1 ? "검사용 문서의 첫 응답" : "검사용 자료 열람 중 지연 응답") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await submitFirst(page);
   await expect(page.getByText("검사용 문서의 첫 응답", { exact: true })).toBeVisible();
   const firstId = await page.locator('.lw-quiz-artifact[data-question-id="titanic-have-1"]').getAttribute("data-artifact-id");
@@ -151,7 +151,7 @@ test("reading references and using the outline preserve quiz targets, drafts and
 test("damaged document navigation resets independently while preserving the exact learning record", async ({ page }) => {
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   const reason = page.getByRole("form", { name: "1번 퀴즈 첫 답", exact: true }).getByLabel("그 문장을 고른 까닭");
   await reason.fill("UI 저장 손상에도 남아야 하는 검사용 답 초안");
   await openQuestionInput(page);
@@ -177,7 +177,7 @@ test("damaged document navigation resets independently while preserving the exac
 test("mobile outline keyboard navigation returns focus and leaves the document and composer unobscured", async ({ page }) => {
   let calls = 0;
   await page.route("**/api/learn-chat/**", async route => { calls++; await route.abort(); });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await addReference(page, "get");
   await addReference(page, "be");
   await addReference(page, "go");
@@ -252,7 +252,7 @@ test("a reference with a missing insertion anchor stays discoverable at the docu
     const body = route.request().postDataJSON() as ArtifactLearningChatRequest;
     await route.fulfill({ json: response(body, "검사용 고아 자료의 최초 응답") });
   });
-  await page.goto("/");
+  await page.goto("/practice/have/");
   await submitFirst(page);
   await expect(page.getByText("검사용 고아 자료의 최초 응답", { exact: true })).toBeVisible();
   await addReference(page, "get");

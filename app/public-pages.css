@@ -61,6 +61,13 @@
 .public-app .link-card .t { font-size: 15px; }
 .public-app .link-card .s { font-size: 12px; }
 .public-app .links { gap: 5px; }
+.public-app .story-card-group { display: grid; border-bottom: 1px solid var(--line); background: #fbfcf8; border-radius: 3px; }
+.public-app .story-card-group > .link-card { border-bottom: 0; padding-bottom: 10px; }
+.public-app .story-pair-bar { padding: 0 18px 14px; background: #fbfcf8; }
+.public-app .story-pair-unit-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.5; color: var(--accent); text-decoration: none; padding: 5px 10px; background: #eff3e8; border: 1px solid #d5e0c7; border-radius: 3px; }
+.public-app .story-pair-unit-link:hover { background: #e3ebd6; color: #2d4221; }
+.public-app .continue-reading-box { padding: 20px 22px; background: #f4f7ee; border: 1px solid #d4dec7; border-radius: 4px; }
+.public-app .continue-reading-box h2 { margin: 0; font-size: 17px; color: #344a28; }
 .public-app .note { font-size: 11px; line-height: 1.9; }
 .public-app .hint { font-size: 12px; }
 .public-app .btn, .public-app .chip, .public-app .tab, .public-app .opt, .public-app textarea, .public-app .ex { border-radius: 3px; }
@@ -128,7 +135,7 @@
   .public-app .top-in { padding-inline: 12px; }
   .public-app .card, .public-app .stage { padding: 14px; }
   .study-navigation { gap: 0; font-size: 11px; }
-  .study-navigation>button, .study-navigation>a { padding-inline: 8px; }
+  .study-navigation>button, .study-navigation>a { padding-inline: 5px; }
   .study-dialog { width: calc(100% - 20px); }
   .study-dialog-body { padding: 15px; }
 }

@@ -35,7 +35,7 @@ test.describe("learner record preservation: owner auth, durable server sync, con
       if (req.url().includes("/api/learner-records")) recordApiCalls.push(req.url());
     });
 
-    await page.goto("/");
+    await page.goto("/practice/have/");
     await readyWorkspace(page);
     await expect(page.locator(".lw-personal-sync")).toContainText("개인 서버 보관 연결");
     expect(recordApiCalls).toEqual([]);
@@ -197,7 +197,7 @@ test.describe("learner record preservation: owner auth, durable server sync, con
       });
 
       // 1. Work in unauthenticated browser first on / (titanic-have)
-      await page.goto(`${targetUrl}/`);
+      await page.goto(`${targetUrl}/practice/have/`);
       await readyWorkspace(page);
 
       await openFirstAnswerInput(page, 1);
