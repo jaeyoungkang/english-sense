@@ -181,3 +181,16 @@ test("the explainer keeps its request identity and input through a mocked wait, 
   await expect(field).toHaveValue(editedDraft);
   await expect(submit).toBeEnabled();
 });
+
+test("unknown addresses like /readings/ return 404 inside the unified public-app shell with navigation links", async ({ page, isMobile }) => {
+  const response = await page.goto("/readings/");
+  expect(response?.status()).toBe(404);
+  await expect(page.locator(".public-app")).toBeVisible();
+  await expect(page.locator(".public-outline")).toHaveCount(1);
+  if (!isMobile) await expect(page.locator(".public-outline")).toBeVisible();
+  await expect(page.locator("main h1")).toHaveText("페이지를 찾을 수 없습니다");
+  const readingLink = page.locator("main a[href='/reading/']").first();
+  await expect(readingLink).toBeVisible();
+  await readingLink.click();
+  await expect(page).toHaveURL(/\/reading\/$/);
+});
