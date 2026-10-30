@@ -808,6 +808,29 @@ test("request-history & execution lookup: completed AI execution is stored and r
     assert.equal(execBody.execution.status, "succeeded");
     assert.equal(execBody.execution.responsePayload.reply, "저장된 AI 튜터 답변입니다.");
     assert.equal(anthropicCalls, 1, "execution lookup does not invoke the provider");
+
+    // Verify returnTo login callback sets sessionStorage and prevents open redirects
+    const loginCallback = await handleLearnerRecords(
+      new Request("https://english.artificialmind.kr/api/learner-records/?returnTo=%2Fprep%2Fwonder%2Funit-1%2F", {
+        headers: { "Cf-Access-Jwt-Assertion": token },
+      }),
+      env,
+      deps,
+    );
+    assert.equal(loginCallback.status, 200);
+    const loginHtml = await loginCallback.text();
+    assert.match(loginHtml, /es:personal-sync-enabled:v1/);
+    assert.match(loginHtml, /"\/prep\/wonder\/unit-1\/"/);
+
+    const openRedirectCallback = await handleLearnerRecords(
+      new Request("https://english.artificialmind.kr/api/learner-records/?returnTo=%2F%2Fevil.example.com", {
+        headers: { "Cf-Access-Jwt-Assertion": token },
+      }),
+      env,
+      deps,
+    );
+    assert.equal(openRedirectCallback.status, 200);
+    assert.match(await openRedirectCallback.text(), /window\.location\.replace\("\/"\)/);
   } finally {
     closeAll();
   }

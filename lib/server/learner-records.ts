@@ -1321,6 +1321,18 @@ export async function handleLearnerRecords(
 
     if (request.method === "GET") {
       const url = new URL(request.url);
+      if (url.searchParams.has("returnTo")) {
+        const rawReturnTo = url.searchParams.get("returnTo") ?? "/";
+        const safeReturnTo = rawReturnTo.startsWith("/") && !rawReturnTo.startsWith("//") ? rawReturnTo : "/";
+        const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>개인 서버 보관 연결</title></head><body><script>try{window.sessionStorage.setItem("es:personal-sync-enabled:v1","1");}catch{}window.location.replace(${JSON.stringify(safeReturnTo)});</script><p>개인 서버 보관 인증이 확인되었습니다. 학습 화면으로 돌아갑니다…</p></body></html>`;
+        return new Response(html, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+          },
+        });
+      }
       const scope = url.searchParams.get("scope") ?? ARTIFACT_LESSON_ID;
       if (!isRecordScope(scope)) {
         return json({ ok: false, code: "invalid_request", detail: "유효한 기록 범위(scope)를 지정해 주세요." }, 400);

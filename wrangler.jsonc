@@ -50,7 +50,11 @@
     "ANTHROPIC_MODEL": "claude-sonnet-5-5",
     "ANTHROPIC_EFFORT": "low",
     "PER_IP_PER_DAY": "30",
-    "GLOBAL_PER_DAY": "600"
+    "GLOBAL_PER_DAY": "600",
+    "CF_ACCESS_TEAM_DOMAIN": "https://polished-night-2536.cloudflareaccess.com",
+    "CF_ACCESS_AUD": "b6135d1f46265b3c7b00f7c560c281737bccd7709511ecd65edb5f8aea30433d",
+    "CF_ACCESS_ALLOWED_EMAILS": "jaeyoung2010@gmail.com",
+    "CF_ACCESS_OWNER_ID": "jaeyoungkang"
   },
   "observability": {
     "enabled": true

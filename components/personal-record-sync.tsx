@@ -118,7 +118,15 @@ export function usePersonalRecordSync<S extends ScopedRecordState>({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(command),
+          redirect: "manual",
         });
+        if (response.type === "opaqueredirect" || response.status === 302) {
+          return {
+            ok: false,
+            status: 401,
+            data: { code: "unauthenticated", detail: "개인 서버 보관을 쓰려면 Cloudflare Access 로그인이 필요합니다." },
+          };
+        }
         const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
         return { ok: response.ok, status: response.status, data };
       } catch {
@@ -204,7 +212,14 @@ export function usePersonalRecordSync<S extends ScopedRecordState>({
       const response = await fetch(`${LEARNER_RECORDS_ENDPOINT}?scope=${encodeURIComponent(scope)}`, {
         method: "GET",
         headers: { Accept: "application/json" },
+        redirect: "manual",
       });
+      if (response.type === "opaqueredirect" || response.status === 302) {
+        liveSyncActiveRef.current = false;
+        setSyncStatus("auth-required");
+        setSyncMessage("개인 서버 보관을 쓰려면 Cloudflare Access 로그인이 필요합니다.");
+        return;
+      }
       const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       if (!response.ok) {
         liveSyncActiveRef.current = false;
@@ -541,6 +556,16 @@ export function PersonalRecordSyncBar({
       {syncStatus === "auth-required" ? (
         <span className="lw-sync-badge" role="status">
           {syncMessage || "개인 서버 보관을 쓰려면 로그인이 필요합니다."}{" "}
+          <button
+            type="button"
+            className="workspace-ghost-button workspace-inline-button"
+            onClick={() => {
+              const returnTo = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/";
+              window.location.assign(`${LEARNER_RECORDS_ENDPOINT}?returnTo=${encodeURIComponent(returnTo)}`);
+            }}
+          >
+            Cloudflare Access 로그인
+          </button>{" "}
           <button type="button" className="workspace-ghost-button workspace-inline-button" onClick={() => void connectServer()}>
             다시 확인
           </button>
