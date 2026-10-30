@@ -2,7 +2,7 @@ import { ARTIFACT_LESSON_ID } from "./learning-catalog";
 import { learningChatLimits } from "./learning-chat-contract";
 import { DOCUMENT_UI_STORAGE_KEY } from "./document-workspace-state";
 import { WORKSPACE_STORAGE_KEYS } from "./learning-workspace-state";
-import { acceptReply, beginTurn, findArtifact, identity, newId, object, publicKeys, restoredTurns, retryTurn, text, updateArtifact, validTurn, type ThreadEvent, type ThreadReply, type WorkspaceThread, type WorkspaceTurn } from "./learning-thread";
+import { acceptReply, beginTurn, findArtifact, identity, newId, object, publicKeys, recoverServerTurnReply, restoredTurns, retryTurn, text, updateArtifact, validTurn, type ThreadEvent, type ThreadReply, type WorkspaceThread, type WorkspaceTurn } from "./learning-thread";
 import { isLessonAttempt, isLessonCheckResponse, lessonCheckLimits, type LessonAttempt, type LessonCheckRequest, type LessonCheckResponse, type OpenedCard } from "./lesson-contract";
 import { getLessonEntry, type LessonEntry, type PublicCard, type PublicCardsLesson, type PublicStoryLesson, type PublicStoryQuestion } from "./lesson-registry";
 import { LESSON_STORAGE_PREFIX } from "./lesson-record-key";
@@ -21,14 +21,16 @@ export type LessonDocument = PublicStoryLesson | PublicCardsLesson;
 export type LessonQuestion = PublicStoryQuestion | PublicCard;
 export type JudgementResponse = Extract<LessonCheckResponse, { kind: "choose" | "fill" }>;
 export type RevealResponse = Extract<LessonCheckResponse, { kind: "reveal" }>;
+export type FailedCheckAttempt = { requestId: string; error: string };
+export type FailedRevealAttempt = { requestId: string; afterAttempts: number; error: string };
 /** `check` stays null until a judgement for exactly this attempt has been accepted. The attempt itself is never rewritten. */
-export type LessonAttemptRecord = { attempt: LessonAttempt; check: JudgementResponse | null };
+export type LessonAttemptRecord = { attempt: LessonAttempt; check: JudgementResponse | null; failedChecks?: FailedCheckAttempt[] };
 /** `afterAttempts` is how many attempts existed when the answers were shown; later attempts were made after seeing them. */
 export type LessonReveal = { response: RevealResponse; afterAttempts: number };
 export type LessonArtifact = {
   artifactId: string; lessonId: string; contentVersion: string; question: LessonQuestion;
   choice: number | null; inputs: string[]; messageDraft: string;
-  attempts: LessonAttemptRecord[]; reveal: LessonReveal | null;
+  attempts: LessonAttemptRecord[]; reveal: LessonReveal | null; failedReveals?: FailedRevealAttempt[];
   threads: WorkspaceThread[]; activeThreadId: string;
 };
 /** Selecting a question is not an event. Reading start and end are lesson-level events without an artifact. */
@@ -36,7 +38,9 @@ export type LessonEvent = { id: string } & (
   | { kind: "initial"; artifactId: string }
   | { kind: "revision"; artifactId: string; index: number }
   | { kind: "check"; artifactId: string; index: number; requestId: string }
+  | { kind: "check-failed"; artifactId: string; index: number; requestId: string; error: string }
   | { kind: "reveal"; artifactId: string; requestId: string }
+  | { kind: "reveal-failed"; artifactId: string; afterAttempts: number; requestId: string; error: string }
   | { kind: "reading-start"; readingId: string; startedAt: number; limitSeconds: number; level?: ReadingLevel }
   | { kind: "reading-end"; readingId: string; endedAt: number; by: "time" | "user"; elapsedMs?: number }
   | ThreadEvent
@@ -259,6 +263,24 @@ export function acceptLessonReveal(state: LessonState, request: LessonCheckReque
   const next = updateArtifact(state, artifact.artifactId, item => ({ ...item, reveal: { response: structuredClone(response), afterAttempts: item.attempts.length } }));
   return { ...next, events: [...next.events, { id: newId(), kind: "reveal", artifactId: artifact.artifactId, requestId: request.requestId }] };
 }
+/** Records a failed check or reveal request on the attempt or card without overwriting any submitted attempt or earlier failure. */
+export function recordLessonActionFailure(state: LessonState, request: LessonCheckRequest, error: string): LessonState {
+  const cleanError = typeof error === "string" ? error.trim().slice(0, 400) : "";
+  if (!cleanError || state.lessonId !== request.lessonId || !identity(request.requestId)) return state;
+  const artifact = state.artifacts.find(item => item.artifactId === request.artifactId);
+  if (!artifact || artifact.question.questionId !== request.questionId || artifact.contentVersion !== request.contentVersion) return state;
+  if (request.action === "check") {
+    const index = artifact.attempts.length - 1, last = artifact.attempts[index];
+    if (!last || last.check || !sameAttempt(last.attempt, request.attempt) || last.failedChecks?.some(fc => fc.requestId === request.requestId)) return state;
+    const failedChecks = [...(last.failedChecks ?? []), { requestId: request.requestId, error: cleanError }];
+    return updateArtifact(state, artifact.artifactId, item => ({ ...item, attempts: item.attempts.map((entry, at) => at === index ? { ...entry, failedChecks } : entry) }));
+  }
+  const first = artifact.attempts[0];
+  if (!first || "options" in artifact.question || artifact.reveal || first.attempt.kind !== "fill" || !sameAttempt(first.attempt, request.attempt) || artifact.failedReveals?.some(fr => fr.requestId === request.requestId)) return state;
+  const afterAttempts = artifact.attempts.length;
+  const failedReveals = [...(artifact.failedReveals ?? []), { requestId: request.requestId, afterAttempts, error: cleanError }];
+  return updateArtifact(state, artifact.artifactId, item => ({ ...item, failedReveals }));
+}
 
 /** Sending a question needs a live artifact, so an old content version or an unfinished reading cannot start a request. */
 export function beginLessonTurn(state: LessonState, lesson: LessonDocument, artifactId: string, turn: WorkspaceTurn): LessonState {
@@ -272,6 +294,9 @@ export function retryLessonTurn(state: LessonState, lesson: LessonDocument, arti
 /** A reply must repeat the lesson as well as the artifact, question, version and request it answers. */
 export function acceptLessonReply(state: LessonState, response: LessonReply): LessonState {
   return response.lessonId === state.lessonId ? acceptReply(state, response) : state;
+}
+export function recoverLessonServerReply(state: LessonState, response: LessonReply): LessonState {
+  return response.lessonId === state.lessonId ? recoverServerTurnReply(state, response) : state;
 }
 
 function validQuestion(value: unknown, entry: LessonEntryWithQuestions): value is LessonQuestion {
@@ -293,7 +318,8 @@ function validQuestion(value: unknown, entry: LessonEntryWithQuestions): value i
     && place(value.example, ["text"]) && text((value.example as Record<string, unknown>).text, 5000, true);
 }
 function validArtifact(value: unknown, entry: LessonEntryWithQuestions): value is LessonArtifact {
-  if (!object(value) || !exact(value, ["artifactId", "lessonId", "contentVersion", "question", "choice", "inputs", "messageDraft", "attempts", "reveal", "threads", "activeThreadId"]) || !identity(value.artifactId) || value.lessonId !== entry.lessonId || typeof value.contentVersion !== "string" || !/^[a-f0-9]{64}$/.test(value.contentVersion) || !validQuestion(value.question, entry)) return false;
+  const baseKeys = ["artifactId", "lessonId", "contentVersion", "question", "choice", "inputs", "messageDraft", "attempts", "reveal", "threads", "activeThreadId"];
+  if (!object(value) || !exact(value, Object.hasOwn(value, "failedReveals") ? [...baseKeys, "failedReveals"] : baseKeys) || !identity(value.artifactId) || value.lessonId !== entry.lessonId || typeof value.contentVersion !== "string" || !/^[a-f0-9]{64}$/.test(value.contentVersion) || !validQuestion(value.question, entry)) return false;
   const question = value.question as LessonQuestion;
   if (!text(value.messageDraft, learningChatLimits.message) || !Array.isArray(value.inputs) || !Array.isArray(value.attempts)) return false;
   if ("options" in question) {
@@ -302,13 +328,19 @@ function validArtifact(value: unknown, entry: LessonEntryWithQuestions): value i
   const attempts = value.attempts as unknown[];
   if (attempts.length > 1 + learningChatLimits.revisions || ("options" in question && attempts.length > 1)) return false;
   const valid = attempts.every((entryValue, index) => {
-    if (!object(entryValue) || !exact(entryValue, ["attempt", "check"]) || !isLessonAttempt(entryValue.attempt) || !fitsQuestion(entryValue.attempt, question)) return false;
+    if (!object(entryValue) || !exact(entryValue, Object.hasOwn(entryValue, "failedChecks") ? ["attempt", "check", "failedChecks"] : ["attempt", "check"]) || !isLessonAttempt(entryValue.attempt) || !fitsQuestion(entryValue.attempt, question)) return false;
+    if (Object.hasOwn(entryValue, "failedChecks")) {
+      if (!Array.isArray(entryValue.failedChecks) || entryValue.failedChecks.length < 1 || entryValue.failedChecks.length > 20 || !entryValue.failedChecks.every(item => object(item) && exact(item, ["requestId", "error"]) && identity(item.requestId) && text(item.error, 400, true))) return false;
+    }
     // A revision starts only after the previous attempt was judged.
     if (entryValue.check === null) return index === attempts.length - 1;
     const check = entryValue.check;
     return isLessonCheckResponse(check) && check.kind !== "reveal" && check.lessonId === value.lessonId && check.artifactId === value.artifactId && check.questionId === question.questionId && check.contentVersion === value.contentVersion && fitsJudgement(entryValue.attempt, check, question);
   });
   if (!valid) return false;
+  if (Object.hasOwn(value, "failedReveals")) {
+    if ("options" in question || !Array.isArray(value.failedReveals) || value.failedReveals.length < 1 || value.failedReveals.length > 20 || !value.failedReveals.every(item => object(item) && exact(item, ["requestId", "afterAttempts", "error"]) && identity(item.requestId) && Number.isInteger(item.afterAttempts) && Number(item.afterAttempts) >= 1 && Number(item.afterAttempts) <= attempts.length && text(item.error, 400, true))) return false;
+  }
   if (value.reveal !== null) {
     const reveal = value.reveal;
     if ("options" in question || !object(reveal) || !exact(reveal, ["response", "afterAttempts"]) || !Number.isInteger(reveal.afterAttempts) || Number(reveal.afterAttempts) < 1 || Number(reveal.afterAttempts) > attempts.length || !isLessonCheckResponse(reveal.response)) return false;
@@ -326,9 +358,9 @@ export function isLessonState(value: unknown): value is LessonState {
   if (value.selectedQuestionId !== null && (typeof value.selectedQuestionId !== "string" || !entry.questionIds.includes(value.selectedQuestionId))) return false;
   const artifacts = value.artifacts as LessonArtifact[], events = value.events as unknown[];
   if (new Set(artifacts.map(item => item.artifactId)).size !== artifacts.length || new Set(artifacts.map(item => item.question.questionId)).size !== artifacts.length) return false;
-  const ids = new Set<string>(), seen = new Map(artifacts.map(item => [item.artifactId, { attempts: 0, checks: new Set<number>(), reveals: 0 }]));
+  const ids = new Set<string>(), seen = new Map(artifacts.map(item => [item.artifactId, { attempts: 0, checks: new Set<number>(), reveals: 0, failedChecks: new Set<string>(), failedReveals: new Set<string>() }]));
   let start: Extract<LessonEvent, { kind: "reading-start" }> | undefined, ended = false;
-  const gated = ["initial", "revision", "check", "reveal", "request", "retry"];
+  const gated = ["initial", "revision", "check", "check-failed", "reveal", "reveal-failed", "request", "retry"];
   const valid = events.every(raw => {
     if (!object(raw) || !identity(raw.id) || ids.has(raw.id)) return false;
     ids.add(raw.id);
@@ -363,9 +395,20 @@ export function isLessonState(value: unknown): value is LessonState {
       count.checks.add(index);
       return true;
     }
+    if (raw.kind === "check-failed") {
+      const index = raw.index as number, failedChecks = artifact.attempts[index]?.failedChecks;
+      if (!exact(raw, ["id", "kind", "artifactId", "index", "requestId", "error"]) || !Number.isInteger(index) || index >= count.attempts || count.checks.has(index) || !identity(raw.requestId) || !text(raw.error, 400, true) || count.failedChecks.has(`${index}:${raw.requestId}`) || !failedChecks?.some(fc => fc.requestId === raw.requestId && fc.error === raw.error)) return false;
+      count.failedChecks.add(`${index}:${raw.requestId}`);
+      return true;
+    }
     if (raw.kind === "reveal") {
       if (!exact(raw, ["id", "kind", "artifactId", "requestId"]) || count.reveals > 0 || !artifact.reveal || artifact.reveal.response.requestId !== raw.requestId || artifact.reveal.afterAttempts !== count.attempts) return false;
       count.reveals++;
+      return true;
+    }
+    if (raw.kind === "reveal-failed") {
+      if (!exact(raw, ["id", "kind", "artifactId", "afterAttempts", "requestId", "error"]) || count.reveals > 0 || raw.afterAttempts !== count.attempts || count.attempts < 1 || !identity(raw.requestId) || !text(raw.error, 400, true) || count.failedReveals.has(raw.requestId) || !artifact.failedReveals?.some(fr => fr.requestId === raw.requestId && fr.afterAttempts === raw.afterAttempts && fr.error === raw.error)) return false;
+      count.failedReveals.add(raw.requestId);
       return true;
     }
     const thread = artifact.threads.find(item => item.id === raw.threadId);

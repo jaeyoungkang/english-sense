@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LESSON_CHECK_ENDPOINT, isLessonCheckResponse, type LessonCheckRequest, type LessonCheckResponse } from "@/lib/lesson-contract";
-import { acceptLessonCheck, createLessonState, lessonStorageKeys, loadLessonRecord, type LessonDocument, type LessonState } from "@/lib/lesson-workspace-state";
+import { acceptLessonCheck, createLessonState, lessonStorageKeys, loadLessonRecord, recordLessonActionFailure, type LessonDocument, type LessonState } from "@/lib/lesson-workspace-state";
 import { useRecordStore, type RecordStore } from "@/components/workspace-session";
 
 /**
@@ -73,6 +73,9 @@ export function useLessonChecks(store: Pick<RecordStore<LessonState>, "recordRef
       const accepted = acceptLessonCheck(recordRef.current, request, outcome.response);
       if (accepted === recordRef.current && !recordRef.current.artifacts.find(item => item.artifactId === artifactId)?.attempts.at(-1)?.check) { failed = true; message = "요청 대상과 맞는 판정을 읽지 못했습니다."; }
       else update(previous => acceptLessonCheck(previous, request, outcome.response));
+    }
+    if (failed) {
+      update(previous => recordLessonActionFailure(previous, request, message || "판정을 받지 못했습니다."));
     }
     setChecks(previous => { const { [artifactId]: _gone, ...rest } = previous; return failed ? { ...rest, [artifactId]: { pending: false, message } } : rest; });
   }

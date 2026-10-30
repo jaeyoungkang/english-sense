@@ -17,7 +17,7 @@ export function AssistantReply({ label, turn }: { label: string; turn: Workspace
 }
 
 /** Waiting, failed or cancelled state of a request. Nothing is shown for a completed turn. */
-export function RequestStatus({ label, turn, requestId, current, waiting, busy, locked, onRetry, onDismiss }: {
+export function RequestStatus({ label, turn, requestId, current, waiting, busy, locked, onRetry, onDismiss, onCheckServerResult }: {
   label: string; turn: WorkspaceTurn; requestId: string;
   /** The turn belongs to the active conversation, so it may be sent again. */
   current: boolean;
@@ -28,11 +28,15 @@ export function RequestStatus({ label, turn, requestId, current, waiting, busy, 
   locked: boolean;
   onRetry: () => void;
   onDismiss: () => void;
+  onCheckServerResult?: () => void;
 }) {
-  if (turn.requestId !== requestId) return <p className="lw-old-status">이 요청은 아래에서 다시 시도했습니다.</p>;
+  if (turn.requestId !== requestId) {
+    const past = turn.failedAttempts?.find(item => item.requestId === requestId);
+    return <p className="lw-old-status" data-failed-request-id={past?.requestId}>이 요청은 아래에서 다시 시도했습니다.{past?.error ? ` (이전 실패 보존: ${past.error})` : ""}</p>;
+  }
   if (turn.status === "complete") return null;
   if (turn.status === "pending") return <div className="lw-waiting" role="status"><span className="lw-pulse" />{label}의 {waiting}</div>;
-  return <div className={`lw-request-error ${turn.status === "cancelled" ? "lw-cancelled" : ""}`}><p>{turn.error || "응답 기다리기를 중단했습니다."}</p>{turn.status === "failed" && current && <div><button type="button" onClick={onRetry} disabled={busy || locked}>같은 질문 다시 보내기</button><button type="button" onClick={onDismiss}>이 요청 접기</button></div>}</div>;
+  return <div className={`lw-request-error ${turn.status === "cancelled" ? "lw-cancelled" : ""}`}><p>{turn.error || "응답 기다리기를 중단했습니다."}</p>{current && (turn.status === "failed" || onCheckServerResult) && <div>{turn.status === "failed" && <button type="button" onClick={onRetry} disabled={busy || locked}>같은 질문 다시 보내기</button>}{turn.status === "failed" && <button type="button" onClick={onDismiss}>이 요청 접기</button>}{onCheckServerResult && <button type="button" onClick={onCheckServerResult} disabled={busy || locked}>서버 보관 결과 확인</button>}</div>}</div>;
 }
 
 /** The question box under the conversation. */

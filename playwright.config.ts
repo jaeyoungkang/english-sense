@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { wranglerTestAccessArgs } from "./tests/e2e/access-test-auth";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -10,7 +11,7 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["iPhone 13"], defaultBrowserType: "chromium" } },
   ],
   webServer: process.env.TEST_BASE_URL ? undefined : {
-    command: "npx wrangler dev --ip 127.0.0.1 --port 8787",
+    command: `npx wrangler dev --ip 127.0.0.1 --port 8787 ${wranglerTestAccessArgs()}`,
     url: "http://127.0.0.1:8787/", reuseExistingServer: !process.env.CI, timeout: 120_000,
   },
 });

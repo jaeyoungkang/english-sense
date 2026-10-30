@@ -7,9 +7,10 @@ import { LEARNING_CHAT_ENDPOINT, learningChatLimits } from "@/lib/learning-chat-
 import { characterCount, historyFor, markTurn, startThread, threadLimit, updateArtifact, activeThread, type WorkspaceTurn } from "@/lib/learning-thread";
 import type { LessonCheckRequest } from "@/lib/lesson-contract";
 import { readLessonChatResponse, type LessonChatRequest } from "@/lib/lesson-chat-contract";
+import type { BrowserImportItem } from "@/lib/learner-record-contract";
 import {
   acceptLessonCard, acceptLessonReply, acceptLessonReveal, beginLessonTurn, buildLessonCardRequest, buildLessonCheckRequest, buildLessonRevealRequest, createLessonState, lessonAccess,
-  openedCardOf, projectLessonArtifacts, registerLessonArtifact, retryLessonTurn, selectLessonQuestion, submitLessonAttempt,
+  openedCardOf, projectLessonArtifacts, recordLessonActionFailure, recoverLessonServerReply, registerLessonArtifact, retryLessonTurn, selectLessonQuestion, submitLessonAttempt,
   type LessonArtifact, type LessonEvent, type LessonState,
 } from "@/lib/lesson-workspace-state";
 import { splitBlanks } from "@/lib/fill-blank";
@@ -22,6 +23,7 @@ import { useReadingHold } from "@/components/use-reading-hold";
 import { EventLine, JudgementItem, JudgementLine, JudgementStatus, OldVersionNotice, postLessonCheck, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
 import { AssistantReply, QuestionComposer, RequestStatus, UserRequest } from "@/components/workspace-chat";
 import { NoteBlock, NoteTools, NotesBanner, NotesButton, NotesFact, NotesProvider, usePenNotes } from "@/components/pen-notes";
+import { PersonalRecordSyncBar, usePersonalRecordSync } from "@/components/personal-record-sync";
 import { cardBasisRuns, cardBlocks, cardKey, cardSentenceRuns, isClosedCardBlock } from "@/lib/note-blocks";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -59,6 +61,24 @@ export function CardLesson({ view }: { view: CardLessonView }) {
   // viewport must not push the page: the piece of a card at the top of the viewport is put back where it was when a card opens.
   useReadingHold(openedKey, hydrated, ".lw-document-flow section.cl-card > :not(.lw-sr-only)");
   const notes = usePenNotes({ lessonId: lesson.lessonId, blocks: noteBlocks, hidden: block => isClosedCardBlock(lesson, block, openedOf), hiddenWords: { tag: " · 닫힌 카드의 노트", why: "첫 답을 낸 뒤 카드가 열리면 이동할 수 있습니다." } });
+  const hasLocalWork = record.events.length > 0 || record.artifacts.some(a => a.choice !== null || a.inputs.some(i => Boolean(i.trim())) || Boolean(a.messageDraft.trim()) || a.attempts.length > 0 || a.threads.some(t => t.turns.length > 0 || Boolean(t.draft?.trim())));
+  const sync = usePersonalRecordSync<LessonState>({
+    scope: lesson.lessonId,
+    contentVersion: lesson.contentVersion,
+    localState: record,
+    localReady: hydrated,
+    hasMeaningfulLocalWork: hasLocalWork,
+    collectBrowserImportItems: (): BrowserImportItem[] => {
+      try {
+        const raw = localStorage.getItem(keys.record);
+        return raw ? [{ scope: lesson.lessonId, storageKey: keys.record, legacyVersion: 4, contentVersion: lesson.contentVersion, rawJson: raw }] : [];
+      } catch {
+        return [];
+      }
+    },
+    createFreshState: () => createLessonState(lesson),
+    applyServerState: next => { turns.cancel(); store.unblock(); judge.clear(); setRevealing({}); setOpening({}); setCardNote(null); update(() => next); },
+  });
   const shell = useWorkspaceShell({ storageKeys: { document: keys.document, layout: keys.layout }, documentMode: "plain", hydrated, lastEventId: record.events.at(-1)?.id || null, defaultAnchor: cards[0].questionId, getLastEventId: () => recordRef.current.events.at(-1)?.id || null });
   const { goToEnd, moveToChat, jumpToOutline } = shell;
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -111,7 +131,10 @@ export function CardLesson({ view }: { view: CardLessonView }) {
     const outcome = await postLessonCheck(request);
     if (!alive.current) return;
     if (outcome.ok) { update(previous => acceptLessonReveal(previous, request, outcome.response)); goToEnd(); }
-    else setCardNote({ questionId, text: `답을 가져오지 못했습니다. 첫 답은 남아 있습니다.${outcome.message ? ` ${outcome.message}` : ""} 다시 눌러 주십시오.` });
+    else {
+      update(previous => recordLessonActionFailure(previous, request, outcome.message || "답을 가져오지 못했습니다."));
+      setCardNote({ questionId, text: `답을 가져오지 못했습니다. 첫 답은 남아 있습니다.${outcome.message ? ` ${outcome.message}` : ""} 다시 눌러 주십시오.` });
+    }
     setRevealing(previous => { if (previous[artifactId] !== request.requestId) return previous; const { [artifactId]: _removed, ...rest } = previous; return rest; });
   }
   /** For a record written before cards opened with the first answer: the same first answer is judged again (free) and only the card is taken from the response. */
@@ -171,6 +194,11 @@ export function CardLesson({ view }: { view: CardLessonView }) {
   /** Only this lesson's record key is cleared. Other lessons and the reading position are untouched. */
   function restartFromNewVersion() {
     turns.cancel(); store.unblock();
+    if (sync.isServerConnected) {
+      judge.clear(); setRevealing({}); setOpening({}); setCardNote(null);
+      void sync.archiveAndStartNewRun("new-version");
+      return;
+    }
     try { localStorage.removeItem(keys.record); } catch { /* The new empty record is saved right after. */ }
     judge.clear(); setRevealing({}); setOpening({}); setCardNote(null);
     if (commit(() => selectedId ? selectLessonQuestion(createLessonState(lesson), lesson, selectedId) : createLessonState(lesson))) setNotice("이전 판의 기록을 지우고 새 판으로 시작했습니다.");
@@ -255,7 +283,18 @@ export function CardLesson({ view }: { view: CardLessonView }) {
     if (!turn) return null;
     const status = () => <RequestStatus label={labelOf(artifact)} turn={turn} requestId={event.requestId} current={thread.id === artifact.activeThreadId} waiting="내 답과 판정을 살펴보고 있습니다…" busy={busy} locked={artifact.contentVersion !== lesson.contentVersion}
       onRetry={() => void sendMessage(artifact.artifactId, turn.user, { threadId: thread.id, turnId: turn.id })}
-      onDismiss={() => update(previous => dismissTurn(previous, artifact.artifactId, thread.id, turn.id, event.requestId))} />;
+      onDismiss={() => update(previous => markTurn(previous, artifact.artifactId, thread.id, turn.id, event.requestId, "cancelled", "실패한 요청을 접었습니다. 원래 질문은 그대로 남깁니다."))}
+      onCheckServerResult={sync.isServerConnected && (turn.status === "cancelled" || turn.status === "failed") ? () => {
+        void sync.lookupExecutionResult(turn.requestId).then(exec => {
+          const reply = exec?.status === "succeeded" ? readLessonChatResponse(exec.responsePayload, { requestId: turn.requestId, lessonId: lesson.lessonId, artifactId: artifact.artifactId, questionId: artifact.question.questionId, contentVersion: artifact.contentVersion }) : null;
+          if (reply) {
+            update(previous => recoverLessonServerReply(previous, reply));
+            setNotice("서버에 보관된 응답을 확인해 연결했습니다.");
+          } else {
+            setNotice(exec?.errorMessage || "서버에 보관된 응답을 찾지 못했습니다. 다시 보낼 수 있습니다.");
+          }
+        });
+      } : undefined} />;
     if (event.kind === "reply") return <AssistantReply label={labelOf(artifact)} turn={turn} />;
     if (event.kind === "retry") return <div className="lw-retry-event"><p>{labelOf(artifact)}의 같은 질문을 다시 보냈습니다.</p>{status()}</div>;
     return <div className="lw-turn"><UserRequest label={labelOf(artifact)} turn={turn} />{status()}</div>;
@@ -290,7 +329,7 @@ export function CardLesson({ view }: { view: CardLessonView }) {
     </form>;
   }
 
-  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<>{lesson.work.title} <span className="cl-unit-word">유닛 {lesson.unit.n}</span></>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} outline={outline}
+  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<>{lesson.work.title} <span className="cl-unit-word">유닛 {lesson.unit.n}</span></>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} serverConnected={sync.isServerConnected} syncBar={<PersonalRecordSyncBar sync={sync} />} outline={outline}
     currentList={{ href: view.listHref, title: "이 작품의 유닛 목록" }}
     toolbarActions={<><NotesButton /><button type="button" onClick={newConversation} disabled={!selectedLive}>이 카드 새 대화</button></>}
     toc={{ title: <>{lesson.work.title}{" "}<br />유닛 {lesson.unit.n}</>, lead: `${lesson.unit.when}에 익힐 표현을 카드마다 뜻과 힌트로 떠올려 빈칸을 채웁니다. 첫 답을 내면 카드가 열립니다.`, summary: <><p>카드 {cards.length}개{answered > 0 ? ` · 첫 답을 남긴 카드 ${answered}개` : ""}</p><NotesFact /><p>문서 전체의 목차입니다. 읽기와 풀이는 원하는 순서로 합니다.</p></> }}

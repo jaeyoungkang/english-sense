@@ -8,12 +8,13 @@ interface __BaseEnv_CloudflareEnv {
 	PER_IP_PER_DAY: "30";
 	GLOBAL_PER_DAY: "600";
 	QUOTA_LIMITER: DurableObjectNamespace<import("./worker").DailyQuota>;
+	LEARNER_RECORDS: DurableObjectNamespace<import("./worker").LearnerRecordStore>;
 	WORKER_SELF_REFERENCE: Service<typeof import("./worker").default>;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
 		mainModule: typeof import("./worker");
-		durableNamespaces: "DailyQuota";
+		durableNamespaces: "DailyQuota" | "LearnerRecordStore";
 	}
 	interface Env extends __BaseEnv_CloudflareEnv {}
 }

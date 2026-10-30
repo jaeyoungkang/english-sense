@@ -5,8 +5,10 @@ import askData from "@/content/ask.json";
 import "./ask.css";
 
 import { ASK_FOLLOWUP_ENDPOINT, askFollowupLimits, isAskFollowupResponse, isExplanation, type AskMode as Mode, type Explanation } from "@/lib/ask-contract";
-import { appendAskEntry, appendAskTurn, askHistoryWindow, completeAskEntry, completeAskTurn, createAskEntry, createAskTurn, failAskEntry, failAskTurn, interruptAskRequest, selectAskEntry, serializeAskRecords, setAskComposer, setAskFollowupDraft, type AskEntry, type AskTurn } from "@/lib/ask-records";
+import { ASK_STORAGE_KEY, appendAskEntry, appendAskTurn, askHistoryWindow, completeAskEntry, completeAskTurn, createAskEntry, createAskRecords, createAskTurn, failAskEntry, failAskTurn, interruptAskRequest, recoverAskEntryResult, recoverAskTurnResult, selectAskEntry, serializeAskRecords, setAskComposer, setAskFollowupDraft, type AskEntry, type AskRecords, type AskTurn } from "@/lib/ask-records";
+import { ASK_CONTENT_VERSION, ASK_RECORD_SCOPE, type BrowserImportItem } from "@/lib/learner-record-contract";
 import { useAskRecordStore } from "@/components/ask-record-store";
+import { PersonalRecordSyncBar, usePersonalRecordSync } from "@/components/personal-record-sync";
 
 const contrastOrder = ["영어식", "한국어식 직역", "라틴어 계열"];
 const modes: Mode[] = ["explain", "translate"];
@@ -50,6 +52,30 @@ export function Ask() {
   const alive = useRef(true);
   const formRef = useRef<HTMLFormElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const hasLocalWork = record.entries.length > 0 || Boolean(record.composer.text.trim());
+  const sync = usePersonalRecordSync<AskRecords>({
+    scope: ASK_RECORD_SCOPE,
+    contentVersion: ASK_CONTENT_VERSION,
+    localState: record,
+    localReady: hydrated,
+    hasMeaningfulLocalWork: hasLocalWork,
+    collectBrowserImportItems: (): BrowserImportItem[] => {
+      try {
+        const raw = localStorage.getItem(ASK_STORAGE_KEY);
+        return raw ? [{ scope: ASK_RECORD_SCOPE, storageKey: ASK_STORAGE_KEY, legacyVersion: "ask", contentVersion: ASK_CONTENT_VERSION, rawJson: raw }] : [];
+      } catch {
+        return [];
+      }
+    },
+    createFreshState: () => createAskRecords(),
+    applyServerState: next => {
+      active.current?.controller.abort();
+      active.current = null;
+      setBusy(false);
+      store.blocked.current = false;
+      update(() => next);
+    },
+  });
   useEffect(() => { alive.current = true; return () => { alive.current = false; active.current?.controller.abort(); }; }, []);
   const setComposer = (next: Partial<typeof record.composer>) => update(previous => setAskComposer(previous, { ...previous.composer, ...next }));
   function navigateTab(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -72,7 +98,7 @@ export function Ask() {
     active.current = { controller, entryId, requestId }; setBusy(true); setNotice("");
     const timer = window.setTimeout(() => controller.abort(), 90000);
     try {
-      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: controller.signal });
+      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", "x-ask-request-id": requestId }, body: JSON.stringify(body), signal: controller.signal });
       const data: unknown = await response.json().catch(() => null);
       if (!response.ok) throw new Error(isRecord(data) && typeof data.detail === "string" ? data.detail : failureMessage);
       if (!leaving && alive.current && active.current?.requestId === requestId) success(data);
@@ -145,19 +171,38 @@ export function Ask() {
         <a className="ask-result-jump" href="#res-h">선택한 해설과 대화로 이동 <span aria-hidden="true">↓</span></a>
       </form>
       <section className="ask-archive" aria-labelledby="ask-archive-h"><div className="ask-archive-heading"><h2 id="ask-archive-h">해설 기록 <span>{record.entries.length}개</span></h2><button type="button" disabled={!hydrated || !record.entries.length} onClick={() => exportRecords()}>기록 내려받기</button></div>
-        <p className="ask-storage-fact" role="status">{!hydrated ? "기록 확인 중" : saveState === "failed" ? "저장 실패 · 화면에 유지 중" : "이 브라우저에 임시 보관"} · 서버 보관·기기 간 동기화 없음</p>
+        <p className="ask-storage-fact" role="status">{!hydrated ? "기록 확인 중" : saveState === "failed" ? "저장 실패 · 화면에 유지 중" : "이 브라우저에 임시 보관"} · {sync.isServerConnected ? "개인 서버 보관 연결됨" : "서버 보관·기기 간 동기화 없음"}</p>
         {saveState === "failed" && <div className="ask-store-warning" role="status"><p>{store.error}</p>{!store.blocked.current && <button type="button" onClick={store.retry}>저장 다시 시도</button>}<button type="button" onClick={() => exportRecords(true)}>원본 기록 내려받기</button></div>}
         {notice && <p className="ask-store-warning" role="status">{notice}</p>}
         <p className="ask-archive-note">브라우저 데이터를 지우면 기록을 잃을 수 있습니다. 내려받은 파일은 별도로 보관하십시오.</p>
         {record.entries.length ? <ol>{[...record.entries].reverse().map(entry => <li key={entry.id}><button type="button" aria-pressed={selected?.id === entry.id} onClick={() => update(previous => selectAskEntry(previous, entry.id))}><span className="ask-history-meta">{modeLabel(entry.mode)} · <time dateTime={entry.createdAt}>{when(entry.createdAt)}</time></span><span className="ask-history-text" lang={entry.mode === "explain" ? "en" : "ko"}>{entry.text}</span><span className="ask-history-status">{statusLabel[entry.status]}{entry.turns.length > 0 ? ` · 추가 질문 ${entry.turns.length}개` : ""}{entry.retryOf ? " · 다시 요청" : ""}</span></button></li>)}</ol> : <p className="ask-archive-note">아직 남긴 해설 요청이 없습니다. 예시 해설은 기록에 넣지 않습니다.</p>}
       </section>
+      <PersonalRecordSyncBar sync={sync} />
     </section>
     <section className="ask-result-pane" aria-labelledby="res-h">
       <header className="ask-pane-heading"><span aria-hidden="true">02</span><h2 id="res-h" tabIndex={-1}>해설</h2><span className="ask-result-state" id="res-badge" role="status">{!selected ? "예시 해설" : statusLabel[selected.status]}</span></header>
       {selected && <div className="ask-submitted"><p>{selected.mode === "explain" ? "해설할 영어 문장" : "영어로 옮길 한국어 문장"} · <time dateTime={selected.createdAt}>{when(selected.createdAt)}</time></p><blockquote lang={selected.mode === "explain" ? "en" : "ko"}>{selected.text}</blockquote></div>}
-      <div className="ask-result" id="result" aria-live="polite" aria-busy={!!ownPending}>{ownPending ? <div className="ask-waiting"><span className="ask-waiting-mark" aria-hidden="true" /><p>해설을 만들고 있습니다.<span>다른 기록을 열어도 응답은 이 요청에 남습니다.</span></p></div> : ownFailed ? <div className="ask-error"><p role="alert">{selected.error || "페이지를 떠난 요청의 결과는 확인하지 못했습니다. 자동으로 다시 보내지 않았습니다."}</p><p>요청 원문은 기록에 남아 있습니다. 다시 요청하면 새 기록으로 남고 사용 횟수가 추가로 차감될 수 있습니다.</p><button type="button" disabled={busy || store.blocked.current} onClick={() => void requestExplanation(selected)}>이 문장 다시 요청</button></div> : <ExplanationResult data={selected?.result ?? askData.sample as Explanation} />}</div>
+      <div className="ask-result" id="result" aria-live="polite" aria-busy={!!ownPending}>{ownPending ? <div className="ask-waiting"><span className="ask-waiting-mark" aria-hidden="true" /><p>해설을 만들고 있습니다.<span>다른 기록을 열어도 응답은 이 요청에 남습니다.</span></p></div> : ownFailed ? <div className="ask-error"><p role="alert">{selected.error || "페이지를 떠난 요청의 결과는 확인하지 못했습니다. 자동으로 다시 보내지 않았습니다."}</p><p>요청 원문은 기록에 남아 있습니다. 다시 요청하면 새 기록으로 남고 사용 횟수가 추가로 차감될 수 있습니다.</p><button type="button" disabled={busy || store.blocked.current} onClick={() => void requestExplanation(selected)}>이 문장 다시 요청</button>{sync.isServerConnected && <button type="button" disabled={busy || store.blocked.current} onClick={() => {
+        void sync.lookupExecutionResult(selected.id).then(exec => {
+          if (exec?.status === "succeeded" && isExplanation(exec.responsePayload)) {
+            update(previous => recoverAskEntryResult(previous, selected.id, exec.responsePayload as Explanation, exec.updatedAt || new Date().toISOString()));
+            setNotice("서버에 보관된 해설 결과를 확인해 연결했습니다.");
+          } else {
+            setNotice(exec?.errorMessage || "서버에 보관된 해설 결과를 찾지 못했습니다. 다시 요청할 수 있습니다.");
+          }
+        });
+      }}>서버 보관 결과 확인</button>}</div> : <ExplanationResult data={selected?.result ?? askData.sample as Explanation} />}</div>
       {selected?.result && <section className="ask-followups" aria-labelledby="ask-followups-h"><h2 id="ask-followups-h">이 해설에서 이어 묻기</h2><p className="ask-followup-guide">요청한 문장과 해설, 앞선 질답을 함께 읽고 답합니다. 추가 질문도 기록에 남습니다.</p>
-        {selected.turns.length > 0 && <ol className="ask-conversation" aria-label="이 해설의 추가 질문과 답변">{selected.turns.map(turn => <li key={turn.id} data-turn-id={turn.id}><div className="ask-user-turn"><p className="ask-turn-label">내 질문 · <time dateTime={turn.createdAt}>{when(turn.createdAt)}</time>{turn.retryOf ? " · 다시 보냄" : ""}</p><p>{turn.message}</p></div>{turn.status === "succeeded" ? <div className="ask-assistant-turn"><p className="ask-turn-label">AI 답변</p><p>{turn.reply}</p></div> : turn.status === "pending" ? <p className="ask-turn-state" role="status">응답을 기다리고 있습니다.</p> : <div className="ask-turn-state"><p role="status">{turn.error || "페이지를 떠난 요청의 응답을 확인하지 못했습니다. 자동으로 다시 보내지 않았습니다."}</p><button type="button" disabled={busy || store.blocked.current} onClick={() => void sendFollowup(selected.id, turn)}>이 질문 다시 보내기</button><p className="ask-archive-note">새 요청으로 기록하며 사용 횟수가 추가로 차감될 수 있습니다.</p></div>}</li>)}</ol>}
+        {selected.turns.length > 0 && <ol className="ask-conversation" aria-label="이 해설의 추가 질문과 답변">{selected.turns.map(turn => <li key={turn.id} data-turn-id={turn.id}><div className="ask-user-turn"><p className="ask-turn-label">내 질문 · <time dateTime={turn.createdAt}>{when(turn.createdAt)}</time>{turn.retryOf ? " · 다시 보냄" : ""}</p><p>{turn.message}</p></div>{turn.status === "succeeded" ? <div className="ask-assistant-turn"><p className="ask-turn-label">AI 답변</p><p>{turn.reply}</p></div> : turn.status === "pending" ? <p className="ask-turn-state" role="status">응답을 기다리고 있습니다.</p> : <div className="ask-turn-state"><p role="status">{turn.error || "페이지를 떠난 요청의 응답을 확인하지 못했습니다. 자동으로 다시 보내지 않았습니다."}</p><button type="button" disabled={busy || store.blocked.current} onClick={() => void sendFollowup(selected.id, turn)}>이 질문 다시 보내기</button>{sync.isServerConnected && <button type="button" disabled={busy || store.blocked.current} onClick={() => {
+          void sync.lookupExecutionResult(turn.id).then(exec => {
+            if (exec?.status === "succeeded" && isAskFollowupResponse(exec.responsePayload) && exec.responsePayload.recordId === selected.id && exec.responsePayload.requestId === turn.id) {
+              update(previous => recoverAskTurnResult(previous, selected.id, turn.id, (exec.responsePayload as { reply: string }).reply, exec.updatedAt || new Date().toISOString()));
+              setNotice("서버에 보관된 답변을 확인해 연결했습니다.");
+            } else {
+              setNotice(exec?.errorMessage || "서버에 보관된 답변을 찾지 못했습니다. 다시 보낼 수 있습니다.");
+            }
+          });
+        }}>서버 보관 결과 확인</button>}<p className="ask-archive-note">새 요청으로 기록하며 사용 횟수가 추가로 차감될 수 있습니다.</p></div>}</li>)}</ol>}
         <form className="ask-followup-form" onSubmit={event => { event.preventDefault(); void sendFollowup(selected.id); }}><label htmlFor="ask-followup">이 해설에 대해 추가 질문하기</label><textarea id="ask-followup" value={selected.followupDraft} maxLength={askFollowupLimits.message} rows={3} onChange={event => { const value = event.target.value; update(previous => setAskFollowupDraft(previous, selected.id, value)); }} aria-describedby="ask-followup-context" onKeyDown={event => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} /><div className="ask-input-foot"><span>Ctrl / ⌘ + Enter로 보내기</span><span>{[...selected.followupDraft].length} / {askFollowupLimits.message}</span></div><p id="ask-followup-context" className="ask-archive-note">{contextWindow?.droppedCount ? `원래 해설과 최근 질답 ${contextWindow.messages.length / 2}개를 AI에게 보냅니다. 앞선 질답 ${contextWindow.droppedCount}개도 기록에는 남아 있습니다.` : "원래 해설과 이 기록의 앞선 질답을 함께 보냅니다."}</p><button className="ask-submit" type="submit" disabled={busy || !selected.followupDraft.trim() || store.blocked.current}>추가 질문 보내기 <span aria-hidden="true">→</span></button>{busy && active.current?.entryId !== selected.id && <p className="ask-archive-note">다른 기록의 응답을 기다리고 있습니다. 질문 초안은 계속 쓸 수 있습니다.</p>}</form>
       </section>}
     </section>

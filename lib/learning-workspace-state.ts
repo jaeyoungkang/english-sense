@@ -3,8 +3,8 @@ import { LEARNING_LESSON_ID, learningChatLimits, type ArtifactInitialAttempt } f
 import { characterCount, findArtifact, identity, newId, object, publicKeys, restoredTurns, text, updateArtifact, validTurn, type WorkspaceThread, type WorkspaceTurn } from "./learning-thread";
 
 // The conversation lifecycle is shared with lesson v4 (learning-thread.ts); these names stay available from here.
-export { acceptReply, activeThread, beginTurn, characterCount, findArtifact, historyFor, markTurn, retryTurn, startThread, threadLimit, updateArtifact } from "./learning-thread";
-export type { WorkspaceThread, WorkspaceTurn } from "./learning-thread";
+export { acceptReply, activeThread, beginTurn, characterCount, findArtifact, historyFor, markTurn, recoverServerTurnReply, retryTurn, startThread, threadLimit, updateArtifact } from "./learning-thread";
+export type { FailedTurnAttempt, WorkspaceThread, WorkspaceTurn } from "./learning-thread";
 
 export const WORKSPACE_STORAGE_KEYS = { v3: "english-sense-learning-workspace-v3", v2: "english-sense-learning-workspace-v2", v1: "english-sense-learning-workspace-v1" } as const;
 export type QuizArtifact = { artifactId: string; lessonId: typeof ARTIFACT_LESSON_ID; contentVersion: string; question: PublicLearningQuestion; source: PublicLearningCatalog["source"]; choice: string; answerDraft: string; reason: string; initialAttempt: ArtifactInitialAttempt | null; revisions: { text: string }[]; revisionDraft: string; revisionOpen: boolean; messageDraft: string; threads: WorkspaceThread[]; activeThreadId: string; legacyImport?: { version: 1 | 2; record: LegacyBase & { events?: LegacyEvent[] } } };

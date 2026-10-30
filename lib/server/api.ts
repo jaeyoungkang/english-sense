@@ -1,5 +1,8 @@
 import prompt from "./prompt.json";
 import { isExplanation, type Explanation } from "../ask-contract";
+import { ASK_RECORD_SCOPE, isValidId } from "../learner-record-contract";
+import { type AccessAuthEnv } from "./access-auth";
+import { trackOwnerAiExecution, type LearnerRecordNamespace } from "./learner-records";
 export { isExplanation, type Explanation } from "../ask-contract";
 
 export interface QuotaNamespace {
@@ -7,13 +10,14 @@ export interface QuotaNamespace {
   get(id: unknown): { fetch(request: Request): Promise<Response> };
 }
 
-export interface ApiEnv {
+export interface ApiEnv extends AccessAuthEnv {
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_MODEL?: string;
   ANTHROPIC_EFFORT?: string;
   PER_IP_PER_DAY?: string;
   GLOBAL_PER_DAY?: string;
   QUOTA_LIMITER?: QuotaNamespace;
+  LEARNER_RECORDS?: LearnerRecordNamespace;
 }
 
 export interface Dependencies {
@@ -192,6 +196,20 @@ export async function handleAsk(request: Request, mode: "explain" | "translate",
     checkOrigin(request);
     const text = await inputText(request);
     if (!ready(env)) throw new ApiError(503, unavailable);
+    const headerReqId = request.headers.get("x-ask-request-id")?.trim();
+    if (headerReqId && isValidId(headerReqId)) {
+      const result = await trackOwnerAiExecution(
+        request,
+        env,
+        dependencies,
+        { scope: ASK_RECORD_SCOPE, requestId: headerReqId, targetId: headerReqId, kind: mode },
+        async () => {
+          await takeQuota(request, env, dependencies);
+          return await askClaude(mode, text, env, dependencies);
+        },
+      );
+      return json(result);
+    }
     await takeQuota(request, env, dependencies);
     return json(await askClaude(mode, text, env, dependencies));
   } catch (error) {

@@ -1,11 +1,12 @@
 import prompt from "./prompt.json";
 import { ApiError, checkOrigin, takeQuota, type ApiEnv, type Dependencies } from "./api";
+import { trackOwnerAiExecution } from "./learner-records";
 import { getServerLearningQuestion } from "./learning-catalog";
 import { getLessonContentVersion, getServerLessonQuestion } from "./lesson-catalog";
 import { lessonContext, lessonGuidance, lessonSystemPrompt } from "./lesson-chat-context";
 import { LessonAttemptError, judge } from "./lesson-judge";
 import { selectSenseHeadwords } from "./sense-entries";
-import { LEARNING_QUESTION_IDS, LEGACY_HAVE_CONTENT_VERSION } from "../learning-catalog";
+import { ARTIFACT_LESSON_ID, LEARNING_QUESTION_IDS, LEGACY_HAVE_CONTENT_VERSION } from "../learning-catalog";
 import { isLessonChatRequest, type LessonChatRequest, type LessonChatResponse } from "../lesson-chat-contract";
 import { getLessonEntry } from "../lesson-registry";
 import { isArtifactLearningChatRequest, isLearningChatRequest, learningChatLimits, type ArtifactLearningChatRequest, type ArtifactLearningChatResponse, type LearningChatErrorCode, type LearningChatRequest, type LearningChatResponse } from "../learning-chat-contract";
@@ -156,8 +157,17 @@ async function handleLessonChat(input: LessonChatRequest, request: Request, env:
   if (input.initialAttempt === null) return json(reply(input, lessonGuidance(entry.kind), "guidance"));
   const judgement = judge(question, input.initialAttempt);
   if (!env.ANTHROPIC_API_KEY?.trim() || typeof env.QUOTA_LIMITER?.idFromName !== "function" || typeof env.QUOTA_LIMITER?.get !== "function") throw new ChatError(503, "unavailable", unavailable);
-  await takeQuota(request, env, dependencies);
-  return json(reply(input, await ask(input, lessonSystemPrompt(entry.kind, lessonContext(question, judgement), selectSenseHeadwords(question, input.message)), request, env, dependencies), "ai"));
+  const responsePayload = await trackOwnerAiExecution(
+    request,
+    env,
+    dependencies,
+    { scope: entry.lessonId, requestId: input.requestId, targetId: input.artifactId, kind: "learn-chat" },
+    async () => {
+      await takeQuota(request, env, dependencies);
+      return reply(input, await ask(input, lessonSystemPrompt(entry.kind, lessonContext(question, judgement), selectSenseHeadwords(question, input.message)), request, env, dependencies), "ai");
+    },
+  );
+  return json(responsePayload);
 }
 
 export async function handleLearningChat(request: Request, env: ApiEnv, dependencies: Dependencies = {}): Promise<Response> {
@@ -177,8 +187,17 @@ export async function handleLearningChat(request: Request, env: ApiEnv, dependen
     // No solution is sent to a model before an initial attempt. This path is free and deterministic.
     if (input.initialAttempt === null) return json(reply(input, target.question.type === "produce" ? guidance.replace("문장 하나와 고른 이유를 제출", "직접 쓴 영어 문장을 제출") : guidance, "guidance"));
     if (!env.ANTHROPIC_API_KEY?.trim() || typeof env.QUOTA_LIMITER?.idFromName !== "function" || typeof env.QUOTA_LIMITER?.get !== "function") throw new ChatError(503, "unavailable", unavailable);
-    await takeQuota(request, env, dependencies);
-    return json(reply(input, await ask(input, systemPrompt(target.context), request, env, dependencies), "ai"));
+    const responsePayload = await trackOwnerAiExecution(
+      request,
+      env,
+      dependencies,
+      { scope: ARTIFACT_LESSON_ID, requestId: input.requestId, targetId: "artifactId" in input ? input.artifactId : input.lessonId, kind: "learn-chat" },
+      async () => {
+        await takeQuota(request, env, dependencies);
+        return reply(input, await ask(input, systemPrompt(target.context), request, env, dependencies), "ai");
+      },
+    );
+    return json(responsePayload);
   } catch (error) {
     const mapped = error instanceof ChatError ? error
       : error instanceof LessonAttemptError ? new ChatError(400, "invalid_request", "문제의 답 형식과 제출한 답이 맞지 않습니다.")

@@ -3,6 +3,7 @@
 import openNextWorker from "./.open-next/worker.js";
 import { DurableObject } from "cloudflare:workers";
 import { handleLegacyApi } from "./lib/server/legacy-api";
+import { LearnerRecordStore as RecordStorage } from "./lib/server/learner-records";
 import { DailyQuota as QuotaStorage } from "./lib/server/quota";
 
 export class DailyQuota extends DurableObject<CloudflareEnv> {
@@ -13,6 +14,15 @@ export class DailyQuota extends DurableObject<CloudflareEnv> {
   }
   fetch(request: Request) { return this.quota.fetch(request); }
   alarm() { return this.quota.alarm(); }
+}
+
+export class LearnerRecordStore extends DurableObject<CloudflareEnv> {
+  private readonly records: RecordStorage;
+  constructor(context: DurableObjectState, env: CloudflareEnv) {
+    super(context, env);
+    this.records = new RecordStorage(context);
+  }
+  fetch(request: Request) { return this.records.fetch(request); }
 }
 
 const worker: ExportedHandler<CloudflareEnv> = {

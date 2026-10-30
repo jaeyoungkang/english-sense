@@ -13,10 +13,12 @@ import { NoteBlock, NoteTools, NotesBanner, NotesButton, NotesFact, NotesProvide
 import { haveBlocks, haveKey, haveOptionKey, haveSourceRuns } from "@/lib/note-blocks";
 import { ARTIFACT_LESSON_ID } from "@/lib/learning-catalog";
 import { useReadingHold } from "@/components/use-reading-hold";
+import { PersonalRecordSyncBar, usePersonalRecordSync } from "@/components/personal-record-sync";
 import "./lesson-common.css";
 import { DOCUMENT_UI_STORAGE_KEY, toggleReference, buildDocumentNodes, referenceOutlineId, artifactOutlineId, documentAnchorId } from "@/lib/document-workspace-state";
 import { WORKSPACE_LAYOUT_STORAGE_KEY } from "@/lib/workspace-layout-state";
-import { WORKSPACE_STORAGE_KEYS, createWorkspace, restoreWorkspace, updateArtifact, selectQuestion, projectDocumentArtifacts, findArtifact, activeThread, submitInitial, addRevision, beginTurn, retryTurn, acceptReply, markTurn, startThread, historyFor, threadLimit, characterCount as chars, type WorkspaceState, type QuizArtifact, type WorkspaceTurn, type WorkspaceEvent } from "@/lib/learning-workspace-state";
+import type { BrowserImportItem } from "@/lib/learner-record-contract";
+import { WORKSPACE_STORAGE_KEYS, createWorkspace, restoreWorkspace, updateArtifact, selectQuestion, projectDocumentArtifacts, findArtifact, activeThread, submitInitial, addRevision, beginTurn, retryTurn, acceptReply, recoverServerTurnReply, markTurn, startThread, historyFor, threadLimit, characterCount as chars, type WorkspaceState, type QuizArtifact, type WorkspaceTurn, type WorkspaceEvent } from "@/lib/learning-workspace-state";
 
 const SHELL_STORAGE_KEYS = { document: DOCUMENT_UI_STORAGE_KEY, layout: WORKSPACE_LAYOUT_STORAGE_KEY };
 
@@ -49,6 +51,25 @@ export function LearningWorkspace({ catalog, materials }: { catalog: PublicLearn
   const [notice, setNotice] = useState("");
   const noteBlocks = useMemo(() => haveBlocks(catalog, materials), [catalog, materials]);
   const notes = usePenNotes({ lessonId: ARTIFACT_LESSON_ID, blocks: noteBlocks });
+  const sync = usePersonalRecordSync<WorkspaceState>({
+    scope: ARTIFACT_LESSON_ID,
+    contentVersion: catalog.contentVersion,
+    localState: record,
+    localReady: hydrated,
+    hasMeaningfulLocalWork: record.events.length > 0 || record.artifacts.some(a => Boolean(a.choice || a.answerDraft.trim() || a.reason.trim() || a.revisionDraft.trim() || a.messageDraft.trim() || a.initialAttempt || a.revisions.length > 0 || a.threads.some(t => t.turns.length > 0 || Boolean(t.draft?.trim())))),
+    collectBrowserImportItems: () => {
+      const items: BrowserImportItem[] = [];
+      for (const [ver, key] of [[3, WORKSPACE_STORAGE_KEYS.v3], [2, WORKSPACE_STORAGE_KEYS.v2], [1, WORKSPACE_STORAGE_KEYS.v1]] as const) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) items.push({ scope: ARTIFACT_LESSON_ID, storageKey: key, legacyVersion: ver, contentVersion: catalog.contentVersion, rawJson: raw });
+        } catch { /* ignore */ }
+      }
+      return items;
+    },
+    createFreshState: () => createWorkspace(catalog),
+    applyServerState: next => { turns.cancel(); store.unblock(); update(() => next); },
+  });
   const shell = useWorkspaceShell({ storageKeys: SHELL_STORAGE_KEYS, documentMode: "references", hydrated, lastEventId: lastListedEventId(record.events), defaultAnchor: referenceOutlineId("have"), getLastEventId: () => recordRef.current.events.at(-1)?.id || null });
   const { documentState, dialog, setDialog, closeDialog, goToEnd, moveToChat, jumpToOutline, addMaterial } = shell;
   useEffect(() => { const linked = () => { if (["#words", "#resources"].includes(location.hash)) setDialog("resources"); }; linked(); window.addEventListener("hashchange", linked); return () => window.removeEventListener("hashchange", linked); }, []);
@@ -127,7 +148,17 @@ export function LearningWorkspace({ catalog, materials }: { catalog: PublicLearn
   function requestStatus(artifact: QuizArtifact, threadId: string, turn: WorkspaceTurn, requestId: string) {
     return <RequestStatus label={targetLabel(artifact)} turn={turn} requestId={requestId} current={threadId === artifact.activeThreadId} waiting={artifact.initialAttempt ? "장면과 내 답을 살펴보고 있습니다…" : "준비 안내를 가져오고 있습니다…"} busy={busy} locked={artifact.contentVersion !== catalog.contentVersion}
       onRetry={() => void sendMessage(artifact.artifactId, turn.user, turn.origin, undefined, { threadId, turnId: turn.id })}
-      onDismiss={() => update(previous => markTurn(previous, artifact.artifactId, threadId, turn.id, requestId, "cancelled", "실패한 요청을 접었습니다. 원래 질문은 그대로 남깁니다."))} />;
+      onDismiss={() => update(previous => markTurn(previous, artifact.artifactId, threadId, turn.id, requestId, "cancelled", "실패한 요청을 접었습니다. 원래 질문은 그대로 남깁니다."))}
+      onCheckServerResult={sync.isServerConnected && (turn.status === "cancelled" || turn.status === "failed") ? () => {
+        void sync.lookupExecutionResult(turn.requestId).then(exec => {
+          if (exec?.status === "succeeded" && isArtifactLearningChatResponse(exec.responsePayload)) {
+            update(previous => recoverServerTurnReply(previous, exec.responsePayload as never));
+            setNotice("서버에 보관된 응답을 확인해 연결했습니다.");
+          } else {
+            setNotice(exec?.errorMessage || "서버에 보관된 응답을 찾지 못했습니다. 다시 보낼 수 있습니다.");
+          }
+        });
+      } : undefined} />;
   }
   function revisionForm(artifact: QuizArtifact) {
     const number = numberOf(artifact), locked = artifact.contentVersion !== catalog.contentVersion, fieldId = `${artifact.artifactId}-revision`;
@@ -199,7 +230,7 @@ export function LearningWorkspace({ catalog, materials }: { catalog: PublicLearn
     return <div className="lw-turn"><EventLine questionId={artifact.question.questionId} text={sent} {...jump} />{requestStatus(artifact, thread.id, turn, event.requestId)}</div>;
   }
 
-  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord="have" save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} outline={outlineItems}
+  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord="have" save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} serverConnected={sync.isServerConnected} syncBar={<PersonalRecordSyncBar sync={sync} />} outline={outlineItems}
     toolbarActions={<><button type="button" aria-label="내 수행 기록" title="내 수행 기록" onClick={() => setDialog("records")}><Icon kind="attempt" size={18} /><span>기록</span></button><a href="#resources" aria-label="감각 자료 찾기" title="감각 자료 찾기" onClick={event => { event.preventDefault(); setDialog("resources"); }}><Icon kind="book" size={18} /><span>자료 추가</span></a><NotesButton /><button type="button" onClick={newConversation}>이 퀴즈 새 대화</button></>}
     toc={{ title: <>영어 감각<br />학습 문서</>, lead: "장면을 읽고, 수행과 대화를 남깁니다.", summary: <><p>자료 {documentState.references.length}개 · 문제 {catalog.questions.length}개</p><NotesFact /><p>문서 전체의 목차입니다. 읽기와 풀이는 원하는 순서로 합니다.</p></> }}
     referenceStack={<section className="lw-reference lw-reference-stack" aria-label="상단 감각 자료 스택"><div className="lw-reference-stack-inner">{[...documentState.references].reverse().map(reference => { const material = materials.find(item => item.id === reference.id); if (!material) return null; const expanded = documentState.expandedReferenceId === material.id; return <section className="lw-reference-item" data-reference-id={material.id} key={material.id}><button className="lw-reference-toggle" type="button" aria-label={`${material.id} 감각 자료 ${expanded ? "접기" : "펼치기"}`} aria-expanded={expanded} aria-controls={`lw-stack-detail-${material.id}`} onClick={() => shell.setDocumentState(previous => toggleReference(previous, material.id))}><span className="lw-reference-word">{material.id}</span><span>{material.sense}</span><span aria-hidden="true">{expanded ? "−" : "+"}</span></button><div id={`lw-stack-detail-${material.id}`} hidden={!expanded}><ReferenceMaterialContent material={material} compact /></div></section>; })}</div></section>}

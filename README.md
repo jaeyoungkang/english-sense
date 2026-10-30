@@ -7,8 +7,7 @@ have 감각 설명·공개 예시와 일곱 문제를 처음부터 펼친 문서
 전체 공개 문항과 추가한 참고 자료에서 목차가 생기고, 콘텐츠 칸의 자료 스택에서는 최근 추가한 감각 자료를 펼친다.
 좁은 화면은 탭 없이 문서 다음에 대화를 이어 놓는다. have·get·be·go·come 설명을 문서에 추가해 읽는다.
 기존 have 책 장면 일곱 문항을 고르기·쓰기로 풀고, 카드별 처음 답·수정·질답을 유지한다.
-대화의 ‘함께 풀 문제’를 바꾸어 원하는 문제와 대화를 이어 간다. 수행·대화는 같은 브라우저에 임시 보관한다.
-개인 서버 저장·인증·다른 기기 동기화는 아직 없다. 제출 전에는 준비된 과업 안내를, 제출 후에는 실제 AI 응답을 제공한다.
+대화의 ‘함께 풀 문제’를 바꾸어 원하는 문제와 대화를 이어 간다. 비로그인 상태에서는 수행·대화를 같은 브라우저에 임시 보관하고, Cloudflare Access로 로그인하면 학습자 전용 SQLite Durable Object(`LearnerRecordStore`)에 과정 원문과 최신 초안을 보관해 다른 기기에서 이어 쓰거나 `study-and-learn` 정본 과정 묶음으로 내보낸다. 제출 전에는 준비된 과업 안내를, 제출 후에는 실제 AI 응답을 제공한다.
 
 읽기 이야기 15편(`/reading/<이야기>/`)과 책·영화 사전 훈련 유닛 13개(`/prep/<작품>/unit-<n>/`)도 같은 작업 공간의 수업이다. 이야기는 시간을 재어 읽고
 본문을 가린 뒤 문제를 풀고, 카드는 표현 카드마다 빈칸을 채운다. 정답·해설은 서버 정본에만 있고 첫 답 뒤에 무료 판정 경로(`/api/lesson-check/`)가 정본과 비교해 알려 준다.
@@ -78,6 +77,10 @@ npm run dev
 | `POST /api/lesson-check/` | 이야기 보기·카드 빈칸을 서버 정본과 비교하는 무료 판정과 카드 답 보기. AI와 사용량 한도를 쓰지 않는다. 계약은 `lib/lesson-contract.ts` |
 | `POST /api/explain/` | 영어 문장을 감각으로 해설한다 |
 | `POST /api/translate/` | 한국어를 영어로 옮기고 감각으로 해설한다 |
+| `POST /api/ask-followup/` | 문장 해설 결과에 이어 묻는 추가 질문에 답한다 |
+| `GET/POST /api/learner-records/` | Cloudflare Access로 인증한 학습자의 수업·해설기 기록 조회·저장·충돌 해소·명시적 가져오기·보관함 이동/복원 |
+| `GET /api/learner-records/executions/` | 브라우저가 닫힌 뒤에도 서버가 보관한 AI 실행 결과를 유료 재호출 없이 조회한다 |
+| `GET /api/learner-records/export/`, `POST /api/learner-records/ack/` | `study-and-learn` 정본 과정 묶음(`web-process-v1`) 내보내기와 정본 수신 확인 반영 |
 
 단문 해설·변환 POST 본문은 `{"text":"I don't get it."}` 같은 JSON이고, 빈 문장을 제외한 300자까지 받는다.
 학습 대화는 문항·자료 판·아티팩트·최초 답·수정·이전 질답을 보내는 별도 계약이며 같은 300자 제한을 쓰지 않는다.
@@ -86,7 +89,7 @@ npm run dev
 
 UTC 날짜를 기준으로 한 IP에서 하루 30번, 전체에서 600번까지 요청할 수 있다.
 SQLite 기반 Durable Object가 두 한도를 함께 검사하므로 실행 인스턴스나 배포가 달라져도 같은 날짜의 사용량을 공유한다.
-서버는 입력 문장이나 원래 IP를 보관하지 않는다. 문장 해설기의 요청·결과·추가 질답은 이 브라우저의 복원 사본(`english-sense-ask-v1`)에 남으며 파일로 내려받을 수 있다. 개인 서버 보관·기기 간 동기화·정본 이관은 아직 없다. 한도 검사에 쓰는 날짜별 IP 해시와 횟수는 짧게 보관한 뒤 지운다.
+공개 해설 API는 입력 문장이나 원래 IP를 영구 보관하지 않는다. 문장 해설기의 요청·결과·추가 질답은 비로그인 시 이 브라우저의 복원 사본(`english-sense-ask-v1`)에 남으며 파일로 내려받을 수 있고, Cloudflare Access 로그인 시 작업 공간 29개와 함께 개인 서버 보관(`LearnerRecordStore`)·기기 간 동기화·`study-and-learn` 정본 이관(`scripts/sync-study-records.ts`)에 연결된다. 한도 검사에 쓰는 날짜별 IP 해시와 횟수는 짧게 보관한 뒤 지운다.
 
 ## 검사와 배포
 
@@ -133,4 +136,4 @@ npm run deploy
 [콘텐츠·대화 작업 계약과 모델 평가](docs/tasks/content-chat-workspace.md)에 있다. 기존 퀴즈 수행의 근거는
 [퀴즈 아티팩트 계약](docs/tasks/quiz-artifacts.md)에 있다. [이전 시안](design/prototype/index.html)은 소개 중심 첫 제안으로 남겨 둔다.
 
-개인 서버 기록과 다른 기기 이어 하기는 아직 없다. 현재 수행·대화와 문서 탐색 상태는 같은 브라우저에만 임시 보관한다.
+작업 공간 29개와 `/ask/` 문장 해설기의 개인 서버 기록·기기 간 이어 하기·정본 이관 계약과 검증 근거는 [풀이 과정 기록 보존 계약](docs/tasks/learning-record-preservation.md)에 있다. 정적 연습과 펜 노트(`english-sense-notes-v1:<lessonId>`)는 같은 브라우저에 보관한다.

@@ -38,13 +38,15 @@
 | `lib/learning-chat-contract.ts`, `lib/server/learning-chat.ts` | 다중 대화 계약·서버 정본 맥락 구성·공급자 응답 | 브라우저 대화는 비신뢰 자료로 받고 기존 Origin·사용량 정책을 공유한다 | (검사: `npm test`) |
 | `lib/lesson-chat-contract.ts`, `lib/server/lesson-chat-context.ts` | 이야기·카드 수업의 대화 요청·응답 계약(수업·문항은 레지스트리), 수업 종류별 AI 맥락·안내·시스템 문구 | 첫 답은 서버가 `judge`로 다시 판정해 맥락에 넣고 브라우저의 판정 값은 받지 않는다. 장면 수업의 요청·응답 모양은 `learning-chat-contract.ts`가 그대로 받는다 | (검사: `npm test`) |
 | `lib/server/cloudflare.ts` | 요청의 서버 환경 조회 | `server-only` 경계로 클라이언트 import를 막는다 | (검사: `npm run cf:build`) |
-| `worker.ts`, `lib/server/quota.ts` | OpenNext 처리 연결과 일일 요청 횟수 | SQLite 기반 Durable Object가 전역·IP 한도를 함께 갱신한다 | (검사: `npm test`) |
+| `lib/learner-record-contract.ts`, `lib/process-bundle.ts`, `scripts/sync-study-records.ts` | 작업 공간 29개(v3·v4)와 `/ask/` 개인 기록의 저장 명령·과정 사건·자료 판 스냅샷·초안·외부 실행 기록 계약, `have` 정본 문제 ID 명시적 대응표(`titanic-have-1`~`7` → `have-1-choose-1`~`3`, `have-1-retrieve-1`~`2`, `have-1-produce-1`~`2`), `study-and-learn` 정본 과정 묶음(`web-process-v1`) 해시 검증·중복 판별·이관 CLI | 전송 묶음 해시(`bundleHash`)와 정본 파일 해시(`canonicalFileHash`)를 구분하고, 같은 사건 ID에 다른 해시가 오면 묶음 전체를 거절한다. 첫 답 전 정답이나 미개봉 카드 표현은 스냅샷에 넣지 않는다 | (검사: `npm test`의 `tests/learner-records.test.ts`) |
+| `lib/server/access-auth.ts`, `lib/server/learner-records.ts`, `app/api/learner-records/` | Cloudflare Access RS256 JWT 신원·호스트·출처 검증과 학습자 전용 SQLite Durable Object(`LearnerRecordStore`, `LEARNER_RECORDS` 바인딩) 저장·조회·충돌 보존·보관함·외부 AI 실행 결과 보관·정본 내보내기/수신 확인 | 공개 학습은 로그인 없이 열어 두고 개인 기록 경로만 Access JWT 서명·`iss`·`aud`·`exp`/`nbf`/`iat`·허용 이메일/sub·허용 호스트/출처를 검증해 내부 `ownerId`에 매핑한다. 위조 가능한 평문 헤더나 요청 본문 소유자 ID는 믿지 않으며 설정 누락·검증 실패 시 fail-closed로 거절한다. `DailyQuota`와 분리해 학습 사건을 자동 삭제하지 않는다 | (검사: `npm test`의 `tests/learner-records.test.ts`, `npm run test:e2e`의 `tests/e2e/learner-record-preservation.spec.ts`) |
+| `components/personal-record-sync.tsx` | 작업 공간 29개와 `/ask/`의 개인 서버 보관 연결·초안 동기화·409 리비전 충돌 해소(`서버 최신 상태 유지` / `이 기기 초안 반영`)·로그인 전 브라우저 기록 명시적 가져오기·보관함 이동/복원·서버 보관 AI 결과 조회 UI | 비로그인 시 `/api/learner-records/`를 자동 호출하지 않고 브라우저 임시 보관으로 동작한다. 로그인 전 브라우저 기록은 명시적 가져오기 선택 때만 `browser-import` 출처로 서버에 올린다 | (검사: `npm run test:e2e`의 `tests/e2e/learner-record-preservation.spec.ts`) |
+| `worker.ts`, `lib/server/quota.ts` | OpenNext 처리 연결, 일일 요청 횟수(`DailyQuota`), 학습자 개인 기록 보관소(`LearnerRecordStore`) | SQLite 기반 Durable Object 두 종류를 분리해 사용량 한도는 48시간 뒤 지우고 학습 기록은 영속 보관한다 | (검사: `npm test`, `npm run test:e2e`) |
 | `lib/server/legacy-api.ts` | 기존 API 도메인의 경로·CORS 호환 | 지정한 도메인에서만 호환 처리를 한다 | (검사: `npm test`) |
 
 UI는 API를 호출하고 서버는 학습 자료와 외부 공급자를 사용한다. 서버의 비밀값을 UI 상태로 넘기지 않는다.
-기존 퀴즈의 진행 상태는 브라우저 메모리에만 있다. 기본 학습 작업 공간은 초안·최초 제출·수정·대화를 같은 브라우저에
-임시 보관한다. 개인 기록 DB와 계정 인증은 아직 없다.
-같은 Origin을 확인하는 것은 계정 인증이 아니며 개인 기록에 대한 읽기·수정 권한을 보장하지 않는다.
+기존 정적 퀴즈의 진행 상태는 브라우저 메모리에만 있다. 작업 공간 29개(장면 `titanic-have` v3, 이야기 15편·카드 13개 v4)와 문장 해설기(`/ask/`)는 비로그인 상태에서 같은 브라우저에 임시 보관하고, Cloudflare Access로 로그인한 상태에서는 학습자 전용 SQLite Durable Object(`LearnerRecordStore`)에 과정 사건·당시 공개 자료 스냅샷·최신 초안·AI 실행 결과를 보관해 다른 기기에서 이어 한다.
+같은 Origin을 확인하는 것만으로는 계정 인증이 아니므로, 개인 기록 경로(`/api/learner-records/*`)는 Access RS256 JWT 서명과 허용 학습자 신원·호스트·출처를 함께 검증한다.
 
 본문 전체는 페이지 스크롤로 읽는다. 넓은 화면에서는 목차·자료 스택·대화를 옆에 유지하고 대화만 내부 스크롤한다. 자료·퀴즈·보기·수행 열람은 본문에 둔다.
 첫 답·이유와 수정은 그 퀴즈가 있는 본문 자리에서 입력한다(일곱 문제의 폼이 처음부터 문서에 있다). 첫 답을 내면 AI 피드백을 자동으로 한 번 요청하고, 피드백과 이후의 질문·응답 전문은 그 퀴즈 안에 쌓인다. 대화 칸은 질문 칸과 입력 대상(문서에서 마지막으로 다룬 퀴즈) 표시, 첫 답·수정·질문·응답의 한 줄 요약 타임라인("문서에서 보기"로 본문 위치에 간다)만 둔다. 요청 대기·실패·다시 보내기·중단은 대화 칸에서 다룬다.
@@ -163,6 +165,7 @@ Cloudflare 비밀값은 Worker secret, 일반 변수·바인딩과 호환 설정
 - 공개 운영 주소와 기존 API 도메인을 같은 Worker의 Custom Domain으로 전환했다. GitHub Pages 게시를 해제했다. 이전 원격 API 프로세스는 복구용으로 남겨 두었다.
 - 콘텐츠·대화 분리의 현재 수용 근거는 `docs/tasks/content-chat-workspace.md`, 이전 문서·스택 근거는 `docs/tasks/document-workspace.md`에 있다.
 - 이야기 15편·유닛 13개 수업(서버 정본·무료 판정·수업별 기록·읽기 구역·카드 수업)의 수용 근거와 미확인 범위는 `docs/tasks/workspace-lessons.md`에 있다.
-- 퀴즈 아티팩트·대화 API·모델 예측의 수용 근거는 `docs/tasks/quiz-artifacts.md`에 있다. 이전 단일 문제 근거는 `docs/tasks/learning-workspace.md`에 있다. 개인 서버 기록·인증·권한·다른 기기 복원·이전 기록 연결은 남아 있다.
+- 퀴즈 아티팩트·대화 API·모델 예측의 수용 근거는 `docs/tasks/quiz-artifacts.md`에 있다. 이전 단일 문제 근거는 `docs/tasks/learning-workspace.md`에 있다.
+- 개인 서버 기록(`LearnerRecordStore` SQLite Durable Object)·Cloudflare Access RS256 JWT 인증·기기 간 복원과 충돌 해소·이전 브라우저 기록 명시적 가져오기·보관함 복원·`study-and-learn` 정본 과정 묶음 이관의 수용 근거는 `docs/tasks/learning-record-preservation.md`에 있다. 정적 연습 퀴즈와 펜 노트의 서버 보존 확대는 후속 범위다.
 
 테스트가 확인하는 조건과 미확인 범위는 `docs/cloudflare-migration.md`와 작업 계약의 수용 근거에 연결한다.

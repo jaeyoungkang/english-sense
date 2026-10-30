@@ -1,5 +1,7 @@
 import { askFollowupLimits, askId, isExplanation, type AskMessage, type AskMode, type Explanation } from "./ask-contract";
 
+export const ASK_STORAGE_KEY = "english-sense-ask-v1";
+
 /** Storage-neutral facts. Samples, browsing and selection are never requests. */
 export type AskStatus = "pending" | "succeeded" | "failed" | "unknown";
 export type AskTurn = {
@@ -153,6 +155,22 @@ export function failAskTurn(state: AskRecords, entryId: string, turnId: string, 
 export function interruptAskRequest(state: AskRecords, entryId: string, requestId: string): AskRecords {
   if (entryId === requestId) return updateEntry(state, entryId, entry => entry.status === "pending" ? { ...entry, status: "unknown" } : entry);
   return updateTurn(state, entryId, requestId, turn => turn.status === "pending" ? { ...turn, status: "unknown" } : turn);
+}
+export function recoverAskEntryResult(state: AskRecords, id: string, explanation: Explanation, finishedAt: string): AskRecords {
+  return updateEntry(state, id, entry => {
+    if (entry.status === "succeeded") return entry;
+    result(explanation);
+    const snapshot: Explanation = { ...explanation, headwords: explanation.headwords.map(item => ({ ...item })), contrasts: explanation.contrasts.map(item => ({ ...item })), alternatives: [...explanation.alternatives] };
+    const { error: _removedError, ...rest } = entry;
+    return { ...rest, status: "succeeded", result: snapshot, finishedAt: finishedAt >= entry.createdAt ? finishedAt : entry.createdAt };
+  });
+}
+export function recoverAskTurnResult(state: AskRecords, entryId: string, turnId: string, reply: string, finishedAt: string): AskRecords {
+  return updateTurn(state, entryId, turnId, turn => {
+    if (turn.status === "succeeded") return turn;
+    const { error: _removedError, ...rest } = turn;
+    return { ...rest, status: "succeeded", reply, finishedAt: finishedAt >= turn.createdAt ? finishedAt : turn.createdAt };
+  });
 }
 
 export function serializeAskRecords(state: AskRecords): string { validateAskRecords(state); return JSON.stringify(state); }

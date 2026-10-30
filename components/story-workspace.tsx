@@ -8,7 +8,8 @@ import { readLessonChatResponse, type LessonChatRequest } from "@/lib/lesson-cha
 import { LEARNING_CHAT_ENDPOINT, learningChatLimits } from "@/lib/learning-chat-contract";
 import { activeThread, characterCount as chars, historyFor, startThread, threadLimit, updateArtifact, markTurn, type WorkspaceTurn } from "@/lib/learning-thread";
 import { documentAnchorId } from "@/lib/document-workspace-state";
-import { acceptLessonReply, beginLessonTurn, buildLessonCheckRequest, createLessonState, endReading, lessonAccess, projectLessonArtifacts, readingStatus, registerLessonArtifact, retryLessonTurn, selectLessonQuestion, startReading, submitLessonAttempt, syncReading, type JudgementResponse, type LessonArtifact, type LessonEvent, type LessonReply, type LessonState } from "@/lib/lesson-workspace-state";
+import type { BrowserImportItem } from "@/lib/learner-record-contract";
+import { acceptLessonReply, beginLessonTurn, buildLessonCheckRequest, createLessonState, endReading, lessonAccess, projectLessonArtifacts, readingStatus, recoverLessonServerReply, registerLessonArtifact, retryLessonTurn, selectLessonQuestion, startReading, submitLessonAttempt, syncReading, type JudgementResponse, type LessonArtifact, type LessonEvent, type LessonReply, type LessonState } from "@/lib/lesson-workspace-state";
 import type { PublicStoryLesson, PublicStoryQuestion, StoryLessonLinks } from "@/lib/lesson-registry";
 import { optionLetter as letter, storyExplainRequestMessage } from "@/lib/story-lesson";
 import { defaultReadingLevel, levelLimitSeconds, readingFactsLine, readingLevels, type ReadingLevel } from "@/lib/reading-level";
@@ -18,6 +19,7 @@ import { SaveWarning, useTurnRequests } from "@/components/workspace-session";
 import { EventLine, JudgementItem, JudgementLine, JudgementStatus, OldVersionNotice, useLessonChecks, useLessonRecord } from "@/components/lesson-common";
 import { AssistantReply, QuestionComposer, RequestStatus, UserRequest } from "@/components/workspace-chat";
 import { CoveredNotes, NoteBlock, NoteTools, NotesBanner, NotesButton, NotesFact, NotesProvider, usePenNotes } from "@/components/pen-notes";
+import { PersonalRecordSyncBar, usePersonalRecordSync } from "@/components/personal-record-sync";
 import { isStoryBodyKey, isStoryQuestionKey, storyAskKey, storyBlocks, storyBodyKey, storyOptionKey, storyParagraphRuns } from "@/lib/note-blocks";
 
 /**
@@ -90,6 +92,24 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   const bodyVisible = phase === "reading" || (phase === "ended" && peek && allAnswered);
   const noteBlocks = useMemo(() => storyBlocks(lesson), [lesson]);
   const notes = usePenNotes({ lessonId: lesson.lessonId, blocks: noteBlocks, hidden: block => (isStoryBodyKey(block) && !bodyVisible) || (isStoryQuestionKey(block) && phase !== "ended") });
+  const sync = usePersonalRecordSync<LessonState>({
+    scope: lesson.lessonId,
+    contentVersion: lesson.contentVersion,
+    localState: record,
+    localReady: hydrated,
+    hasMeaningfulLocalWork: record.events.length > 0 || record.artifacts.some(a => a.choice !== null || a.inputs.some(i => Boolean(i.trim())) || Boolean(a.messageDraft.trim()) || a.attempts.length > 0 || a.threads.some(t => t.turns.length > 0 || Boolean(t.draft?.trim()))),
+    collectBrowserImportItems: () => {
+      try {
+        const raw = localStorage.getItem(keys.record);
+        const items: BrowserImportItem[] = raw ? [{ scope: lesson.lessonId, storageKey: keys.record, legacyVersion: 4, contentVersion: lesson.contentVersion, rawJson: raw }] : [];
+        return items;
+      } catch {
+        return [];
+      }
+    },
+    createFreshState: () => createLessonState(lesson),
+    applyServerState: next => { turns.cancel(); store.unblock(); judge.clear(); setPeek(false); update(() => next); },
+  });
 
   function chooseTarget(questionId: string, input = false) {
     update(previous => selectLessonQuestion(previous, lesson, questionId)); setNotice("");
@@ -103,6 +123,7 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   function finishReading() { titleFocus.current = true; update(previous => endReading(previous, Date.now())); setNow(Date.now()); }
   function startOver() {
     turns.cancel(); store.unblock(); judge.clear(); setPeek(false); setNotice("");
+    if (sync.isServerConnected) { void sync.archiveAndStartNewRun("new-version"); return; }
     update(() => createLessonState(lesson));
   }
 
@@ -185,7 +206,18 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
   function turnItems(artifact: LessonArtifact, turn: WorkspaceTurn, threadId: string, requestId: string) {
     return <RequestStatus label={targetLabel(artifact)} turn={turn} requestId={requestId} current={threadId === artifact.activeThreadId} waiting={artifact.attempts.length ? "내 답과 해설을 살펴보고 있습니다…" : "준비 안내를 가져오고 있습니다…"} busy={busy} locked={artifact.contentVersion !== lesson.contentVersion}
       onRetry={() => void sendMessage(artifact.artifactId, turn.user, turn.origin, { threadId, turnId: turn.id })}
-      onDismiss={() => update(previous => markTurn(previous, artifact.artifactId, threadId, turn.id, requestId, "cancelled", "실패한 요청을 접었습니다. 원래 질문은 그대로 남깁니다."))} />;
+      onDismiss={() => update(previous => markTurn(previous, artifact.artifactId, threadId, turn.id, requestId, "cancelled", "실패한 요청을 접었습니다. 원래 질문은 그대로 남깁니다."))}
+      onCheckServerResult={sync.isServerConnected && (turn.status === "cancelled" || turn.status === "failed") ? () => {
+        void sync.lookupExecutionResult(turn.requestId).then(exec => {
+          const reply = exec?.status === "succeeded" ? readLessonChatResponse(exec.responsePayload, { requestId: turn.requestId, lessonId: lesson.lessonId, artifactId: artifact.artifactId, questionId: artifact.question.questionId, contentVersion: artifact.contentVersion }) : null;
+          if (reply) {
+            update(previous => recoverLessonServerReply(previous, reply));
+            setNotice("서버에 보관된 응답을 확인해 연결했습니다.");
+          } else {
+            setNotice(exec?.errorMessage || "서버에 보관된 응답을 찾지 못했습니다. 다시 보낼 수 있습니다.");
+          }
+        });
+      } : undefined} />;
   }
   const choiceLetter = (artifact: LessonArtifact) => { const attempt = artifact.attempts[0]?.attempt; return attempt?.kind === "choose" ? letter(attempt.choice) : "?"; };
   function timelineEvent(event: LessonEvent): ReactNode {
@@ -264,7 +296,7 @@ export function StoryWorkspace({ lesson, links }: { lesson: PublicStoryLesson; l
     <button type="button" onClick={finishReading}>다 읽었습니다</button>
   </span> : null;
 
-  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<><span className="lw-story-word" lang="en">{lesson.title}</span>{lesson.draft && <span className="tag draft-tag">초안</span>}</>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} outline={outline}
+  return <NotesProvider value={notes}><WorkspaceFrame shell={shell} lessonWord={<><span className="lw-story-word" lang="en">{lesson.title}</span>{lesson.draft && <span className="tag draft-tag">초안</span>}</>} save={{ text: store.saveText + (notes.saveState === "failed" ? " · 노트 저장 실패" : ""), failed: store.saveState === "failed" || notes.saveState === "failed" }} serverConnected={sync.isServerConnected} syncBar={<PersonalRecordSyncBar sync={sync} />} outline={outline}
     currentList={{ href: "/reading/", title: "이야기 전체 목록" }}
     toolbarActions={<>{timerControls}<span className="lw-sr-only" role="status">{announce}</span><NotesButton /></>}
     toc={{ title: <>이야기 수업<br />학습 문서</>, lead: "이야기를 읽고, 본문을 가린 뒤 이어지는 문제를 풉니다.", summary: <><p>이야기 1개 · 문제 {lesson.questions.length}개</p>{answered > 0 && <p>첫 답을 남긴 문제 {answered}개</p>}<NotesFact /><p>문서 전체의 목차입니다. 문제는 원하는 순서로 풉니다.</p></> }}

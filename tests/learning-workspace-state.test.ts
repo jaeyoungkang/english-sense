@@ -237,7 +237,9 @@ test("cancel, failed retry and thread replacement reject old responses and prese
   state = checked(retryTurn(state, id, threadId, failed.id, "new-request"));
   assert.equal(acceptReply(state, reply(findArtifact(state, id), failed.requestId)), state);
   state = checked(acceptReply(state, reply(findArtifact(state, id), "new-request")));
+  const retriedTurn = activeThread(findArtifact(state, id)).turns.find(item => item.id === failed.id)!;
   assert.equal(activeThread(findArtifact(state, id)).turns.filter(item => item.id === failed.id).length, 1);
+  assert.deepEqual(retriedTurn.failedAttempts, [{ requestId: failed.requestId, status: "failed", error: "Network failed" }], "retrying preserves the initial failure and its requestId");
   assert.deepEqual(historyFor(activeThread(findArtifact(state, id))), [
     { role: "user", content: failed.user }, { role: "assistant", content: "Mock tutor reply" },
   ]);

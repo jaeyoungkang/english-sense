@@ -8,7 +8,7 @@ import type { LessonCheckRequest, LessonCheckResponse } from "../lib/lesson-cont
 import { LESSONS } from "../lib/lesson-registry";
 import {
   acceptLessonCheck, acceptLessonReply, acceptLessonReveal, beginLessonTurn, buildLessonCheckRequest, buildLessonRevealRequest, createLessonState, endReading,
-  isLessonState, lessonAccess, lessonStorageKeys, loadLessonRecord, projectLessonArtifacts, readingStatus, registerLessonArtifact, restoreLessonState, retryLessonTurn,
+  isLessonState, lessonAccess, lessonStorageKeys, loadLessonRecord, projectLessonArtifacts, readingStatus, recordLessonActionFailure, registerLessonArtifact, restoreLessonState, retryLessonTurn,
   selectLessonQuestion, startReading, submitLessonAttempt, syncReading, LESSON_STORAGE_PREFIX, type LessonDocument, type LessonReply, type LessonState,
 } from "../lib/lesson-workspace-state";
 import { getPublicLesson } from "../lib/server/lesson-catalog";
@@ -527,11 +527,33 @@ test("failed turns, retries and new threads use the shared lifecycle on a v4 rec
   const threadId = activeThread(findArtifact(state, id)).id;
   state = checked(markTurn(state, id, threadId, "t1", "t1-request", "failed", "boom"));
   state = checked(retryLessonTurn(state, doc, id, threadId, "t1", "t1-retry"));
+  assert.deepEqual(findArtifact(state, id).threads[0].turns[0].failedAttempts, [{ requestId: "t1-request", status: "failed", error: "boom" }]);
   assert.deepEqual(state.events.map(event => event.kind), ["request", "retry"]);
   state = checked(startThread(state, id));
   assert.equal(findArtifact(state, id).threads.length, 2);
   assert.equal(findArtifact(state, id).threads[0].turns[0].status, "cancelled");
+  assert.deepEqual(findArtifact(state, id).threads[0].turns[0].failedAttempts, [{ requestId: "t1-request", status: "failed", error: "boom" }]);
   assert.equal(state.events.at(-1)?.kind, "thread");
+});
+
+test("failed check and reveal requests are preserved in the record alongside subsequent successful retries", async () => {
+  const { doc, state: opened, id } = await openCard(11);
+  let state = checked(submitLessonAttempt(opened, doc, id, { kind: "fill", inputs: ["pick", "down"] }));
+  const failedCheckReq = buildLessonCheckRequest(state, doc, id, "chk-fail-1");
+  state = checked(recordLessonActionFailure(state, failedCheckReq, "판정 서버 연결이 끊어졌습니다."));
+  assert.equal(recordLessonActionFailure(state, failedCheckReq, "중복 실패"), state, "duplicate requestId is not recorded twice");
+  const failedRevealReq = buildLessonRevealRequest(state, doc, id, "rev-fail-1");
+  state = checked(recordLessonActionFailure(state, failedRevealReq, "답 보기 요청이 실패했습니다."));
+  const checkReq = buildLessonCheckRequest(state, doc, id, "chk-ok-1");
+  state = checked(acceptLessonCheck(state, checkReq, await respond(checkReq)));
+  const revealReq = buildLessonRevealRequest(state, doc, id, "rev-ok-1");
+  state = checked(acceptLessonReveal(state, revealReq, await respond(revealReq)));
+  const artifact = findArtifact(state, id);
+  assert.deepEqual(artifact.attempts[0].failedChecks, [{ requestId: "chk-fail-1", error: "판정 서버 연결이 끊어졌습니다." }]);
+  assert.deepEqual(artifact.failedReveals, [{ requestId: "rev-fail-1", afterAttempts: 1, error: "답 보기 요청이 실패했습니다." }]);
+  assert.deepEqual(state.events.map(event => event.kind), ["initial", "check", "reveal"]);
+  const restored = checked(restoreLessonState(JSON.stringify(state), doc, T0));
+  assert.deepEqual(restored, state);
 });
 
 test("the record states facts only: no completion, mastery or progress field anywhere", async () => {

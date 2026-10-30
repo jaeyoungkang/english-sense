@@ -25,6 +25,10 @@
       {
         "name": "QUOTA_LIMITER",
         "class_name": "DailyQuota"
+      },
+      {
+        "name": "LEARNER_RECORDS",
+        "class_name": "LearnerRecordStore"
       }
     ]
   },
@@ -33,6 +37,12 @@
       "tag": "v1",
       "new_sqlite_classes": [
         "DailyQuota"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "LearnerRecordStore"
       ]
     }
   ],

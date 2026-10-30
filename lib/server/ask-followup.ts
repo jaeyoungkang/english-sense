@@ -1,5 +1,7 @@
 import { askFollowupLimits, isAskFollowupRequest, type AskFollowupRequest, type AskFollowupResponse } from "../ask-contract";
+import { ASK_RECORD_SCOPE } from "../learner-record-contract";
 import { ApiError, checkOrigin, takeQuota, type ApiEnv, type Dependencies } from "./api";
+import { trackOwnerAiExecution } from "./learner-records";
 import prompt from "./prompt.json";
 
 const unavailable = "문장 해설 대화가 아직 준비되지 않았습니다. 잠시 뒤 다시 시도해 주세요.";
@@ -115,9 +117,17 @@ export async function handleAskFollowup(request: Request, env: ApiEnv, dependenc
     checkCancelled(request);
     const system = systemPrompt();
     if (!env.ANTHROPIC_API_KEY?.trim() || typeof env.QUOTA_LIMITER?.idFromName !== "function" || typeof env.QUOTA_LIMITER?.get !== "function") throw new FollowupError(503, "unavailable", unavailable);
-    await takeQuota(request, env, dependencies);
-    checkCancelled(request);
-    const response: AskFollowupResponse = { recordId: input.recordId, requestId: input.requestId, reply: await ask(input, system, request, env, dependencies) };
+    const response: AskFollowupResponse = await trackOwnerAiExecution(
+      request,
+      env,
+      dependencies,
+      { scope: ASK_RECORD_SCOPE, requestId: input.requestId, targetId: input.recordId, kind: "ask-followup" },
+      async () => {
+        await takeQuota(request, env, dependencies);
+        checkCancelled(request);
+        return { recordId: input.recordId, requestId: input.requestId, reply: await ask(input, system, request, env, dependencies) };
+      },
+    );
     return json(response);
   } catch (error) {
     if (error instanceof FollowupError) return json({ detail: error.message, code: error.code }, error.status);
